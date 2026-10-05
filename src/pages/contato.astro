@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/Section.astro';
+import Channels from '../components/Channels.astro';
+import ContactForm from '../components/ContactForm.astro';
+
+const assuntos = [
+  { id: 'duvida', titulo: 'Tenho uma dúvida', texto: 'Sobre a liga, os eventos ou como participar.' },
+  { id: 'feedback', titulo: 'Quero dar um feedback', texto: 'Sobre um evento, uma oficina, o processo seletivo ou este site.' },
+  { id: 'projeto', titulo: 'Quero propor um projeto', texto: 'Sua organização tem um problema que software pode resolver.' },
+  { id: 'colaborar', titulo: 'Quero colaborar com a liga', texto: 'Palestras, mentorias e oficinas, com certificado conforme a atividade.' },
+];
+---
+<BaseLayout
+  title="Contato"
+  description="Fale com a Mesa Diretora da LAESA: dúvidas, feedback, propostas de projeto e colaboração."
+  active="contato"
+>
+  <Section class="contact ct-hero" node={96} colClass="contact-grid" label="Contato">
+    <div>
+      <h1 class="d1">Fale com <em>a LAESA.</em></h1>
+      <p class="lead">Escolha o assunto e o formulário mostra só os campos que importam para ele. Toda mensagem chega à Mesa Diretora.</p>
+      <ul class="subjects" aria-label="Assuntos">
+        {assuntos.map((a) => (
+          <li><span class="meta">{a.id}</span><div><b>{a.titulo}</b><span>{a.texto}</span></div></li>
+        ))}
+      </ul>
+      <Channels />
+    </div>
+    <ContactForm />
+  </Section>
+</BaseLayout>

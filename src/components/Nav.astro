@@ -1,0 +1,64 @@
+---
+import Logo from './Logo.astro';
+import Icon from './Icon.astro';
+import StatusTag from './StatusTag.astro';
+import { navLinks, selecao, type NavKey } from '../data/site';
+import { editalAtual } from '../data/editais';
+
+interface Props {
+  active?: NavKey | 'inicio';
+}
+
+const { active = 'inicio' } = Astro.props;
+const numero = editalAtual.titulo.replace('Edital ', '');
+const tag =
+  selecao.status === 'aberto'
+    ? { text: `Edital ${numero} aberto` }
+    : selecao.status === 'em-andamento'
+      ? { text: `Seleção ${numero} em andamento` }
+      : null;
+---
+<header class="nav">
+  <div class="wrap">
+    <div class="nav-in">
+      <a class="logo" href="/" aria-label="LAESA, página inicial"><Logo /></a>
+      <nav class="nav-links" aria-label="Principal">
+        {navLinks.map((l) => (
+          <a href={l.href} aria-current={l.key === active ? 'page' : undefined}>{l.label}</a>
+        ))}
+      </nav>
+      {tag && <StatusTag status={selecao.status} text={tag.text} href="/processos-seletivos" />}
+      <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Abrir menu">
+        <Icon name="menu" />
+      </button>
+    </div>
+  </div>
+  <nav class="nav-panel" id="nav-panel" aria-label="Principal (mobile)">
+    {navLinks.map((l) => (
+      <a href={l.href} aria-current={l.key === active ? 'page' : undefined}>{l.label}</a>
+    ))}
+    {tag && <StatusTag status={selecao.status} text={tag.text} href="/processos-seletivos" />}
+  </nav>
+</header>
+
+<script>
+  const button = document.querySelector<HTMLButtonElement>('.nav-burger');
+  const panel = document.getElementById('nav-panel');
+  if (button && panel) {
+    const setOpen = (open: boolean) => {
+      panel.classList.toggle('is-open', open);
+      button.setAttribute('aria-expanded', String(open));
+      button.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+    };
+    button.addEventListener('click', () => setOpen(!panel.classList.contains('is-open')));
+    panel.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('a')) setOpen(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && panel.classList.contains('is-open')) {
+        setOpen(false);
+        button.focus();
+      }
+    });
+  }
+</script>

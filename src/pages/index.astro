@@ -1,0 +1,148 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/Section.astro';
+import Button from '../components/Button.astro';
+import Icon from '../components/Icon.astro';
+import StatusTag from '../components/StatusTag.astro';
+import GitLog from '../components/GitLog.astro';
+import RulesList from '../components/RulesList.astro';
+import ProjectRow from '../components/ProjectRow.astro';
+import PersonCard from '../components/PersonCard.astro';
+import StageList from '../components/StageList.astro';
+import Channels from '../components/Channels.astro';
+import ContactForm from '../components/ContactForm.astro';
+import { selecao, estatutoUrl } from '../data/site';
+import { heroLog, eixos, areas, sprint, regrasPublicas, projetos, mesa } from '../data/home';
+import { editalAtual, etapasDo, etapaAtual, rotuloStatus } from '../data/editais';
+
+const numero = editalAtual.titulo.replace('Edital ', '');
+const etapas = etapasDo(editalAtual).slice(0, 4);
+const join = {
+  aberto: { titulo: 'Quer entrar?', destaque: `O edital ${numero} está aberto.`, cta: 'Ver edital e se inscrever' },
+  'em-andamento': { titulo: 'Seleção', destaque: `${numero} em andamento.`, cta: 'Acompanhar o edital' },
+  finalizado: { titulo: 'Próximo edital', destaque: 'em breve.', cta: 'Ver editais anteriores' },
+}[selecao.status];
+---
+<BaseLayout
+  title="LAESA"
+  description="Liga acadêmica de Engenharia de Software do iCEV, em Teresina. Estudamos, pesquisamos e desenvolvemos projetos reais em Sprints e Squads."
+>
+  <!-- HERO -->
+  <Section class="hero" node={104} colClass="hero-grid" label="Início">
+    <div>
+      {selecao.status === 'aberto' && <StatusTag status="aberto" text={`Edital ${numero} aberto`} href="/processos-seletivos" class="mb" />}
+      <h1 class="d1">Engenharia de software que <em>sai do papel.</em></h1>
+      <p class="lead">A LAESA é a liga acadêmica de Engenharia de Software do iCEV, em Teresina. Estudamos, pesquisamos e desenvolvemos projetos reais em Sprints e Squads, como um time de mercado.</p>
+      <div class="branches">
+        {[
+          { href: '/processos-seletivos', label: 'Quero entrar na liga', variant: 'primary' as const },
+          { href: '/contato?assunto=projeto', label: 'Tenho um projeto para a LAESA', variant: 'outline' as const },
+        ].map((b) => (
+          <div class="branch">
+            <svg class="branch-svg dk" viewBox="0 0 104 112" aria-hidden="true"><path d="M27 30 Q27 76 67 76 H92" /><circle cx="97" cy="76" r="6" style="fill: var(--blue)" /></svg>
+            <svg class="branch-svg mb" viewBox="0 0 64 112" aria-hidden="true"><path d="M7 30 Q7 76 37 76 H52" /><circle cx="57" cy="76" r="6" style="fill: var(--blue)" /></svg>
+            <div class="branch-body"><Button href={b.href} variant={b.variant}>{b.label}</Button></div>
+          </div>
+        ))}
+      </div>
+    </div>
+    <GitLog commits={heroLog} />
+  </Section>
+
+  <!-- SOBRE -->
+  <Section id="sobre" class="navy about">
+    <div class="about-top">
+      <h2 class="d2">Uma liga que trabalha como <em>um time de produto.</em></h2>
+      <p class="body">Somos uma associação acadêmica sem fins lucrativos, criada em 2023 por estudantes de Engenharia de Software do iCEV. Complementamos a graduação com prática: o que se estuda em sala vira projeto, pesquisa e conteúdo para a comunidade.</p>
+    </div>
+    <div class="axes">
+      {eixos.map((e) => (
+        <div class="axis">
+          <h3 class="d3">{e.titulo}</h3>
+          <p class="body">{e.texto}</p>
+          <span class="meta">{e.ref}</span>
+        </div>
+      ))}
+    </div>
+    <div class="areas">
+      <span class="meta">áreas</span>
+      {areas.map((a) => <span class="chip">{a}</span>)}
+    </div>
+  </Section>
+
+  <!-- COMO FUNCIONA -->
+  <Section id="como-funciona" class="how">
+    <div class="sec-head">
+      <h2 class="d2">A gente trabalha <em>em Sprints.</em></h2>
+      <p class="body">O mercado roda em metodologias ágeis, e a liga também. Cada semestre tem um cronograma dividido em Sprints, e tudo o que acontece fica registrado em ata.</p>
+    </div>
+    <div class="how-grid">
+      <ol class="sprint">
+        {sprint.map((s, i) => (
+          <li class:list={['step', { end: i === sprint.length - 1 }]}>
+            <div><h3>{s.titulo}</h3><p class="body">{s.texto}</p></div>
+          </li>
+        ))}
+      </ol>
+      <div class="rules">
+        <h3>Regras públicas <span class="meta">estatuto 2026</span></h3>
+        <RulesList regras={regrasPublicas} />
+        <a class="link" href={estatutoUrl}>Ler o estatuto completo <Icon name="arrow" /></a>
+      </div>
+    </div>
+  </Section>
+
+  <!-- PROJETOS -->
+  <Section id="projetos" class="paper projects">
+    <div class="sec-head">
+      <h2 class="d2">O que já <em>saiu do papel.</em></h2>
+      <p class="body">Projetos acadêmicos, científicos, tecnológicos e sociais desenvolvidos pelos Squads da liga.</p>
+    </div>
+    <div class="proj-list">
+      {projetos.map((p) => <ProjectRow projeto={p} />)}
+    </div>
+    <div class="proj-cta">
+      <p>Sua organização tem um problema que software pode resolver?</p>
+      <Button href="/contato?assunto=projeto">Propor um projeto</Button>
+    </div>
+  </Section>
+
+  <!-- DIRETORIA -->
+  <Section id="diretoria" class="team">
+    <div class="sec-head">
+      <h2 class="d2">Quem conduz <em>a liga.</em></h2>
+      <p class="body">A Mesa Diretora é eleita pelos membros para mandatos de dois semestres, com apoio de um(a) Professor(a) Orientador(a) do curso.</p>
+    </div>
+    <div class="people">
+      {mesa.map((p) => <PersonCard pessoa={p} />)}
+    </div>
+  </Section>
+
+  <!-- PROCESSO SELETIVO -->
+  <Section class="navy deep join" head={selecao.status === 'aberto'} colClass="join-grid" label="Processo seletivo">
+    <div>
+      <StatusTag status={selecao.status} text={rotuloStatus[selecao.status]} />
+      <h2 class="d2">{join.titulo} <em>{join.destaque}</em></h2>
+      <p class="lead">A seleção é anual e aberta a estudantes de nível técnico ou superior com interesse na área. São no mínimo duas vagas, e a liga tem até 15 membros.</p>
+      <div class="join-actions">
+        <Button href="/processos-seletivos" variant="light">{join.cta}</Button>
+        {editalAtual.modeloCarta && selecao.status === 'aberto' && <Button href={editalAtual.modeloCarta} variant="ghost-light" icon="doc" download>Baixar modelo da carta</Button>}
+      </div>
+    </div>
+    <StageList etapas={etapas} atual={etapaAtual(selecao.status)} />
+  </Section>
+
+  <!-- CONTATO -->
+  <Section id="contato" class="contact" colClass="contact-grid">
+    <div>
+      <h2 class="d2">Fale com <em>a LAESA.</em></h2>
+      <p class="lead">Dúvida sobre a liga, feedback sobre um evento ou uma ideia de projeto para a sua organização: escolha o assunto e a mensagem chega direto à Mesa Diretora.</p>
+      <Channels />
+      <div class="collab">
+        <h3>Quer colaborar com a liga?</h3>
+        <p class="body">Profissionais, palestrantes, mentores, voluntários e egressos podem colaborar com oficinas, mentorias e eventos, com certificado conforme a atividade.</p>
+      </div>
+    </div>
+    <ContactForm id="home-contato" />
+  </Section>
+</BaseLayout>

@@ -1,0 +1,14 @@
+---
+import Icon from './Icon.astro';
+import Sample from './Sample.astro';
+import { canais } from '../data/site';
+---
+<ul class="channels">
+  {canais.map((c) => (
+    <li class="channel">
+      <Icon name={c.icon} />
+      <div><div class="k">{c.rotulo}</div><a class="v" href={c.href}>{c.valor}</a></div>
+      {c.exemplo && <Sample text="confirmar" />}
+    </li>
+  ))}
+</ul>

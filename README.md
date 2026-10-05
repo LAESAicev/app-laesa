@@ -7,12 +7,28 @@ Site da **Liga Acadêmica de Engenharia de Software Aplicada** (iCEV, Teresina-P
 - Figma: [LAESA — Site v2 e Componentes](https://www.figma.com/design/xBth5y7AzKE2UxvbGaXuzf?node-id=3046-758)
 - Direção visual: *Grafo de Commits*. A página é um `git log --graph`: a linha principal atravessa as seções e as branches são as portas de entrada.
 
+## Rodar localmente
+
+```sh
+npm install
+npm run dev       # http://localhost:4321
+npm run build     # checa tipos e gera dist/
+npm run design    # regera o protótipo HTML (design/dist) usado no Figma
+```
+
 ## Estrutura
 
 ```
 .
 ├── LICENSE             uso exclusivo da LAESA, todos os direitos reservados
 ├── PRODUCT.md            contexto do produto: público, objetivos, regras de conteúdo
+├── src/
+│   ├── pages/            /, /processos-seletivos, /processos-seletivos/[slug], /contato, /privacidade, 404
+│   ├── components/       componentes portados do protótipo (Nav, GitLog, EditalPage, ContactForm…)
+│   ├── data/             conteúdo tipado (vira YAML editável pelo painel na Fase 2)
+│   ├── styles/global.css tokens e estilos (portados de design/src/styles.css)
+│   └── icons/            ícones 24px
+├── public/               favicon e, depois, uploads
 ├── docs/
 │   ├── estatuto-2026.md  estatuto da liga, fonte de toda regra citada no site
 │   ├── adr/              decisões de arquitetura (0001: repositório único, Keystatic, iCEV)

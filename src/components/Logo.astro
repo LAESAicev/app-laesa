@@ -1,0 +1,18 @@
+---
+// Logo oficial (brand/logo). A arte vive num canvas 0,0; o recorte é feito pelo CSS .lg (ver global.css).
+// A cor vem de `color` do elemento pai (fill="currentColor").
+import horizontal from '../../brand/logo/horizontal/laesa-horizontal-navy.svg?raw';
+import icone from '../../brand/logo/icone/laesa-icone-navy.svg?raw';
+
+interface Props {
+  variant?: 'horizontal' | 'icone';
+}
+
+const { variant = 'horizontal' } = Astro.props;
+const raw = variant === 'horizontal' ? horizontal : icone;
+const [, w, h] = raw.match(/width="(\d+)" height="(\d+)"/) ?? [];
+const svg = raw
+  .replace(/<svg[^>]*>/, `<svg viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">`)
+  .replace(/fill="#[0-9A-Fa-f]{6}"/g, 'fill="currentColor"');
+---
+<span class:list={['lg', variant === 'horizontal' ? 'lg-h' : 'lg-i']} set:html={svg} />

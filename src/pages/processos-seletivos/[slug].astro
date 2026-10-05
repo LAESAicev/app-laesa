@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EditalPage from '../../components/EditalPage.astro';
+import { editais, statusDo, rotuloStatus, type Edital } from '../../data/editais';
+
+export function getStaticPaths() {
+  return editais.map((edital) => ({ params: { slug: edital.slug }, props: { edital } }));
+}
+
+interface Props {
+  edital: Edital;
+}
+
+const { edital } = Astro.props;
+---
+<BaseLayout
+  title={edital.titulo}
+  description={`${edital.titulo} da LAESA (${rotuloStatus[statusDo(edital)]}): etapas, datas, vagas e documentos.`}
+  active="processos"
+>
+  <EditalPage edital={edital} />
+</BaseLayout>

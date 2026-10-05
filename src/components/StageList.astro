@@ -1,0 +1,18 @@
+---
+import type { Etapa } from '../data/editais';
+
+interface Props {
+  etapas: Etapa[];
+  atual: number;
+}
+
+const { etapas, atual } = Astro.props;
+---
+<ol class="stages">
+  {etapas.map((e, i) => (
+    <li class:list={['stage', { now: i === atual }]} aria-current={i === atual ? 'step' : undefined}>
+      <div><h3>{e.titulo}</h3><p class="body">{e.texto}</p></div>
+      <span class="meta">{e.quando}</span>
+    </li>
+  ))}
+</ol>

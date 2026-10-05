@@ -1,0 +1,20 @@
+---
+import Logo from './Logo.astro';
+import Sample from './Sample.astro';
+import type { Pessoa } from '../data/home';
+
+interface Props {
+  pessoa: Pessoa;
+}
+
+const { pessoa: p } = Astro.props;
+---
+<div class:list={['person', { adv: p.orientacao }]}>
+  <div class="photo">
+    {p.foto ? <img src={p.foto} alt={`Foto de ${p.nome}`} loading="lazy" width="400" height="500" /> : <><Logo variant="icone" /><Sample text="foto" /></>}
+  </div>
+  <div>
+    <h3>{p.nome}</h3>
+    <p class="role">{p.cargo}</p>
+  </div>
+</div>

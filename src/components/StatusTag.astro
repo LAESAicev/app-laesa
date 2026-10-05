@@ -1,0 +1,15 @@
+---
+// Menta só para "aberto" (estado ativo). Os outros estados usam a tag neutra.
+import type { StatusSelecao } from '../data/site';
+
+interface Props {
+  status: StatusSelecao;
+  text: string;
+  href?: string;
+  class?: string;
+}
+
+const { status, text, href, class: className } = Astro.props;
+const Tag = href ? 'a' : 'span';
+---
+<Tag class:list={['tag-open', { neutral: status !== 'aberto' }, className]} href={href}><i aria-hidden="true"></i>{text}</Tag>

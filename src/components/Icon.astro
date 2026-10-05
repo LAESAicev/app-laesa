@@ -1,0 +1,19 @@
+---
+// Ícones 24px, traço 2 (estilo Lucide). Os SVGs ficam em src/icons/ e são os mesmos do Figma (Componentes → Ícones).
+const icons = import.meta.glob<string>('../icons/*.svg', { query: '?raw', import: 'default', eager: true });
+
+export type IconName = 'alert' | 'arrow' | 'calendar' | 'check' | 'chevron' | 'doc' | 'github' | 'instagram' | 'linkedin' | 'mail' | 'menu' | 'plus';
+
+interface Props {
+  name: IconName;
+  /** Texto para leitores de tela; sem ele o ícone é decorativo. */
+  label?: string;
+}
+
+const { name, label } = Astro.props;
+const raw = icons[`../icons/${name}.svg`];
+if (!raw) throw new Error(`Ícone desconhecido: ${name}`);
+const a11y = label ? `role="img" aria-label="${label}"` : 'aria-hidden="true" focusable="false"';
+const svg = raw.replace('<svg ', `<svg ${a11y} `);
+---
+<Fragment set:html={svg} />

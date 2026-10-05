@@ -8,3 +8,7 @@ design/dist/
 .impeccable/questions/
 .impeccable/mocks/
 .impeccable/config.local.json
+
+# astro
+dist/
+.astro/

@@ -1,0 +1,16 @@
+---
+import Icon from './Icon.astro';
+import type { Regra } from '../data/home';
+
+interface Props {
+  regras: Regra[];
+}
+
+const { regras } = Astro.props;
+---
+{regras.map((r) => (
+  <div class="rule-row">
+    <span class="k">{r.texto}<span class="meta">{r.ref}</span></span>
+    <span class="v">{r.check ? <Icon name="check" label="Sim" /> : <>{r.valor}{r.unidade && <small>{r.unidade}</small>}</>}</span>
+  </div>
+))}

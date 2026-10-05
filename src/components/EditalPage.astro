@@ -1,0 +1,210 @@
+---
+// Template único de edital. Usado em /processos-seletivos (edital atual) e /processos-seletivos/[slug].
+import Section from './Section.astro';
+import Button from './Button.astro';
+import Icon from './Icon.astro';
+import Sample from './Sample.astro';
+import StatusTag from './StatusTag.astro';
+import RulesList from './RulesList.astro';
+import { faq } from '../data/faq';
+import { editais, editalAtual, statusDo, etapasDo, etapaAtual, rotuloStatus, type Edital } from '../data/editais';
+
+interface Props {
+  edital: Edital;
+}
+
+const { edital } = Astro.props;
+const status = statusDo(edital);
+const atual = etapaAtual(status);
+const etapas = etapasDo(edital);
+const numero = edital.titulo.replace('Edital ', '');
+const isAtual = edital.slug === editalAtual.slug;
+const outros = editais.filter((e) => e.slug !== edital.slug);
+const temDados = Boolean(edital.inscricoesAte && edital.vagas);
+
+const resumo = {
+  aberto: 'Cada edital é uma branch com cinco etapas. Você está na primeira: as inscrições estão abertas.',
+  'em-andamento': 'Cada edital é uma branch com cinco etapas. As inscrições fecharam e a comissão está avaliando.',
+  finalizado: 'Cada edital é uma branch com cinco etapas. Esta seleção já foi concluída.',
+}[status];
+
+const regrasDepois = [
+  { texto: 'Frequência mínima nas reuniões e atividades obrigatórias', ref: 'Art. 11º', valor: '75%' },
+  { texto: 'Certificado de membro efetivo, por semestre', ref: 'Art. 26º § 2º', valor: '45', unidade: 'horas' },
+  { texto: 'Aviso de falta previsível, com antecedência', ref: 'Art. 11º § 4º', valor: '24', unidade: 'horas' },
+  { texto: 'Termo de compromisso assinado ao entrar', ref: 'Art. 12º', valor: '', check: true },
+];
+---
+<!-- HERO -->
+<Section class="ps-hero" node={104} head={status === 'aberto'} colClass="ps-hero-grid" label="Edital">
+  <div>
+    {isAtual ? (
+      <h1 class="d1">Seu primeiro commit <em>na liga.</em></h1>
+    ) : (
+      <h1 class="d1">{edital.titulo} <em>{rotuloStatus[status]}.</em></h1>
+    )}
+    <p class="lead">Os processos seletivos da LAESA acontecem uma vez por ano, conduzidos por uma comissão indicada pela Presidência. São no mínimo duas vagas, a liga tem até 15 membros, e qualquer estudante de nível técnico ou superior com interesse na área pode se candidatar.</p>
+    <div class="ps-refs">
+      <span class="meta">Art. 51º · seleção anual</span>
+      <span class="meta">Art. 52º · técnico ou superior</span>
+      <span class="meta">Art. 53º · mín. 2 vagas, até 15 membros</span>
+    </div>
+  </div>
+
+  <aside class="ed" aria-label={edital.titulo}>
+    <div class="log-bar">
+      <span class="meta"><span class="dk">laesa / </span>edital-{numero}</span>
+      <StatusTag status={status} text={rotuloStatus[status]} />
+    </div>
+    <div class="ed-body">
+      <h2 class="d3">{edital.titulo}</h2>
+      <dl class="ed-facts">
+        <div><dt>Inscrições</dt><dd>{edital.inscricoesAte ? `até ${edital.inscricoesAte}` : 'até [data]'}</dd></div>
+        <div><dt>Vagas</dt><dd>{edital.vagas ? `${edital.vagas} vagas` : '[n] vagas'}</dd></div>
+        <div><dt>Resultado</dt><dd>até 48h após a seleção</dd></div>
+        <div><dt>Quem pode</dt><dd>estudantes de nível técnico ou superior</dd></div>
+      </dl>
+      <div class="ed-actions">
+        {status === 'aberto' && <Button href={edital.linkInscricao ?? '#'} variant="light">Inscrever-se</Button>}
+        {status === 'finalizado' && edital.resultado && <Button href={edital.resultado} variant="light">Ver resultado</Button>}
+        <Button href={edital.pdfEdital ?? '#'} variant="ghost-light" icon="doc">Baixar edital (PDF)</Button>
+      </div>
+      {!temDados && <Sample text="datas e vagas a confirmar no edital" />}
+    </div>
+  </aside>
+</Section>
+
+<!-- ETAPAS -->
+<Section id="etapas" class="paper ps-steps">
+  <div class="sec-head">
+    <h2 class="d2">Do envio <em>ao merge.</em></h2>
+    <p class="body">{resumo}</p>
+  </div>
+  <ol class="flow">
+    {etapas.map((e, i) => (
+      <li
+        class:list={['fstep', { now: i === atual, end: i === etapas.length - 1, done: atual === -1 || i < atual }]}
+        aria-current={i === atual ? 'step' : undefined}
+      >
+        <span class="meta">{e.quando}</span>
+        <h3>{e.titulo}</h3>
+        <p class="body">{e.texto}</p>
+      </li>
+    ))}
+  </ol>
+  <p class="flow-note"><span class="meta">Art. 59º</span> Se alguma vaga for recusada, a liga pode fazer uma nova chamada de candidatos, ou optar por não aprovar ninguém.</p>
+</Section>
+
+<!-- O QUE ENVIAR -->
+<Section id="inscricao" class="ps-send" colClass="ps-send-grid">
+  <div>
+    <h2 class="d2">O que vai <em>na sua inscrição.</em></h2>
+    <p class="body ps-send-intro">Só a carta de apresentação é obrigatória. O resto ajuda a comissão a conhecer você melhor. Requisitos, critérios, prazos e etapas de cada seleção são definidos no edital vigente.</p>
+    <div class="ps-tie">
+      <h3>Em caso de empate</h3>
+      <p class="body">A Mesa Diretora pode pedir à Coordenação do curso informações da sua situação acadêmica, como IRA, percentual de faltas e regularidade, respeitando as normas do iCEV e a proteção dos seus dados.</p>
+      <span class="meta">Art. 55º § 4º</span>
+    </div>
+  </div>
+  <div class="manifest">
+    <div class="mf-row req">
+      <span class="mf-box"><Icon name="check" /></span>
+      <div class="mf-main">
+        <div class="mf-head"><h3>Carta de apresentação</h3><span class="mf-flag">obrigatória</span></div>
+        <p class="body">No modelo do edital, com no mínimo:</p>
+        <ul class="mf-list">
+          <li>nome completo</li>
+          <li>curso e período atual</li>
+          <li>ano e semestre de ingresso</li>
+          <li>cargo ou função pretendida</li>
+          <li>propostas para a LAESA</li>
+        </ul>
+        <a class="link" href={edital.modeloCarta ?? '#'}>Baixar modelo da carta <Icon name="doc" /></a>
+      </div>
+      <span class="meta mf-ref">Art. 55º § 1º</span>
+    </div>
+    <div class="mf-row">
+      <span class="mf-box"></span>
+      <div class="mf-main">
+        <div class="mf-head"><h3>Atividades complementares</h3><span class="mf-flag opt">opcional</span></div>
+        <p class="body">Experiências, projetos, cursos, eventos ou produções acadêmicas ligadas à Engenharia de Software.</p>
+      </div>
+      <span class="meta mf-ref">Art. 55º § 2º</span>
+    </div>
+    <div class="mf-row">
+      <span class="mf-box"></span>
+      <div class="mf-main">
+        <div class="mf-head"><h3>Cartas de recomendação</h3><span class="mf-flag opt">opcional</span></div>
+        <p class="body">Até três cartas de professores vinculados ao iCEV.</p>
+      </div>
+      <span class="meta mf-ref">Art. 55º § 3º</span>
+    </div>
+  </div>
+</Section>
+
+<!-- DEPOIS DE ENTRAR -->
+<Section class="navy ps-after" colClass="ps-after-grid" label="Depois do aceite">
+  <div>
+    <h2 class="d2">Depois do aceite, <em>a Sprint começa.</em></h2>
+    <p class="lead">Você entra num Squad e trabalha em ciclos com abertura e fechamento registrados em ata. Como membro efetivo, você tem direito a:</p>
+    <ul class="rights">
+      <li>votar nas deliberações internas da liga</li>
+      <li>propor atividades, projetos e eventos</li>
+      <li>acessar atas, editais e relatórios da liga</li>
+      <li>ser alocado em Squad, pesquisa ou projeto</li>
+    </ul>
+    <span class="meta">Art. 5º · Art. 27º</span>
+  </div>
+  <div class="ps-rules"><RulesList regras={regrasDepois} /></div>
+</Section>
+
+<!-- OUTROS EDITAIS -->
+{outros.length > 0 && (
+  <Section class="paper ps-past" label="Outros editais">
+    <div class="sec-head">
+      <h2 class="d2">{isAtual ? <>Editais <em>anteriores.</em></> : <>Outros <em>editais.</em></>}</h2>
+      <p class="body">Toda seleção fica registrada: edital, resultado e número de vagas.</p>
+    </div>
+    <div class="past-list">
+      {outros.map((e) => {
+        const s = statusDo(e);
+        return (
+          <article class="past">
+            <span class="proj-node" aria-hidden="true"></span>
+            <h3 class="d3"><a href={`/processos-seletivos/${e.slug}`}>{e.titulo}</a></h3>
+            <span class:list={['status', s === 'finalizado' ? 'merged' : 'active']}><i aria-hidden="true"></i>{rotuloStatus[s]}{e.vagas ? ` · ${e.vagas} vagas` : ' · [n] vagas'}</span>
+            {e.exemplo ? <Sample text="exemplo" /> : <span></span>}
+            <a class="link" href={`/processos-seletivos/${e.slug}`}>{s === 'finalizado' ? 'Ver resultado' : 'Ver edital'} <Icon name="arrow" /></a>
+          </article>
+        );
+      })}
+    </div>
+  </Section>
+)}
+
+<!-- FAQ -->
+<Section id="perguntas" class="ps-faq" colClass="ps-faq-grid">
+  <h2 class="d2">Perguntas <em>frequentes.</em></h2>
+  <div class="faq">
+    {faq.map((q, i) => (
+      <details class="qa" name="faq" open={i === 0}>
+        <summary class="q"><h3>{q.pergunta}</h3><span class="qi" aria-hidden="true"><Icon name="plus" /></span></summary>
+        <div class="a"><p class="body">{q.resposta}</p>{q.ref && <span class="meta">{q.ref}</span>}</div>
+      </details>
+    ))}
+  </div>
+</Section>
+
+<!-- AVISO + COLABORADORES -->
+<Section class="navy deep ps-band" node={96} colClass="ps-band-grid" label="Avisos e colaboração">
+  <div class="band-item">
+    <h2 class="d3">{status === 'aberto' ? 'Quer saber dos próximos editais?' : 'Chegou fora do período de inscrição?'}</h2>
+    <p class="body">Deixe seu contato e a gente avisa quando o próximo edital abrir.</p>
+    <Button href="/contato?assunto=duvida" variant="light">Quero ser avisado</Button>
+  </div>
+  <div class="band-item">
+    <h2 class="d3">Não é estudante, mas quer contribuir?</h2>
+    <p class="body">A Diretoria de Projetos abre chamadas para colaboradores, mentores, palestrantes e voluntários, com certificado conforme a atividade.</p>
+    <a class="link" href="/contato?assunto=colaborar">Falar sobre colaboração <Icon name="arrow" /></a>
+  </div>
+</Section>

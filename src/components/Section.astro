@@ -1,0 +1,23 @@
+---
+// Seção com a espinha do grafo: o nó marca o "commit" da seção (design/MOTION.md).
+interface Props {
+  id?: string;
+  class?: string;
+  colClass?: string;
+  /** Distância do nó ao topo da seção, em px. `false` remove o nó. */
+  node?: number | false;
+  head?: boolean;
+  as?: 'section' | 'footer';
+  label?: string;
+}
+
+const { id, class: className, colClass, node = 120, head = false, as: Tag = 'section', label } = Astro.props;
+---
+<Tag class:list={['sec', className]} id={id} aria-label={label}>
+  <div class="wrap">
+    {node !== false && <span class:list={['node', { head }]} style={`top:${node}px`} aria-hidden="true" />}
+    <div class:list={['col', colClass]}>
+      <slot />
+    </div>
+  </div>
+</Tag>

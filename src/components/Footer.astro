@@ -1,0 +1,41 @@
+---
+import Logo from './Logo.astro';
+import Icon from './Icon.astro';
+import { canais, estatutoUrl } from '../data/site';
+---
+<footer class="sec navy deep foot">
+  <div class="wrap">
+    <div class="col">
+      <div class="foot-top">
+        <div>
+          <a class="logo" href="/" aria-label="LAESA, página inicial"><Logo /></a>
+          <p class="body" style="max-width:38ch">Liga Acadêmica de Engenharia de Software Aplicada. Sem fins lucrativos, fundada em 2023 por estudantes do iCEV, em Teresina (PI).</p>
+          <div class="socials">
+            {canais.map((c) => (
+              <a href={c.href} aria-label={c.rotulo}><Icon name={c.icon} /></a>
+            ))}
+          </div>
+        </div>
+        <nav class="foot-col" aria-label="A liga">
+          <b>A liga</b>
+          <a href="/#sobre">Sobre</a>
+          <a href="/#como-funciona">Como funcionamos</a>
+          <a href="/#projetos">Projetos</a>
+          <a href="/#diretoria">Diretoria</a>
+        </nav>
+        <nav class="foot-col" aria-label="Participe">
+          <b>Participe</b>
+          <a href="/processos-seletivos">Processos seletivos</a>
+          <a href="/contato?assunto=projeto">Propor um projeto</a>
+          <a href="/contato?assunto=colaborar">Colaborar</a>
+          <a href={estatutoUrl}>Estatuto 2026</a>
+          <a href="/privacidade">Privacidade</a>
+        </nav>
+      </div>
+      <div class="foot-bot">
+        <span class="meta">© {new Date().getFullYear()} LAESA · iCEV Instituto de Ensino Superior</span>
+        <span class="meta">main · uso exclusivo da LAESA</span>
+      </div>
+    </div>
+  </div>
+</footer>

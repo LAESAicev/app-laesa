@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/Section.astro';
+import Sample from '../components/Sample.astro';
+---
+<BaseLayout
+  title="Privacidade"
+  description="Como a LAESA usa os dados enviados pelo site: formulário de contato e inscrição em avisos."
+>
+  <Section class="page-head" node={104} label="Privacidade">
+    <h1 class="d1">Seus dados, <em>só para o que você pediu.</em></h1>
+  </Section>
+  <Section class="page-body" node={false}>
+    <div class="prose">
+      <Sample text="rascunho: revisar com o iCEV antes de publicar" />
+      <p>A LAESA (Liga Acadêmica de Engenharia de Software Aplicada) é uma liga estudantil sem fins lucrativos do iCEV. Esta página explica quais dados o site recebe, para que servem e como pedir a exclusão.</p>
+
+      <h2>Formulário de contato</h2>
+      <p>Recebemos o que você preenche: nome, e-mail, assunto, mensagem e os campos do assunto escolhido (por exemplo, organização e tipo de projeto). Usamos esses dados só para responder você. A mensagem é enviada para a caixa de e-mail institucional da LAESA e não fica guardada no site. Se você marcar "enviar sem me identificar" num feedback, nome e e-mail não são enviados.</p>
+
+      <h2>Inscrição para receber avisos</h2>
+      <p>Se você se inscrever, guardamos seu e-mail e a data em que confirmou a inscrição, só para avisar sobre editais e atividades da liga. Todo aviso tem um link para cancelar a inscrição, e ao cancelar seu e-mail é removido da lista.</p>
+
+      <h2>Com quem compartilhamos</h2>
+      <p>Com ninguém para fins comerciais. Os e-mails passam pelo Google Workspace institucional usado pela LAESA, e o site é hospedado na infraestrutura do iCEV.</p>
+
+      <h2>Por quanto tempo</h2>
+      <p>Mensagens de contato ficam na caixa da LAESA pelo tempo necessário para o atendimento. Prazo de retenção: <strong>[a definir pela Mesa Diretora]</strong>. Inscrições em avisos ficam ativas até você cancelar.</p>
+
+      <h2>Seus direitos</h2>
+      <ul>
+        <li>saber quais dados seus temos;</li>
+        <li>corrigir dados errados;</li>
+        <li>pedir a exclusão dos seus dados ou cancelar a inscrição a qualquer momento.</li>
+      </ul>
+      <p>Para qualquer pedido, use a <a href="/contato?assunto=duvida">página de contato</a>.</p>
+    </div>
+  </Section>
+</BaseLayout>

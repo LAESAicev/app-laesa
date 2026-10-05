@@ -1,0 +1,187 @@
+---
+// Campos seguem docs/contrato-contato.md. O envio (POST /api/contato) entra na Fase 4.
+import Icon from './Icon.astro';
+
+interface Props {
+  /** id único quando houver mais de um formulário na página */
+  id?: string;
+}
+
+const { id = 'contato-form' } = Astro.props;
+const f = (name: string) => `${id}-${name}`;
+---
+<form class="form contact-form" id={id} action="/api/contato" method="post" novalidate data-contact-form>
+  <div class="form-row" data-identity>
+    <div class="field">
+      <label for={f('nome')}>Nome</label>
+      <input class="input" id={f('nome')} name="nome" type="text" autocomplete="name" required minlength="2" maxlength="120" placeholder="Seu nome" />
+    </div>
+    <div class="field">
+      <label for={f('email')}>E-mail</label>
+      <input class="input" id={f('email')} name="email" type="email" autocomplete="email" required placeholder="voce@exemplo.com" />
+    </div>
+  </div>
+
+  <div class="field subject">
+    <label for={f('assunto')}>Sobre o que você quer falar?</label>
+    <select class="select" id={f('assunto')} name="assunto" required>
+      <option value="" disabled selected>Escolha um assunto</option>
+      <option value="duvida">Tenho uma dúvida</option>
+      <option value="feedback">Quero dar um feedback</option>
+      <option value="projeto">Quero propor um projeto</option>
+      <option value="colaborar">Quero colaborar com a liga</option>
+    </select>
+    <p class="hint" data-subject-hint>Ao escolher, aparecem os campos certos para o seu assunto.</p>
+  </div>
+
+  <fieldset class="cond-set" data-for="feedback" hidden disabled>
+    <legend class="sr-only">campos para feedback</legend>
+    <div class="cond">
+    <span class="cond-label" aria-hidden="true">campos para feedback</span>
+    <div class="field">
+      <label for={f('atividade')}>Sobre qual atividade? <span>(opcional)</span></label>
+      <select class="select" id={f('atividade')} name="atividade">
+        <option value="">Escolha, se quiser</option>
+        <option value="evento">Evento</option>
+        <option value="oficina">Oficina</option>
+        <option value="processo-seletivo">Processo seletivo</option>
+        <option value="site">Site</option>
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+    <label class="check">
+      <input type="checkbox" name="anonimo" value="true" data-anonimo />
+      <span class="box" aria-hidden="true"></span>
+      <span>Enviar sem me identificar<small>Se marcar, não teremos como responder.</small></span>
+    </label>
+    </div>
+  </fieldset>
+
+  <fieldset class="cond-set" data-for="projeto" hidden disabled>
+    <legend class="sr-only">campos para propostas de projeto</legend>
+    <div class="cond">
+    <span class="cond-label" aria-hidden="true">campos para propostas de projeto</span>
+    <div class="form-row">
+      <div class="field">
+        <label for={f('organizacao')}>Organização</label>
+        <input class="input" id={f('organizacao')} name="organizacao" type="text" autocomplete="organization" required minlength="2" maxlength="160" />
+      </div>
+      <div class="field">
+        <label for={f('tipoProjeto')}>Tipo de projeto</label>
+        <select class="select" id={f('tipoProjeto')} name="tipoProjeto" required>
+          <option value="" disabled selected>Escolha</option>
+          <option value="sistema-web">Sistema web</option>
+          <option value="aplicativo">Aplicativo</option>
+          <option value="pesquisa">Pesquisa</option>
+          <option value="oficina-curso">Oficina ou curso</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for={f('prazo')}>Prazo desejado <span>(opcional)</span></label>
+      <select class="select" id={f('prazo')} name="prazo">
+        <option value="">Sem prazo definido</option>
+        <option value="Este semestre">Este semestre</option>
+        <option value="Próximo semestre">Próximo semestre</option>
+        <option value="Ainda este ano">Ainda este ano</option>
+      </select>
+    </div>
+    </div>
+  </fieldset>
+
+  <fieldset class="cond-set" data-for="colaborar" hidden disabled>
+    <legend class="sr-only">campos para colaboradores</legend>
+    <div class="cond">
+    <span class="cond-label" aria-hidden="true">campos para colaboradores</span>
+    <div class="form-row">
+      <div class="field">
+        <label for={f('formaColaboracao')}>Como quer colaborar?</label>
+        <select class="select" id={f('formaColaboracao')} name="formaColaboracao" required>
+          <option value="" disabled selected>Escolha</option>
+          <option value="palestra">Palestra</option>
+          <option value="mentoria">Mentoria</option>
+          <option value="oficina">Oficina</option>
+          <option value="apoio-evento">Apoio em evento</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for={f('area')}>Área de atuação</label>
+        <input class="input" id={f('area')} name="area" type="text" required minlength="2" maxlength="120" />
+      </div>
+    </div>
+    <div class="field">
+      <label for={f('link')}>LinkedIn ou portfólio <span>(opcional)</span></label>
+      <input class="input" id={f('link')} name="link" type="url" inputmode="url" placeholder="https://" />
+    </div>
+    </div>
+  </fieldset>
+
+  <div class="field">
+    <label for={f('mensagem')} data-message-label>Mensagem</label>
+    <textarea class="textarea" id={f('mensagem')} name="mensagem" required minlength="10" maxlength="4000" placeholder="Escreva aqui"></textarea>
+  </div>
+
+  <div class="form-foot">
+    <p class="hint" data-foot-hint>Usamos seus dados só para responder esta mensagem. <a class="link-inline" href="/privacidade">Privacidade</a></p>
+    <button class="btn btn-primary" type="submit"><span data-submit-label>Enviar mensagem</span><Icon name="arrow" /></button>
+  </div>
+  <p class="form-status" role="status" aria-live="polite" data-form-status></p>
+</form>
+
+<script>
+  type Assunto = 'duvida' | 'feedback' | 'projeto' | 'colaborar';
+
+  const copy: Record<Assunto, { message: string; submit: string; hint: string }> = {
+    duvida: { message: 'Sua dúvida', submit: 'Enviar mensagem', hint: 'Usamos seus dados só para responder esta mensagem.' },
+    feedback: { message: 'Seu feedback', submit: 'Enviar feedback', hint: 'Usamos seus dados só para responder esta mensagem.' },
+    projeto: { message: 'Conte o problema que você quer resolver', submit: 'Enviar proposta', hint: 'A LAESA é sem fins lucrativos. Propostas são avaliadas pela Mesa Diretora conforme o cronograma e a disponibilidade dos Squads.' },
+    colaborar: { message: 'Mensagem', submit: 'Enviar mensagem', hint: 'Colaboradores podem receber certificado conforme a atividade e a carga horária.' },
+  };
+
+  for (const form of document.querySelectorAll<HTMLFormElement>('[data-contact-form]')) {
+    const select = form.querySelector<HTMLSelectElement>('select[name="assunto"]')!;
+    const identity = form.querySelector<HTMLElement>('[data-identity]')!;
+    const anonimo = form.querySelector<HTMLInputElement>('[data-anonimo]')!;
+    const status = form.querySelector<HTMLElement>('[data-form-status]')!;
+
+    const syncIdentity = () => {
+      const anon = select.value === 'feedback' && anonimo.checked;
+      identity.hidden = anon;
+      identity.querySelectorAll('input').forEach((i) => (i.disabled = anon));
+    };
+
+    const apply = (value: string) => {
+      form.querySelectorAll<HTMLFieldSetElement>('fieldset[data-for]').forEach((fs) => {
+        const on = fs.dataset.for === value;
+        fs.hidden = !on;
+        fs.disabled = !on; // campos escondidos não bloqueiam a validação nem são enviados
+      });
+      const c = copy[value as Assunto];
+      if (c) {
+        form.querySelector('[data-message-label]')!.textContent = c.message;
+        form.querySelector('[data-submit-label]')!.textContent = c.submit;
+        form.querySelector('[data-foot-hint]')!.firstChild!.textContent = `${c.hint} `;
+        form.querySelector<HTMLElement>('[data-subject-hint]')!.hidden = true;
+      }
+      syncIdentity();
+    };
+
+    select.addEventListener('change', () => apply(select.value));
+    anonimo.addEventListener('change', syncIdentity);
+
+    // /contato?assunto=projeto pré-seleciona o assunto (links do rodapé e da home)
+    const pre = new URLSearchParams(location.search).get('assunto');
+    if (pre && pre in copy) {
+      select.value = pre;
+      apply(pre);
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+      status.textContent = 'O envio do formulário será ativado na próxima etapa do projeto.';
+    });
+  }
+</script>

@@ -1,0 +1,6 @@
+---
+// Selo tracejado de conteúdo provisório. Some quando o conteúdo real entra (campo `exemplo` nos dados).
+interface Props { text?: string }
+const { text = 'conteúdo de exemplo' } = Astro.props;
+---
+<span class="sample" title="Conteúdo provisório">{text}</span>

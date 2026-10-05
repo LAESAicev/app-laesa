@@ -10,7 +10,7 @@ Legenda: ✅ dá para fazer agora · ⏸ depende das respostas do iCEV (ADR 0001
 - 👤 Confirmar se a conta Google Workspace da LAESA permite SMTP com senha de app e qual o limite diário (P3).
 - 👤 Juntar o conteúdo real: redes, e-mail, edital 2026.2, projetos, nomes e fotos da Mesa (lista no README).
 
-## Fase 1: Projeto Astro e páginas estáticas ✅
+## Fase 1: Projeto Astro e páginas estáticas ✅ concluída (2026-10-05)
 1. Criar o projeto Astro (TypeScript strict) na raiz do repositório, mantendo `design/`, `brand/` e `docs/`.
 2. Levar os tokens de `design/src/styles.css` para `src/styles/`:
    - cores, inclusive o azul `#0078D4`;

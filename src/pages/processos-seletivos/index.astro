@@ -1,0 +1,12 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EditalPage from '../../components/EditalPage.astro';
+import { editalAtual } from '../../data/editais';
+---
+<BaseLayout
+  title="Processos seletivos"
+  description="Como entrar na LAESA: etapas do edital, o que enviar na inscrição, regras do estatuto e perguntas frequentes."
+  active="processos"
+>
+  <EditalPage edital={editalAtual} />
+</BaseLayout>
