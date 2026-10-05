@@ -1,0 +1,12 @@
+nome: 'Nome da pesquisa'
+descricao: 'Pergunta de pesquisa, método e resultado. Se virou artigo, resumo ou apresentação em evento, o link entra aqui.'
+tags:
+  - 'Pesquisa'
+  - 'Qualidade de software'
+status: em-andamento
+ano: null
+link: null
+imagem: null
+destaque: true
+ordem: 2
+exemplo: true

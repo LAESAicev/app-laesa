@@ -1,0 +1,12 @@
+nome: 'Nome do projeto'
+descricao: 'Descrição curta: para quem foi feito, qual problema resolveu e o que o Squad entregou. Duas ou três linhas bastam.'
+tags:
+  - 'Projeto social'
+  - 'Web'
+status: concluido
+ano: 2025
+link: null
+imagem: null
+destaque: true
+ordem: 1
+exemplo: true

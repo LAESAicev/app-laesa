@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import EditalPage from '../../components/EditalPage.astro';
-import { editais, statusDo, rotuloStatus, type Edital } from '../../data/editais';
+import { editais } from '../../lib/content';
+import { statusDo, rotuloStatus, type Edital } from '../../data/editais';
 
 export function getStaticPaths() {
   return editais.map((edital) => ({ params: { slug: edital.slug }, props: { edital } }));

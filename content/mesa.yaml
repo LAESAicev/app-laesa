@@ -1,0 +1,16 @@
+presidente:
+  nome: Felipe Duan da Silva Sousa
+  foto: null
+  exemplo: false
+vicePresidente:
+  nome: Nome a confirmar
+  foto: null
+  exemplo: true
+diretorProjetos:
+  nome: Nome a confirmar
+  foto: null
+  exemplo: true
+orientador:
+  nome: Nome a confirmar
+  foto: null
+  exemplo: true

@@ -11,7 +11,7 @@ Site da **Liga Acadêmica de Engenharia de Software Aplicada** (iCEV, Teresina-P
 
 ```sh
 npm install
-npm run dev       # http://localhost:4321
+npm run dev       # site em http://localhost:4321 e painel em http://localhost:4321/keystatic
 npm run build     # checa tipos e gera dist/
 npm run design    # regera o protótipo HTML (design/dist) usado no Figma
 ```
@@ -25,10 +25,13 @@ npm run design    # regera o protótipo HTML (design/dist) usado no Figma
 ├── src/
 │   ├── pages/            /, /processos-seletivos, /processos-seletivos/[slug], /contato, /privacidade, 404
 │   ├── components/       componentes portados do protótipo (Nav, GitLog, EditalPage, ContactForm…)
-│   ├── data/             conteúdo tipado (vira YAML editável pelo painel na Fase 2)
+│   ├── lib/content.ts    lê content/*.yaml com o schema do painel
+│   ├── data/             conteúdo fixo do estatuto e tipos
 │   ├── styles/global.css tokens e estilos (portados de design/src/styles.css)
 │   └── icons/            ícones 24px
-├── public/               favicon e, depois, uploads
+├── keystatic.config.ts   schema do painel (fonte única do modelo de conteúdo)
+├── content/              conteúdo editável pelo painel (YAML)
+├── public/               favicon e uploads do painel (public/uploads)
 ├── docs/
 │   ├── estatuto-2026.md  estatuto da liga, fonte de toda regra citada no site
 │   ├── adr/              decisões de arquitetura (0001: repositório único, Keystatic, iCEV)
@@ -63,3 +66,18 @@ Nas telas, os itens provisórios estão marcados com um selo tracejado ("exemplo
 ## Licença
 
 Uso exclusivo da LAESA, com todos os direitos reservados. Ninguém tem permissão para copiar, modificar, distribuir ou usar comercialmente este código, o design, a marca ou o conteúdo sem autorização por escrito da Mesa Diretora. Veja [LICENSE](LICENSE).
+
+## Editar o conteúdo
+
+Rode `npm run dev` e abra `/keystatic`. O painel edita os arquivos de `content/`; o site atualiza na hora.
+
+| No painel | O que muda no site |
+| --- | --- |
+| Configurações e status da seleção | tag do menu, seção "Quer entrar?" da home e a página de processos seletivos; redes e e-mail |
+| Hero: git log | painel do topo da home (o primeiro commit é o HEAD) |
+| Mesa Diretora | nomes e fotos dos cargos |
+| Perguntas frequentes | FAQ da página de processos seletivos |
+| Projetos | lista "O que já saiu do papel" (marque "Mostrar na home" e defina a ordem) |
+| Editais | uma página por edital, com datas, vagas, PDF e modelo da carta |
+
+Depois de editar, faça commit das mudanças em `content/` e `public/uploads/`. Na Fase 5 o painel passa a commitar sozinho no GitHub.

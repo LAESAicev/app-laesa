@@ -27,8 +27,8 @@ Legenda: ✅ dá para fazer agora · ⏸ depende das respostas do iCEV (ADR 0001
    - contraste. Atenção: links azuis sobre o fundo `#F3F6F9` ficam em ~4.2:1, abaixo do mínimo para texto pequeno. Ajustar tom ou peso;
    - navegação por teclado no menu mobile e no FAQ.
 
-## Fase 2: Conteúdo editável ✅
-1. Schemas em `src/content.config.ts`, com zod, para cada parte do conteúdo:
+## Fase 2: Conteúdo editável ✅ concluída (2026-10-05)
+1. Schemas em `keystatic.config.ts` (fonte única: as páginas leem com o leitor do Keystatic em `src/lib/content.ts`, sem duplicar em zod) para cada parte do conteúdo:
 
    | Conteúdo | Arquivo | Campos |
    | --- | --- | --- |
@@ -41,7 +41,7 @@ Legenda: ✅ dá para fazer agora · ⏸ depende das respostas do iCEV (ADR 0001
 
 2. As páginas passam a ler esses arquivos. Mudar `site.yaml` atualiza a tag do nav, a seção da home e a página de processos.
 3. Keystatic em **modo local** com esses schemas, para editar em `localhost:4321/keystatic`. O modo GitHub fica para a Fase 5.
-4. Validar com um membro que não é dev: editar o hero e criar um edital sem ajuda.
+4. 👤 Validar com um membro que não é dev: editar o hero e criar um edital sem ajuda.
 
 ## Fase 3: Movimento ✅
 Implementar `design/MOTION.md`:

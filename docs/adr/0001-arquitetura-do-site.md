@@ -25,7 +25,7 @@ Restrições:
    - Reabrir esta decisão se o setor de tecnologia exigir separar acessos ou segredos do back-end.
 
 2. **Conteúdo no git, editado pelo Keystatic.**
-   - Hero, projetos, Mesa, FAQ, status da seleção e editais ficam como arquivos YAML em `content/`, validados por schemas (Astro Content Collections).
+   - Hero, projetos, Mesa, FAQ, status da seleção e editais ficam como arquivos YAML em `content/`. O schema vive só em `keystatic.config.ts`; as páginas leem o conteúdo pelo leitor do Keystatic (`src/lib/content.ts`) durante o build. Se o plano B (Sveltia) vencer, o YAML continua o mesmo e a leitura passa a usar Content Collections com zod.
    - Imagens e PDFs ficam em `public/uploads/`.
    - Salvar no painel gera um commit, então há histórico, revisão e reversão.
    - Cada edital é um arquivo renderizado pelo mesmo template (`/processos-seletivos/[slug]`).

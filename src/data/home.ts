@@ -1,14 +1,8 @@
+// Conteúdo fixo, tirado do estatuto (não editável pelo painel), e tipos do conteúdo editável.
+// Hero, projetos e Mesa vêm de content/ via src/lib/content.ts.
+
 export type Commit = { mensagem: string; hash: string; meta?: string };
 
-/** Painel "git log" do hero. O primeiro item é o HEAD. */
-export const heroLog: Commit[] = [
-  { mensagem: 'Processo seletivo 2026.2 aberto', hash: 'e7c41a0', meta: 'inscrições até [data]' },
-  { mensagem: 'Novo estatuto da liga publicado', hash: '3d8f512', meta: '02 jun 2026' },
-  { mensagem: 'Mesa Diretora: Presidência, Vice e Projetos', hash: 'b51e9c7', meta: '2026' },
-  { mensagem: 'Quatro eixos: ensino, pesquisa, extensão e projetos', hash: 'c94e0aa' },
-  { mensagem: 'Sprints e Squads como método de trabalho', hash: '7be21d4' },
-  { mensagem: 'LAESA fundada por alunos do iCEV', hash: 'a1f3c09', meta: '2023 · Teresina (PI)' },
-];
 
 export const eixos = [
   { titulo: 'Ensino', texto: 'Trilhas, oficinas e minicursos para os membros, e membros que ensinam outros estudantes.', ref: 'Art. 3º § 1º' },
@@ -51,20 +45,10 @@ export type Projeto = {
   status: 'concluido' | 'em-andamento';
   ano?: number;
   link?: string;
+  imagem?: string;
   exemplo?: boolean;
 };
 
-export const projetos: Projeto[] = [
-  { nome: 'Nome do projeto', descricao: 'Descrição curta: para quem foi feito, qual problema resolveu e o que o Squad entregou. Duas ou três linhas bastam.', tags: ['Projeto social', 'Web'], status: 'concluido', ano: 2025, exemplo: true },
-  { nome: 'Nome da pesquisa', descricao: 'Pergunta de pesquisa, método e resultado. Se virou artigo, resumo ou apresentação em evento, o link entra aqui.', tags: ['Pesquisa', 'Qualidade de software'], status: 'em-andamento', exemplo: true },
-  { nome: 'Nome da oficina', descricao: 'Atividade aberta à comunidade: tema, público atendido e quantas edições já aconteceram.', tags: ['Extensão', 'Ensino'], status: 'concluido', ano: 2024, exemplo: true },
-];
 
 export type Pessoa = { nome: string; cargo: string; foto?: string; orientacao?: boolean; exemplo?: boolean };
 
-export const mesa: Pessoa[] = [
-  { nome: 'Felipe Duan da Silva Sousa', cargo: 'Presidente' },
-  { nome: 'Nome a confirmar', cargo: 'Vice-Presidente', exemplo: true },
-  { nome: 'Nome a confirmar', cargo: 'Diretor(a) de Projetos', exemplo: true },
-  { nome: 'Nome a confirmar', cargo: 'Professor(a) Orientador(a)', orientacao: true, exemplo: true },
-];

@@ -6,8 +6,8 @@ import Icon from './Icon.astro';
 import Sample from './Sample.astro';
 import StatusTag from './StatusTag.astro';
 import RulesList from './RulesList.astro';
-import { faq } from '../data/faq';
-import { editais, editalAtual, statusDo, etapasDo, etapaAtual, rotuloStatus, type Edital } from '../data/editais';
+import { faq, editais, editalAtual } from '../lib/content';
+import { statusDo, etapasDo, etapaAtual, rotuloStatus, type Edital } from '../data/editais';
 
 interface Props {
   edital: Edital;

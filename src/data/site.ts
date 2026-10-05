@@ -1,12 +1,7 @@
-// Conteúdo do site. Na Fase 2 estes arquivos viram YAML em content/, editáveis pelo painel (ADR 0001).
-// `exemplo: true` marca conteúdo provisório: a página mostra o selo tracejado até a LAESA enviar o real.
+// Tipos e estrutura fixa do site. O conteúdo editável (status, canais, estatuto) vem de content/site.yaml
+// via src/lib/content.ts. `exemplo: true` marca conteúdo provisório (selo tracejado).
 
 export type StatusSelecao = 'aberto' | 'em-andamento' | 'finalizado';
-
-export const selecao: { status: StatusSelecao; editalAtual: string } = {
-  status: 'aberto',
-  editalAtual: '2026-2',
-};
 
 export const navLinks = [
   { href: '/#sobre', label: 'Sobre', key: 'sobre' },
@@ -21,11 +16,3 @@ export type NavKey = (typeof navLinks)[number]['key'];
 
 export type Canal = { icon: 'mail' | 'instagram' | 'linkedin' | 'github'; rotulo: string; valor: string; href: string; exemplo?: boolean };
 
-export const canais: Canal[] = [
-  { icon: 'mail', rotulo: 'E-mail', valor: 'contato@laesa.com.br', href: 'mailto:contato@laesa.com.br', exemplo: true },
-  { icon: 'instagram', rotulo: 'Instagram', valor: '@laesa.icev', href: '#', exemplo: true },
-  { icon: 'linkedin', rotulo: 'LinkedIn', valor: 'LAESA', href: '#', exemplo: true },
-  { icon: 'github', rotulo: 'GitHub', valor: 'github.com/laesa', href: '#', exemplo: true },
-];
-
-export const estatutoUrl = '#'; // PDF público do estatuto: a definir

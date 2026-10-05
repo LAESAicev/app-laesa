@@ -11,9 +11,9 @@ import PersonCard from '../components/PersonCard.astro';
 import StageList from '../components/StageList.astro';
 import Channels from '../components/Channels.astro';
 import ContactForm from '../components/ContactForm.astro';
-import { selecao, estatutoUrl } from '../data/site';
-import { heroLog, eixos, areas, sprint, regrasPublicas, projetos, mesa } from '../data/home';
-import { editalAtual, etapasDo, etapaAtual, rotuloStatus } from '../data/editais';
+import { selecao, estatutoUrl, heroLog, projetos, mesa, editalAtual } from '../lib/content';
+import { eixos, areas, sprint, regrasPublicas } from '../data/home';
+import { etapasDo, etapaAtual, rotuloStatus } from '../data/editais';
 
 const numero = editalAtual.titulo.replace('Edital ', '');
 const etapas = etapasDo(editalAtual).slice(0, 4);

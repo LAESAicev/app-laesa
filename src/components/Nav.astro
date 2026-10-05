@@ -2,8 +2,8 @@
 import Logo from './Logo.astro';
 import Icon from './Icon.astro';
 import StatusTag from './StatusTag.astro';
-import { navLinks, selecao, type NavKey } from '../data/site';
-import { editalAtual } from '../data/editais';
+import { navLinks, type NavKey } from '../data/site';
+import { selecao, editalAtual } from '../lib/content';
 
 interface Props {
   active?: NavKey | 'inicio';

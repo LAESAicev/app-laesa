@@ -1,8 +1,9 @@
-import { selecao, type StatusSelecao } from './site';
+import type { StatusSelecao } from './site';
+import { selecao, editalAtual } from '../lib/content';
 
 /**
  * Cada edital usa o mesmo template (/processos-seletivos/[slug]).
- * Só o que muda de um edital para outro fica aqui; regras fixas vêm do estatuto (Cap. V).
+ * Os dados de cada edital vêm de content/editais/*.yaml; as etapas e regras fixas vêm do estatuto (Cap. V).
  */
 export type Edital = {
   slug: string; // ex.: "2026-2" → /processos-seletivos/2026-2
@@ -17,21 +18,10 @@ export type Edital = {
   exemplo?: boolean;
 };
 
-export const editais: Edital[] = [
-  { slug: '2026-2', titulo: 'Edital 2026.2', exemplo: true },
-  { slug: '2025-2', titulo: 'Edital 2025.2', exemplo: true },
-  { slug: '2025-1', titulo: 'Edital 2025.1', exemplo: true },
-  { slug: '2024', titulo: 'Edital 2024', exemplo: true },
-];
-
-export const editalAtual = editais.find((e) => e.slug === selecao.editalAtual) ?? editais[0];
-
 /** Status de um edital: o atual segue o site; os demais já foram encerrados. */
 export function statusDo(edital: Edital): StatusSelecao {
   return edital.slug === editalAtual.slug ? selecao.status : 'finalizado';
 }
-
-export const editaisAnteriores = editais.filter((e) => e.slug !== editalAtual.slug);
 
 export type Etapa = { titulo: string; texto: string; quando: string };
 

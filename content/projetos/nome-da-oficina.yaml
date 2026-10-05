@@ -1,0 +1,12 @@
+nome: 'Nome da oficina'
+descricao: 'Atividade aberta à comunidade: tema, público atendido e quantas edições já aconteceram.'
+tags:
+  - 'Extensão'
+  - 'Ensino'
+status: concluido
+ano: 2024
+link: null
+imagem: null
+destaque: true
+ordem: 3
+exemplo: true
