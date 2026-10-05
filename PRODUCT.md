@@ -36,7 +36,12 @@ Liga acadêmica sem fins lucrativos, fundada em 2023 por alunos de Engenharia de
 
 - Contact form with a type select: dúvida, feedback, contratar/propor projeto (project requests ask for extra fields). Submission endpoint left pluggable (Formspree/Web3Forms/Google Forms decided later).
 - Processos Seletivos page: current edital, stages, requirements, past editions.
-- Undecided: final domain, form provider, newsletter (not confirmed; removed from scope).
+- Admin panel for the Mesa Diretora/members (non-devs included) to edit: hero "git log" highlight items, featured projects, Mesa Diretora names/photos, selection status (aberto / em andamento / finalizado), new edital pages from one template (dates, vagas, PDF, modelo da carta, resultado), FAQ.
+- Visitors can subscribe to LAESA notifications (e.g. new edital): double opt-in, one-click unsubscribe, LGPD consent record; the Mesa sends announcements.
+- Hosting and domain: provided by iCEV; infrastructure administered by iCEV's technology sector. Hosting type (static folder / VM with Docker / container platform), subdomain, outbound access to GitHub and backups still pending. The app must be reproducible from the repo.
+- Access and accounts belong to the LAESA institutional account, never a student's personal account.
+- E-mail: iCEV uses Google Workspace; the LAESA Workspace account sends notifications and receives contact messages (contact messages are not stored elsewhere).
+- Undecided: CMS/panel tool and e-mail transport, pending iCEV IT answers.
 
 ## Brand Commitments
 
