@@ -1,0 +1,225 @@
+<div class="page {{mode}}" data-name="Contato">
+{{> nav}}
+
+<!-- CONTATO: HERO + FORM -->
+<section class="sec contact ct-hero">
+  <div class="wrap">
+    <span class="node" style="top:96px"></span>
+    <div class="col contact-grid">
+      <div>
+        <h1 class="d1">Fale com <em>a LAESA.</em></h1>
+        <p class="lead">Escolha o assunto e o formulário mostra só os campos que importam para ele. Toda mensagem chega à Mesa Diretora.</p>
+
+        <ul class="subjects" aria-label="Assuntos">
+          <li><span class="meta">duvida</span><div><b>Tenho uma dúvida</b><span>Sobre a liga, os eventos ou como participar.</span></div></li>
+          <li><span class="meta">feedback</span><div><b>Quero dar um feedback</b><span>Sobre um evento, uma oficina, o processo seletivo ou este site.</span></div></li>
+          <li><span class="meta">projeto</span><div><b>Quero propor um projeto</b><span>Sua organização tem um problema que software pode resolver.</span></div></li>
+          <li><span class="meta">colaborar</span><div><b>Quero colaborar com a liga</b><span>Palestras, mentorias e oficinas, com certificado conforme a atividade.</span></div></li>
+        </ul>
+
+        <div class="channels">
+          <div class="channel">{{icon:mail}}<div><div class="k">E-mail</div><div class="v">contato@laesa.com.br</div></div><span class="sample">confirmar</span></div>
+          <div class="channel">{{icon:instagram}}<div><div class="k">Instagram</div><div class="v">@laesa.icev</div></div><span class="sample">confirmar</span></div>
+          <div class="channel">{{icon:linkedin}}<div><div class="k">LinkedIn</div><div class="v">LAESA</div></div><span class="sample">confirmar</span></div>
+          <div class="channel">{{icon:github}}<div><div class="k">GitHub</div><div class="v">github.com/laesa</div></div><span class="sample">confirmar</span></div>
+        </div>
+      </div>
+
+      <form class="form" aria-label="Formulário de contato">
+        <div class="form-row">
+          <div class="field"><label>Nome</label><div class="input ph">Seu nome</div></div>
+          <div class="field"><label>E-mail</label><div class="input ph">voce@exemplo.com</div></div>
+        </div>
+        <div class="field subject">
+          <label>Sobre o que você quer falar?</label>
+          <div class="select ph">Escolha um assunto {{icon:chevron}}</div>
+          <p class="hint">Ao escolher, aparecem os campos certos para o seu assunto.</p>
+        </div>
+        <div class="field"><label>Mensagem</label><div class="textarea ph">Escreva aqui</div></div>
+        <div class="form-foot">
+          <p class="hint">Usamos seus dados só para responder esta mensagem.</p>
+          <button class="btn btn-primary" type="submit">Enviar mensagem {{icon:arrow}}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ESTADOS DO FORMULÁRIO (spec board) -->
+<section class="sec paper states">
+  <div class="wrap">
+    <span class="node" style="top:112px"></span>
+    <div class="col">
+      <div class="sec-head">
+        <h2 class="d2">Estados do <em>formulário.</em></h2>
+        <p class="body">Referência para a implementação: cada assunto abre uma branch de campos própria, mais os estados de erro, envio e sucesso.</p>
+      </div>
+
+      <div class="state-grid">
+
+        <!-- a. select aberto -->
+        <figure class="state">
+          <figcaption class="meta">a · seletor de assunto aberto</figcaption>
+          <div class="form">
+            <div class="field subject">
+              <label>Sobre o que você quer falar?</label>
+              <div class="select focus ph">Escolha um assunto {{icon:chevron}}</div>
+              <ul class="dropdown" role="listbox">
+                <li class="opt"><b>Tenho uma dúvida</b><span>Sobre a liga, eventos ou como participar</span></li>
+                <li class="opt is-hover"><b>Quero dar um feedback</b><span>Evento, oficina, processo seletivo ou site</span></li>
+                <li class="opt"><b>Quero propor um projeto</b><span>Para organizações, empresas e projetos sociais</span></li>
+                <li class="opt"><b>Quero colaborar com a liga</b><span>Palestras, mentorias, oficinas e eventos</span></li>
+              </ul>
+            </div>
+          </div>
+        </figure>
+
+        <!-- b. dúvida -->
+        <figure class="state">
+          <figcaption class="meta">b · assunto: dúvida</figcaption>
+          <div class="form">
+            <div class="form-row">
+              <div class="field"><label>Nome</label><div class="input">João Pedro Alves</div></div>
+              <div class="field"><label>E-mail</label><div class="input">joao@aluno.icev.edu.br</div></div>
+            </div>
+            <div class="field"><label>Sobre o que você quer falar?</label><div class="select">Tenho uma dúvida {{icon:chevron}}</div></div>
+            <div class="field"><label>Sua dúvida</label><div class="textarea">Quem está no primeiro período pode se candidatar no próximo edital?</div></div>
+            <a class="link small-link" href="processos-seletivos.html">Dúvidas sobre como entrar? Veja as perguntas frequentes {{icon:arrow}}</a>
+            <div class="form-foot"><span></span><button class="btn btn-primary" type="submit">Enviar mensagem {{icon:arrow}}</button></div>
+          </div>
+        </figure>
+
+        <!-- c. feedback -->
+        <figure class="state">
+          <figcaption class="meta">c · assunto: feedback</figcaption>
+          <div class="form">
+            <div class="field"><label>Sobre o que você quer falar?</label><div class="select">Quero dar um feedback {{icon:chevron}}</div></div>
+            <div class="cond">
+              <span class="cond-label">campos para feedback</span>
+              <div class="field"><label>Sobre qual atividade? <span>(opcional)</span></label><div class="select">Oficina {{icon:chevron}}</div><p class="hint">Evento, oficina, processo seletivo, site ou outro.</p></div>
+              <label class="check"><span class="box"></span><span>Enviar sem me identificar<small>Se marcar, não teremos como responder.</small></span></label>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>Nome</label><div class="input">Marina Costa</div></div>
+              <div class="field"><label>E-mail</label><div class="input">marina@gmail.com</div></div>
+            </div>
+            <div class="field"><label>Seu feedback</label><div class="textarea">A oficina de testes foi ótima. Faltou tempo para a parte prática no final.</div></div>
+            <div class="form-foot"><span></span><button class="btn btn-primary" type="submit">Enviar feedback {{icon:arrow}}</button></div>
+          </div>
+        </figure>
+
+        <!-- d. projeto -->
+        <figure class="state">
+          <figcaption class="meta">d · assunto: proposta de projeto</figcaption>
+          <div class="form">
+            <div class="form-row">
+              <div class="field"><label>Nome</label><div class="input">Ana Beatriz Lima</div></div>
+              <div class="field"><label>E-mail</label><div class="input">ana@bairrovivo.org</div></div>
+            </div>
+            <div class="field"><label>Sobre o que você quer falar?</label><div class="select">Quero propor um projeto {{icon:chevron}}</div></div>
+            <div class="cond">
+              <span class="cond-label">campos para propostas de projeto</span>
+              <div class="form-row">
+                <div class="field"><label>Organização</label><div class="input">Associação Bairro Vivo</div></div>
+                <div class="field"><label>Tipo de projeto</label><div class="select">Sistema web {{icon:chevron}}</div></div>
+              </div>
+              <p class="hint opts">Opções: Sistema web, Aplicativo, Pesquisa, Oficina ou curso, Outro.</p>
+              <div class="field"><label>Prazo desejado <span>(opcional)</span></label><div class="select">Próximo semestre {{icon:chevron}}</div></div>
+            </div>
+            <div class="field"><label>Conte o problema que você quer resolver</label><div class="textarea">Hoje as inscrições das oficinas chegam por mensagem. Queremos um cadastro simples e uma lista de presença.</div></div>
+            <div class="form-foot">
+              <p class="hint">A LAESA é sem fins lucrativos. Propostas são avaliadas pela Mesa Diretora conforme o cronograma e a disponibilidade dos Squads.</p>
+              <button class="btn btn-primary" type="submit">Enviar proposta {{icon:arrow}}</button>
+            </div>
+          </div>
+        </figure>
+
+        <!-- e. colaborar -->
+        <figure class="state">
+          <figcaption class="meta">e · assunto: colaborar</figcaption>
+          <div class="form">
+            <div class="form-row">
+              <div class="field"><label>Nome</label><div class="input">Rafael Moura</div></div>
+              <div class="field"><label>E-mail</label><div class="input">rafael@empresa.com</div></div>
+            </div>
+            <div class="field"><label>Sobre o que você quer falar?</label><div class="select">Quero colaborar com a liga {{icon:chevron}}</div></div>
+            <div class="cond">
+              <span class="cond-label">campos para colaboradores</span>
+              <div class="form-row">
+                <div class="field"><label>Como quer colaborar?</label><div class="select">Mentoria {{icon:chevron}}</div></div>
+                <div class="field"><label>Área de atuação</label><div class="input">Arquitetura de software</div></div>
+              </div>
+              <p class="hint opts">Opções: Palestra, Mentoria, Oficina, Apoio em evento, Outro.</p>
+              <div class="field"><label>LinkedIn ou portfólio <span>(opcional)</span></label><div class="input">linkedin.com/in/rafaelmoura</div></div>
+            </div>
+            <div class="field"><label>Mensagem</label><div class="textarea">Posso acompanhar um Squad por um semestre, com encontros quinzenais.</div></div>
+            <div class="form-foot">
+              <p class="hint">Colaboradores podem receber certificado conforme a atividade e a carga horária.</p>
+              <button class="btn btn-primary" type="submit">Enviar mensagem {{icon:arrow}}</button>
+            </div>
+          </div>
+        </figure>
+
+        <!-- f. erro -->
+        <figure class="state">
+          <figcaption class="meta">f · erro de validação</figcaption>
+          <div class="form">
+            <div class="err-banner" role="alert">{{icon:alert}}<span>Revise 2 campos para enviar a mensagem.</span></div>
+            <div class="form-row">
+              <div class="field"><label>Nome</label><div class="input">Lucas Ferreira</div></div>
+              <div class="field is-error"><label>E-mail</label><div class="input">lucas@gmail</div><p class="err">{{icon:alert}}Esse e-mail parece incompleto. Use o formato nome@exemplo.com.</p></div>
+            </div>
+            <div class="field"><label>Sobre o que você quer falar?</label><div class="select">Tenho uma dúvida {{icon:chevron}}</div></div>
+            <div class="field is-error"><label>Sua dúvida</label><div class="textarea"></div><p class="err">{{icon:alert}}Escreva sua dúvida antes de enviar.</p></div>
+            <div class="form-foot"><span></span><button class="btn btn-primary" type="submit">Enviar mensagem {{icon:arrow}}</button></div>
+          </div>
+        </figure>
+
+        <!-- g. enviando -->
+        <figure class="state">
+          <figcaption class="meta">g · enviando</figcaption>
+          <div class="form is-sending">
+            <div class="form-row">
+              <div class="field"><label>Nome</label><div class="input">João Pedro Alves</div></div>
+              <div class="field"><label>E-mail</label><div class="input">joao@aluno.icev.edu.br</div></div>
+            </div>
+            <div class="field"><label>Sobre o que você quer falar?</label><div class="select">Tenho uma dúvida {{icon:chevron}}</div></div>
+            <div class="field"><label>Sua dúvida</label><div class="textarea">Quem está no primeiro período pode se candidatar no próximo edital?</div></div>
+            <div class="form-foot"><span></span>
+              <button class="btn btn-primary is-loading" type="submit" disabled aria-busy="true">
+                <svg class="spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" stroke-width="2.5"/><path d="M21 12a9 9 0 0 0-9-9" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+                Enviando
+              </button>
+            </div>
+          </div>
+        </figure>
+
+        <!-- h. sucesso -->
+        <figure class="state">
+          <figcaption class="meta">h · mensagem enviada</figcaption>
+          <div class="form success" role="status">
+            <div class="ok-graph">
+              <svg viewBox="0 0 40 160" width="40" height="160" fill="none">
+                <path d="M20 0 V160" stroke="#B4C6D6" stroke-width="2"/>
+                <circle cx="20" cy="36" r="9" fill="#5CEAD2"/>
+                <circle cx="20" cy="36" r="15" stroke="#5CEAD2" stroke-opacity="0.35" stroke-width="4"/>
+                <circle cx="20" cy="120" r="6" fill="#FFFFFF" style="stroke: var(--blue)" stroke-width="2"/>
+              </svg>
+            </div>
+            <div class="ok-body">
+              <span class="headref">nova mensagem</span>
+              <h3 class="d3">Mensagem enviada.</h3>
+              <p class="body">Recebemos sua proposta de projeto. A resposta da Mesa Diretora chega no e-mail <b>ana@bairrovivo.org</b>.</p>
+              <span class="meta">assunto: proposta de projeto</span>
+              <button class="btn btn-outline" type="button">Enviar outra mensagem</button>
+            </div>
+          </div>
+        </figure>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+{{> footer}}
+</div>
