@@ -83,7 +83,7 @@ Nos dois planos, o modelo de conteúdo e o repositório são os mesmos.
 
 ## Outras pendências
 
-- **P1:** organização criada: [github.com/LAESAicev](https://github.com/LAESAicev). Falta transferir o `app-laesa` para ela (opcionalmente renomeando para `site-laesa`).
+- **P1:** resolvida (2026-10-06): repositório transferido para [LAESAicev/app-laesa](https://github.com/LAESAicev/app-laesa). Falta um dono da organização deixar o pacote `app-laesa` do GitHub Container Registry público e dar acesso ao time da Mesa Diretora.
 - **P2:** resolvida (2026-10-06): inscritos das novidades em SQLite (`node:sqlite`, sem dependência nativa) num volume do contêiner (`/data/laesa.db`). Backup em `docs/operacao.md`.
   - (descartado) Google Groups.
   - (b) Google Groups da LAESA. Falta verificar se quem não tem conta Google consegue se inscrever.
