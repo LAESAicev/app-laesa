@@ -1,0 +1,127 @@
+// Inscrição em avisos (confirmação dupla). Links de confirmação e descadastro são assinados (HMAC),
+// então validá-los não exige guardar tokens. A ação só acontece por POST (botão na página ou o
+// descadastro de um clique do Gmail, RFC 8058): scanners de link fazem GET e não podem confirmar nada.
+// Onde guardar os inscritos está pendente (ADR 0001, P2): a interface `Inscritos` recebe a implementação
+// definitiva (SQLite no contêiner, já que vamos de Docker).
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { INSCRICAO_SECRET, INSCRITOS_STORE } from 'astro:env/server';
+import { criarLimite } from './rate-limit';
+
+export { inscricaoSchemaCliente as inscricaoSchema } from './inscricao.schema';
+
+// ---- links assinados
+type Acao = 'confirmar' | 'sair';
+type Token = { email: string; emitidoEm: number };
+const SETE_DIAS = 7 * 24 * 60 * 60 * 1000;
+const b64 = (s: string) => Buffer.from(s).toString('base64url');
+
+export class InscricaoIndisponivel extends Error {}
+
+function assinatura(payload: string): string {
+  if (!INSCRICAO_SECRET) throw new InscricaoIndisponivel('INSCRICAO_SECRET não definido.');
+  return createHmac('sha256', INSCRICAO_SECRET).update(payload).digest('base64url');
+}
+
+export function gerarToken(email: string, acao: Acao, agora = Date.now()): string {
+  const payload = b64(JSON.stringify({ e: email, a: acao, i: agora }));
+  return `${payload}.${assinatura(payload)}`;
+}
+
+export function lerToken(token: string, acao: Acao, agora = Date.now()): Token | null {
+  const [payload, sig] = token.split('.');
+  if (!payload || !sig) return null;
+  const esperado = Buffer.from(assinatura(payload));
+  const recebido = Buffer.from(sig);
+  if (esperado.length !== recebido.length || !timingSafeEqual(esperado, recebido)) return null;
+  try {
+    const { e, a, i } = JSON.parse(Buffer.from(payload, 'base64url').toString()) as { e: string; a: Acao; i: number };
+    if (a !== acao || typeof e !== 'string' || typeof i !== 'number') return null;
+    if (acao === 'confirmar' && agora - i > SETE_DIAS) return null;
+    return { email: e, emitidoEm: i };
+  } catch {
+    return null;
+  }
+}
+
+// ---- armazenamento
+export interface Inscritos {
+  adicionar(email: string, consentimentoEm: Date): Promise<void>;
+  remover(email: string, em: Date): Promise<void>;
+  /** Quando o e-mail saiu da lista pela última vez (links de confirmação anteriores deixam de valer). */
+  removidoEm(email: string): Promise<Date | undefined>;
+  listar(): Promise<string[]>;
+}
+
+const memoria = new Map<string, { consentimentoEm?: Date; removidoEm?: Date }>();
+const emMemoria: Inscritos = {
+  async adicionar(email, em) {
+    memoria.set(email, { ...memoria.get(email), consentimentoEm: em });
+  },
+  async remover(email, em) {
+    memoria.set(email, { removidoEm: em });
+  },
+  async removidoEm(email) {
+    return memoria.get(email)?.removidoEm;
+  },
+  async listar() {
+    return [...memoria].filter(([, v]) => v.consentimentoEm).map(([k]) => k);
+  },
+};
+
+/** Armazenamento ativo. Lança InscricaoIndisponivel enquanto a P2 não for decidida. */
+export function inscritos(): Inscritos {
+  if (!INSCRICAO_SECRET) throw new InscricaoIndisponivel('INSCRICAO_SECRET não definido.');
+  if (INSCRITOS_STORE === 'memoria') return emMemoria;
+  throw new InscricaoIndisponivel('Armazenamento de inscritos ainda não definido (ADR 0001, P2).');
+}
+
+export async function confirmar(token: string): Promise<boolean> {
+  const t = lerToken(token, 'confirmar');
+  if (!t) return false;
+  const store = inscritos();
+  const saiu = await store.removidoEm(t.email);
+  if (saiu && saiu.getTime() >= t.emitidoEm) return false; // link anterior a um descadastro
+  await store.adicionar(t.email, new Date());
+  return true;
+}
+
+export async function descadastrar(token: string): Promise<boolean> {
+  const t = lerToken(token, 'sair');
+  if (!t) return false;
+  await inscritos().remover(t.email, new Date());
+  return true;
+}
+
+// ---- limites contra bombardeio de terceiros
+const porDestinatario = criarLimite(1, 24 * 60 * 60 * 1000); // 1 confirmação por e-mail a cada 24h
+const global = criarLimite(300, 24 * 60 * 60 * 1000); // teto diário de confirmações (cota do Workspace ~2.000/dia)
+const hash = (email: string) => createHash('sha256').update(email).digest('hex');
+
+/** true se pode mandar confirmação para este e-mail agora. Consome a cota. */
+export function podeEnviarConfirmacao(email: string): boolean {
+  // destinatário primeiro: repetir o mesmo e-mail não pode consumir a cota global de todo mundo
+  return porDestinatario(hash(email)) && global('todos');
+}
+
+export function emailConfirmacao(email: string, site: URL) {
+  const link = new URL(`/avisos/confirmar?t=${gerarToken(email, 'confirmar')}`, site);
+  return {
+    to: email,
+    subject: 'Confirme sua inscrição nos avisos da LAESA',
+    text: [
+      'Oi! Recebemos um pedido para enviar avisos da LAESA (novos editais e atividades) para este e-mail.',
+      '',
+      `Para confirmar, abra o link e clique em "Confirmar inscrição" (vale por 7 dias): ${link}`,
+      '',
+      'Se não foi você, ignore este e-mail: sem confirmação, nada acontece.',
+      '',
+      '— LAESA · Liga Acadêmica de Engenharia de Software Aplicada (iCEV)',
+    ].join('\n'),
+  };
+}
+
+/** Para os avisos enviados pela Mesa: link de descadastro e cabeçalhos de um clique (RFC 8058). */
+export function descadastro(email: string, site: URL) {
+  const link = new URL(`/avisos/descadastro?t=${gerarToken(email, 'sair')}`, site).toString();
+  return { link, headers: { 'List-Unsubscribe': `<${link}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } };
+}

@@ -15,9 +15,11 @@ interface Props {
   title: string;
   description: string;
   active?: NavKey | 'inicio';
+  /** Páginas com token na URL: fora dos buscadores e sem enviar o endereço como Referer. */
+  noindex?: boolean;
 }
 
-const { title, description, active } = Astro.props;
+const { title, description, active, noindex = false } = Astro.props;
 const fullTitle = title === 'LAESA' ? 'LAESA · Liga Acadêmica de Engenharia de Software Aplicada' : `${title} · LAESA`;
 // build.format 'file' gera /index.html e /contato.html; o endereço público é / e /contato
 const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ''), Astro.site);
@@ -32,6 +34,8 @@ const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ''), Ast
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#043F63" />
+    {noindex && <meta name="robots" content="noindex" />}
+    {noindex && <meta name="referrer" content="no-referrer" />}
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />

@@ -1,0 +1,43 @@
+---
+// GET só mostra o botão (scanners de link abrem o link e não podem confirmar nada); POST confirma.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Section from '../../components/Section.astro';
+import Button from '../../components/Button.astro';
+import { confirmar, lerToken, InscricaoIndisponivel } from '../../lib/inscricao';
+
+export const prerender = false;
+
+let token = Astro.url.searchParams.get('t') ?? '';
+let estado: 'pedir' | 'ok' | 'invalido' | 'indisponivel' = 'invalido';
+try {
+  if (Astro.request.method === 'POST') {
+    token = String((await Astro.request.formData().catch(() => new FormData())).get('t') ?? '');
+    estado = (await confirmar(token)) ? 'ok' : 'invalido';
+  } else if (lerToken(token, 'confirmar')) {
+    estado = 'pedir';
+  }
+} catch (e) {
+  if (e instanceof InscricaoIndisponivel) estado = 'indisponivel';
+  else throw e;
+}
+const texto = {
+  pedir: { h: 'Falta', em: 'um clique.', p: 'Confirme que quer receber os avisos da LAESA, como novos editais. Dá para cancelar a qualquer momento.' },
+  ok: { h: 'Inscrição', em: 'confirmada.', p: 'Você vai receber os avisos da LAESA, como novos editais. Todo e-mail tem um link para cancelar.' },
+  invalido: { h: 'Link', em: 'inválido ou expirado.', p: 'O link de confirmação vale por 7 dias. Peça um novo na página de processos seletivos.' },
+  indisponivel: { h: 'Inscrições', em: 'em breve.', p: 'As inscrições em avisos ainda não estão abertas. Tente de novo mais tarde.' },
+}[estado];
+---
+<BaseLayout title="Inscrição em avisos" description="Confirmação da inscrição nos avisos da LAESA." noindex>
+  <Section class="page-head" node={104} head={estado === 'ok'} label="Inscrição em avisos">
+    <h1 class="d1">{texto.h} <em>{texto.em}</em></h1>
+    <p class="lead" style="margin: 24px 0 36px">{texto.p}</p>
+    {estado === 'pedir' ? (
+      <form method="post" action="/avisos/confirmar">
+        <input type="hidden" name="t" value={token} />
+        <Button type="submit" icon="check">Confirmar inscrição</Button>
+      </form>
+    ) : (
+      <Button href={estado === 'ok' ? '/' : '/processos-seletivos#avisos'}>{estado === 'ok' ? 'Voltar para o início' : 'Ir para processos seletivos'}</Button>
+    )}
+  </Section>
+</BaseLayout>

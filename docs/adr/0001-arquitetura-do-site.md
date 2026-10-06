@@ -60,7 +60,7 @@ Perguntas enviadas ao iCEV em 2026-10-05.
 
 | # | Pergunta | Resposta | Impacto |
 | --- | --- | --- | --- |
-| 1 | Tipo de hospedagem: pasta estática, VM com Docker ou plataforma de contêineres? Limites de RAM/CPU? | **pendente** | Define o plano A ou o B (abaixo) |
+| 1 | Tipo de hospedagem: pasta estática, VM com Docker ou plataforma de contêineres? Limites de RAM/CPU? | **Docker** (pedido da coordenação, 2026-10-06); limites de RAM/CPU pendentes | **Plano A confirmado.** Plano B descartado |
 | 2 | Subdomínio `laesa.icev.edu.br`? Quem cuida do HTTPS? | **pendente** | Configuração de DNS e TLS (Caddy ou proxy deles) |
 | 3 | SMTP / e-mail | **Google Workspace** | Envio pela conta da LAESA no Gmail |
 | 4 | O servidor pode baixar do GitHub/GHCR? Como a aplicação é atualizada? | **pendente** | Deploy por pull (Watchtower/cron), SSH a partir do CI ou SFTP |
@@ -68,7 +68,7 @@ Perguntas enviadas ao iCEV em 2026-10-05.
 | 6 | Quem administra a infraestrutura? | **Setor de tecnologia do iCEV** | A LAESA cuida só da aplicação |
 | 7 | Acesso em conta da liga? | **Sim, conta da LAESA** | Passagem de mandato sem depender de aluno |
 
-**Plano A (VM ou contêiner com Docker):**
+**Plano A (VM ou contêiner com Docker) — confirmado:**
 - um contêiner com Astro em `@astrojs/node`, modo standalone;
 - páginas pré-renderizadas, painel `/keystatic` e rotas `/api/*`;
 - inscritos em SQLite num volume.
@@ -84,10 +84,15 @@ Nos dois planos, o modelo de conteúdo e o repositório são os mesmos.
 
 - **P1:** organização criada: [github.com/LAESAicev](https://github.com/LAESAicev). Falta transferir o `app-laesa` para ela (opcionalmente renomeando para `site-laesa`).
 - **P2:** onde ficam os inscritos dos avisos.
-  - (a) SQLite no servidor, com disparo pelo site. Exige o plano A.
+  - (a) SQLite num volume do contêiner, com disparo pelo site (viável agora que o plano A está confirmado; recomendado).
   - (b) Google Groups da LAESA. Falta verificar se quem não tem conta Google consegue se inscrever.
 - **P3:** confirmar se a conta Workspace da LAESA permite SMTP (senha de app ou relay) e qual é o limite diário de envio.
 - **P4:** arquivar o repositório `api-laesa` no GitHub. O contrato do formulário já foi trazido para `docs/contrato-contato.md`.
+
+## Notas de implementação
+
+- Fase 4: segurança revisada por agente. Proxy do iCEV deve sobrescrever `X-Forwarded-For` com o IP real (`$remote_addr`) e limitar o corpo a 64 KB; o app confia nos cabeçalhos só para o domínio de `SITE_URL` (`security.allowedDomains`). Confirmar/descadastrar exigem POST (scanners de link fazem GET).
+- Fase 4: o app usa o adaptador `@astrojs/node` (standalone). As páginas são pré-geradas e só `/api/*` e `/avisos/*` rodam no servidor. Build em formato de diretórios (`/processos-seletivos/index.html`): o formato `file` gerava `processos-seletivos.html` ao lado da pasta `processos-seletivos/`, e o servidor de arquivos do adaptador respondia 404.
 
 ## Consequências
 

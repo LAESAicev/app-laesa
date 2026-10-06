@@ -52,7 +52,7 @@ Implementar `design/MOTION.md`:
 - branches do hero desenhadas na carga;
 - `prefers-reduced-motion`.
 
-## Fase 4: Formulários ✅ (código) / ⏸ (onde roda)
+## Fase 4: Formulários ✅ código concluído (2026-10-06) / 👤 senha de app SMTP / ⏸ armazenamento dos inscritos
 1. Schema zod compartilhado (`src/lib/contato.schema.ts`) a partir de `docs/contrato-contato.md`. O mesmo schema valida no navegador e no servidor.
 2. Formulário de contato com select e campos condicionais, e todos os estados do Figma: erro, enviando, sucesso.
 3. `POST /api/contato`: validação, honeypot, limite por IP e envio por SMTP (nodemailer) para a caixa da LAESA. Testável já com um servidor SMTP local (Mailpit).

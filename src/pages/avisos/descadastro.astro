@@ -1,0 +1,46 @@
+---
+// GET mostra o botão; POST descadastra. O POST também atende o descadastro de um clique do Gmail
+// (RFC 8058: POST no mesmo endereço com "List-Unsubscribe=One-Click", sem Origin), autorizado pelo token.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Section from '../../components/Section.astro';
+import Button from '../../components/Button.astro';
+import { descadastrar, lerToken, InscricaoIndisponivel } from '../../lib/inscricao';
+
+export const prerender = false;
+
+const token = Astro.url.searchParams.get('t') ?? '';
+let estado: 'pedir' | 'ok' | 'invalido' = 'invalido';
+try {
+  if (Astro.request.method === 'POST') estado = (await descadastrar(token)) ? 'ok' : 'invalido';
+  else if (lerToken(token, 'sair')) estado = 'pedir';
+} catch (e) {
+  if (!(e instanceof InscricaoIndisponivel)) throw e;
+}
+---
+<BaseLayout title="Cancelar avisos" description="Cancelamento da inscrição nos avisos da LAESA." noindex>
+  <Section class="page-head" node={104} label="Cancelar avisos">
+    {estado === 'pedir' && (
+      <>
+        <h1 class="d1">Cancelar <em>os avisos?</em></h1>
+        <p class="lead" style="margin: 24px 0 36px">Seu e-mail sai da lista e você não recebe mais avisos da LAESA.</p>
+        <form method="post" action={`/avisos/descadastro?t=${encodeURIComponent(token)}`}>
+          <Button type="submit" variant="outline" icon={false}>Cancelar inscrição</Button>
+        </form>
+      </>
+    )}
+    {estado === 'ok' && (
+      <>
+        <h1 class="d1">Inscrição <em>cancelada.</em></h1>
+        <p class="lead" style="margin: 24px 0 36px">Você não vai mais receber avisos da LAESA. Seu e-mail foi removido da lista.</p>
+        <Button href="/">Voltar para o início</Button>
+      </>
+    )}
+    {estado === 'invalido' && (
+      <>
+        <h1 class="d1">Link <em>inválido.</em></h1>
+        <p class="lead" style="margin: 24px 0 36px">Não conseguimos identificar a inscrição. Se continuar recebendo avisos, fale com a gente pela página de contato.</p>
+        <Button href="/contato">Ir para o contato</Button>
+      </>
+    )}
+  </Section>
+</BaseLayout>

@@ -16,6 +16,31 @@ npm run dev       # site em http://localhost:4321 e painel em http://localhost:4
 npm run build     # checa tipos e gera dist/
 npm run design    # regera o protótipo HTML (design/dist) usado no Figma
 npm run dev:limpo # painel em branco ou erro de cache? reinicia o dev limpando o cache do Vite
+npm test          # testes (validação, links de inscrição, limite, rota de contato)
+```
+
+### E-mails em desenvolvimento
+
+Os formulários enviam e-mail de verdade. Em desenvolvimento, use o [Mailpit](https://mailpit.axllent.org), que mostra numa página os e-mails que o site mandaria:
+
+```sh
+docker run -d --name laesa-mailpit -p 8025:8025 -p 1025:1025 \
+  -e MP_SMTP_AUTH_ACCEPT_ANY=1 -e MP_SMTP_AUTH_ALLOW_INSECURE=1 axllent/mailpit
+```
+
+No `.env`: `SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_USER=dev`, `SMTP_PASS=dev`. Para testar a inscrição em avisos, defina também `INSCRICAO_SECRET` e `INSCRITOS_STORE=memoria`. Caixa de entrada: http://localhost:8025
+
+### Produção
+
+`npm run build` gera `dist/client` (páginas estáticas) e `dist/server` (rotas de API). Para subir:
+
+```sh
+HOST=0.0.0.0 PORT=4321 node dist/server/entry.mjs
+```
+
+As variáveis de servidor (`SMTP_*`, `INSCRICAO_SECRET`…) são lidas do ambiente em tempo de execução. O Dockerfile entra na Fase 5.
+
+```sh
 ```
 
 ## Estrutura
@@ -27,7 +52,8 @@ npm run dev:limpo # painel em branco ou erro de cache? reinicia o dev limpando o
 ├── src/
 │   ├── pages/            /, /processos-seletivos, /processos-seletivos/[slug], /contato, /privacidade, 404
 │   ├── components/       componentes portados do protótipo (Nav, GitLog, EditalPage, ContactForm…)
-│   ├── lib/content.ts    lê content/*.yaml com o schema do painel
+│   ├── lib/              content.ts (lê o YAML), contato.schema.ts (validação compartilhada), mailer, inscrição
+│   ├── pages/api/        contato.ts e inscricao.ts (rodam no servidor)
 │   ├── data/             conteúdo fixo do estatuto e tipos
 │   ├── styles/global.css tokens e estilos (portados de design/src/styles.css)
 │   └── icons/            ícones 24px

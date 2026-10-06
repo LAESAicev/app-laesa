@@ -33,6 +33,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
 html { -webkit-font-smoothing: antialiased; }
 body { background: var(--ground); font-family: var(--sans); color: var(--ink); }
 ::selection { background: var(--cyan); color: var(--navy-deep); }
@@ -421,7 +422,7 @@ svg { display: block; }
 .small-link svg { display: inline-block; vertical-align: -3px; margin-left: 4px; }
 .hint.opts { margin-top: -10px; }
 
-.check { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; font-size: 15px; font-weight: 500; color: var(--ink); cursor: pointer; }
+.check { position: relative; display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; font-size: 15px; font-weight: 500; color: var(--ink); cursor: pointer; }
 .check .box { width: 20px; height: 20px; margin-top: 1px; border: 1.5px solid var(--rule-strong); border-radius: 4px; background: var(--paper); }
 .check small { display: block; font-size: 13px; font-weight: 400; color: var(--ink-3); margin-top: 2px; }
 
@@ -793,3 +794,24 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
   .branch-svg path { stroke-dashoffset: 0; animation: none; }
   .branch-svg circle { transform: none; animation: none; }
 }
+
+/* formulários (Fase 4) */
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.contact-box { min-width: 0; }
+.form.success:focus { outline: none; }
+.err-banner span { line-height: 1.4; }
+.subscribe { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 14px; }
+.sub-row { display: flex; gap: 10px; }
+.sub-row .input { flex: 1; min-width: 0; height: 52px; background: rgba(234, 244, 250, 0.06); border-color: var(--on-navy-rule); color: var(--on-navy); }
+.sub-row .input::placeholder { color: var(--on-navy-2); }
+.sub-check { color: var(--on-navy); font-size: 14px; font-weight: 400; }
+.sub-check small { color: var(--on-navy-2); }
+.sub-check .box { background: transparent; border-color: var(--on-navy-2); }
+.sub-check a { color: var(--cyan); text-decoration: underline; text-underline-offset: 3px; }
+.sub-msg { font-size: 14.5px; line-height: 1.45; min-height: 1px; }
+.sub-msg[data-kind="erro"] { color: #FFB4B4; }
+.sub-msg[data-kind="ok"] { color: var(--mint); }
+@media (max-width: 640px) { .sub-row { flex-direction: column; } .sub-row .btn { justify-content: center; } }
+.err-banner:focus { outline: 2px solid #C42B2B; outline-offset: 2px; }
+.sub-row .input[aria-invalid] { border-color: #FFB4B4; }
+.subscribe .btn .spin { width: 18px; height: 18px; }

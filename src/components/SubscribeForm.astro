@@ -1,0 +1,92 @@
+---
+// Inscrição em avisos (POST /api/inscricao): e-mail + consentimento; confirmação dupla por e-mail.
+import Icon from './Icon.astro';
+---
+<form class="subscribe" action="/api/inscricao" method="post" novalidate data-subscribe>
+  <div class="hp" aria-hidden="true" inert>
+    <label for="sub-nao-preencher">Não preencha este campo</label>
+    <input id="sub-nao-preencher" name="nao_preencher" type="text" tabindex="-1" autocomplete="off" />
+  </div>
+  <div class="sub-row">
+    <label class="sr-only" for="sub-email">Seu e-mail</label>
+    <input class="input" id="sub-email" name="email" type="email" autocomplete="email" placeholder="seu@email.com" required aria-describedby="sub-msg" />
+    <button class="btn btn-light" type="submit"><span data-label>Quero ser avisado</span><Icon name="arrow" /></button>
+  </div>
+  <label class="check sub-check">
+    <input type="checkbox" name="consentimento" value="true" required aria-describedby="sub-msg" />
+    <span class="box" aria-hidden="true"></span>
+    <span>Autorizo a LAESA a me enviar avisos de editais e atividades.<small>Dá para cancelar a qualquer momento. <a href="/privacidade">Privacidade</a></small></span>
+  </label>
+  <p class="sub-msg" id="sub-msg" role="status" aria-live="polite" data-msg></p>
+</form>
+
+<script>
+  import { inscricaoSchemaCliente } from '../lib/inscricao.schema';
+  import { errosPorCampo, formParaObjeto } from '../lib/contato.schema';
+
+  const SPIN = '<svg class="spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="rgba(4,63,99,0.25)" stroke-width="2.5"/><path d="M21 12a9 9 0 0 0-9-9" stroke="#043F63" stroke-width="2.5" stroke-linecap="round"/></svg>';
+
+  for (const form of document.querySelectorAll<HTMLFormElement>('[data-subscribe]')) {
+    const msg = form.querySelector<HTMLElement>('[data-msg]')!;
+    const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    const email = form.querySelector<HTMLInputElement>('input[name="email"]')!;
+    const consent = form.querySelector<HTMLInputElement>('input[name="consentimento"]')!;
+    const say = (text: string, kind: 'erro' | 'ok') => {
+      msg.textContent = text;
+      msg.dataset.kind = kind;
+    };
+    const marcar = (campo?: string) => {
+      for (const [el, nome] of [[email, 'email'], [consent, 'consentimento']] as const) {
+        if (campo === nome) el.setAttribute('aria-invalid', 'true');
+        else el.removeAttribute('aria-invalid');
+      }
+      if (campo === 'email') email.focus();
+      if (campo === 'consentimento') consent.focus();
+    };
+    const carregando = (on: boolean) => {
+      btn.disabled = on;
+      btn.setAttribute('aria-busy', String(on));
+      form.inert = on;
+      if (on) {
+        btn.dataset.html = btn.innerHTML;
+        btn.innerHTML = `${SPIN} Enviando`;
+      } else if (btn.dataset.html) btn.innerHTML = btn.dataset.html;
+    };
+    form.addEventListener('input', (e) => (e.target as HTMLElement).removeAttribute('aria-invalid'));
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const obj = formParaObjeto(new FormData(form));
+      const { nao_preencher: _hp, ...paraValidar } = obj;
+      const r = inscricaoSchemaCliente.safeParse(paraValidar);
+      if (!r.success) {
+        const erros = errosPorCampo(r.error);
+        const campo = erros.email ? 'email' : 'consentimento';
+        marcar(campo);
+        return say(erros[campo] ?? 'Revise os dados.', 'erro');
+      }
+      marcar();
+      carregando(true);
+      let res: Response | undefined;
+      let body: { erro?: string; erros?: Record<string, string> } = {};
+      try {
+        res = await fetch(form.action, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(obj) });
+        body = await res.json().catch(() => ({}));
+      } catch {
+        res = undefined;
+      } finally {
+        carregando(false); // destrava antes de focar: elemento inert não recebe foco
+      }
+      if (!res) return say('Sem conexão com o servidor. Confira sua internet e tente de novo.', 'erro');
+      if (res.status === 202) {
+        form.reset();
+        return say(`Quase lá: enviamos um link de confirmação para ${r.data.email}. Confira a caixa de entrada e o spam.`, 'ok');
+      }
+      if (body.erros) {
+        const campo = Object.keys(body.erros)[0];
+        marcar(campo);
+        return say(body.erros[campo], 'erro');
+      }
+      say(body.erro ?? 'Não foi possível fazer a inscrição agora.', 'erro');
+    });
+  }
+</script>

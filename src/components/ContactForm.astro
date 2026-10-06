@@ -1,5 +1,5 @@
 ---
-// Campos seguem docs/contrato-contato.md. O envio (POST /api/contato) entra na Fase 4.
+// Campos seguem docs/contrato-contato.md. Valida com o mesmo schema do servidor e envia para POST /api/contato.
 import Icon from './Icon.astro';
 
 interface Props {
@@ -10,7 +10,14 @@ interface Props {
 const { id = 'contato-form' } = Astro.props;
 const f = (name: string) => `${id}-${name}`;
 ---
+<div class="contact-box" data-contact-box>
 <form class="form contact-form" id={id} action="/api/contato" method="post" novalidate data-contact-form>
+  <div class="err-banner" role="alert" tabindex="-1" data-banner hidden><Icon name="alert" /><span data-banner-text></span></div>
+  <div class="hp" aria-hidden="true" inert>
+    <label for={f('nao_preencher')}>Não preencha este campo</label>
+    <input id={f('nao_preencher')} name="nao_preencher" type="text" tabindex="-1" autocomplete="off" />
+  </div>
+  <noscript><p class="hint">O envio precisa de JavaScript. Sem ele, escreva para o e-mail da LAESA na página de contato.</p></noscript>
   <div class="form-row" data-identity>
     <div class="field">
       <label for={f('nome')}>Nome</label>
@@ -24,14 +31,14 @@ const f = (name: string) => `${id}-${name}`;
 
   <div class="field subject">
     <label for={f('assunto')}>Sobre o que você quer falar?</label>
-    <select class="select" id={f('assunto')} name="assunto" required>
+    <select class="select" id={f('assunto')} name="assunto" required aria-describedby={f('assunto-dica')}>
       <option value="" disabled selected>Escolha um assunto</option>
       <option value="duvida">Tenho uma dúvida</option>
       <option value="feedback">Quero dar um feedback</option>
       <option value="projeto">Quero propor um projeto</option>
       <option value="colaborar">Quero colaborar com a liga</option>
     </select>
-    <p class="hint" data-subject-hint>Ao escolher, aparecem os campos certos para o seu assunto.</p>
+    <p class="hint" id={f('assunto-dica')} data-subject-hint>Ao escolher, aparecem os campos certos para o seu assunto.</p>
   </div>
 
   <fieldset class="cond-set" data-for="feedback" hidden disabled>
@@ -127,12 +134,164 @@ const f = (name: string) => `${id}-${name}`;
     <p class="hint" data-foot-hint>Usamos seus dados só para responder esta mensagem. <a class="link-inline" href="/privacidade">Privacidade</a></p>
     <button class="btn btn-primary" type="submit"><span data-submit-label>Enviar mensagem</span><Icon name="arrow" /></button>
   </div>
-  <p class="form-status" role="status" aria-live="polite" data-form-status></p>
 </form>
+<div class="form success" tabindex="-1" aria-labelledby={`${id}-ok`} data-success hidden>
+  <div class="ok-graph" aria-hidden="true">
+    <svg viewBox="0 0 40 160" width="40" height="160" fill="none">
+      <path d="M20 0 V160" stroke="#B4C6D6" stroke-width="2" />
+      <circle cx="20" cy="36" r="9" fill="#5CEAD2" />
+      <circle cx="20" cy="36" r="15" stroke="#5CEAD2" stroke-opacity="0.35" stroke-width="4" />
+      <circle cx="20" cy="120" r="6" fill="#FFFFFF" style="stroke: var(--blue)" stroke-width="2" />
+    </svg>
+  </div>
+  <div class="ok-body">
+    <span class="headref">nova mensagem</span>
+    <h3 class="d3" id={`${id}-ok`}>Mensagem enviada.</h3>
+    <p class="body" data-success-text></p>
+    <span class="meta" data-success-meta></span>
+    <button class="btn btn-outline" type="button" data-again>Enviar outra mensagem</button>
+  </div>
+</div>
+</div>
 
 <script>
-  type Assunto = 'duvida' | 'feedback' | 'projeto' | 'colaborar';
+  import { validarContato, formParaObjeto, rotuloAssunto, type Assunto, type Erros } from '../lib/contato.schema';
 
+  const ALERT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>';
+  const SPIN = '<svg class="spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" stroke-width="2.5"/><path d="M21 12a9 9 0 0 0-9-9" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>';
+
+  function descrever(el: Element, id: string, on: boolean) {
+    const ids = new Set((el.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean));
+    if (on) ids.add(id);
+    else ids.delete(id);
+    if (ids.size) el.setAttribute('aria-describedby', [...ids].join(' '));
+    else el.removeAttribute('aria-describedby');
+  }
+
+  function limparCampo(input: HTMLElement) {
+    const field = input.closest('.field');
+    field?.classList.remove('is-error');
+    field?.querySelector('[data-err]')?.remove();
+    input.removeAttribute('aria-invalid');
+    descrever(input, `${input.id}-erro`, false);
+  }
+
+  function limparErros(form: HTMLFormElement) {
+    form.querySelectorAll<HTMLElement>('[aria-invalid]').forEach(limparCampo);
+    form.querySelectorAll('[data-err]').forEach((el) => el.remove());
+    form.querySelectorAll('.field.is-error').forEach((f) => f.classList.remove('is-error'));
+    form.querySelector<HTMLElement>('[data-banner]')!.hidden = true;
+  }
+
+  const visivel = (el: HTMLElement) => (el as HTMLInputElement).disabled !== true && !el.closest('[hidden], fieldset:disabled');
+
+  function mostrarErros(form: HTMLFormElement, erros: Erros, banner?: string) {
+    limparErros(form);
+    let primeiro: HTMLElement | null = null;
+    let total = 0;
+    for (const [campo, msg] of Object.entries(erros)) {
+      if (!msg) continue;
+      const input = [...form.querySelectorAll<HTMLElement>(`[name="${CSS.escape(campo)}"]`)].find(visivel);
+      const field = input?.closest('.field');
+      if (!input || !field) continue;
+      total += 1;
+      field.classList.add('is-error');
+      input.setAttribute('aria-invalid', 'true');
+      const p = document.createElement('p');
+      p.className = 'err';
+      p.dataset.err = '';
+      p.id = `${input.id}-erro`;
+      p.innerHTML = ALERT;
+      p.append(msg);
+      descrever(input, p.id, true);
+      field.append(p);
+      primeiro ??= input;
+    }
+    const texto = banner ?? (total === 1 ? 'Revise 1 campo para enviar a mensagem.' : `Revise ${total} campos para enviar a mensagem.`);
+    if (banner || total > 0) {
+      const b = form.querySelector<HTMLElement>('[data-banner]')!;
+      const t = b.querySelector('[data-banner-text]')!;
+      t.textContent = '';
+      b.hidden = false;
+      requestAnimationFrame(() => (t.textContent = texto)); // reanuncia mesmo se o texto for igual ao anterior
+      if (!primeiro) b.focus(); // erro de rede/servidor: sem campo para focar
+    }
+    primeiro?.focus();
+  }
+
+  function enviando(form: HTMLFormElement, on: boolean) {
+    const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    form.classList.toggle('is-sending', on);
+    form.inert = on; // nada muda (assunto, campos) enquanto envia
+    btn.disabled = on;
+    btn.classList.toggle('is-loading', on);
+    btn.setAttribute('aria-busy', String(on));
+    if (on) {
+      btn.dataset.html = btn.innerHTML;
+      btn.innerHTML = `${SPIN} Enviando`;
+    } else if (btn.dataset.html) {
+      btn.innerHTML = btn.dataset.html;
+    }
+  }
+
+  function sucesso(form: HTMLFormElement, dados: { assunto: Assunto; email?: string; anonimo?: boolean }) {
+    const box = form.closest<HTMLElement>('[data-contact-box]')!;
+    const ok = box.querySelector<HTMLElement>('[data-success]')!;
+    const texto = ok.querySelector<HTMLElement>('[data-success-text]')!;
+    const recebemos = { duvida: 'sua dúvida', feedback: 'seu feedback', projeto: 'sua proposta de projeto', colaborar: 'sua mensagem' }[dados.assunto];
+    texto.replaceChildren(
+      dados.anonimo || !dados.email
+        ? `Recebemos ${recebemos}. Obrigado! Como foi enviado sem identificação, não há resposta.`
+        : `Recebemos ${recebemos}. A resposta da Mesa Diretora chega no e-mail `,
+    );
+    if (!dados.anonimo && dados.email) {
+      const b = document.createElement('b');
+      b.textContent = dados.email;
+      texto.append(b, '.');
+    }
+    ok.querySelector('[data-success-meta]')!.textContent = `assunto: ${rotuloAssunto[dados.assunto].toLowerCase()}`;
+    form.hidden = true;
+    ok.hidden = false;
+    ok.focus();
+  }
+
+  async function enviarFormulario(form: HTMLFormElement) {
+    const obj = formParaObjeto(new FormData(form));
+    const { nao_preencher: _hp, ...paraValidar } = obj;
+    const r = validarContato(paraValidar);
+    if (!r.ok) return mostrarErros(form, r.erros);
+    limparErros(form);
+    enviando(form, true);
+    let res: Response | undefined;
+    let body: { erro?: string; erros?: Erros } = {};
+    try {
+      res = await fetch(form.action, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(obj) });
+      body = await res.json().catch(() => ({}));
+    } catch {
+      res = undefined;
+    } finally {
+      enviando(form, false); // destrava antes de mostrar o resultado: elemento inert não recebe foco
+    }
+    if (!res) return mostrarErros(form, {}, 'Sem conexão com o servidor. Confira sua internet e tente de novo.');
+    if (res.status === 201) return sucesso(form, r.data);
+    if (res.status === 422 && body.erros) return mostrarErros(form, body.erros);
+    mostrarErros(form, {}, body.erro ?? 'Não foi possível enviar agora. Tente de novo em instantes.');
+  }
+
+  for (const again of document.querySelectorAll<HTMLButtonElement>('[data-again]')) {
+    again.addEventListener('click', () => {
+      const box = again.closest<HTMLElement>('[data-contact-box]')!;
+      const form = box.querySelector<HTMLFormElement>('form')!;
+      form.reset();
+      form.dispatchEvent(new Event('laesa:reset'));
+      box.querySelector<HTMLElement>('[data-success]')!.hidden = true;
+      form.hidden = false;
+      limparErros(form);
+      form.querySelector<HTMLElement>('select[name="assunto"]')?.focus();
+    });
+  }
+
+  const padrao = { message: 'Mensagem', submit: 'Enviar mensagem', hint: 'Usamos seus dados só para responder esta mensagem.' };
   const copy: Record<Assunto, { message: string; submit: string; hint: string }> = {
     duvida: { message: 'Sua dúvida', submit: 'Enviar mensagem', hint: 'Usamos seus dados só para responder esta mensagem.' },
     feedback: { message: 'Seu feedback', submit: 'Enviar feedback', hint: 'Usamos seus dados só para responder esta mensagem.' },
@@ -144,7 +303,6 @@ const f = (name: string) => `${id}-${name}`;
     const select = form.querySelector<HTMLSelectElement>('select[name="assunto"]')!;
     const identity = form.querySelector<HTMLElement>('[data-identity]')!;
     const anonimo = form.querySelector<HTMLInputElement>('[data-anonimo]')!;
-    const status = form.querySelector<HTMLElement>('[data-form-status]')!;
 
     const syncIdentity = () => {
       const anon = select.value === 'feedback' && anonimo.checked;
@@ -158,30 +316,42 @@ const f = (name: string) => `${id}-${name}`;
         fs.hidden = !on;
         fs.disabled = !on; // campos escondidos não bloqueiam a validação nem são enviados
       });
-      const c = copy[value as Assunto];
-      if (c) {
-        form.querySelector('[data-message-label]')!.textContent = c.message;
-        form.querySelector('[data-submit-label]')!.textContent = c.submit;
-        form.querySelector('[data-foot-hint]')!.firstChild!.textContent = `${c.hint} `;
-        form.querySelector<HTMLElement>('[data-subject-hint]')!.hidden = true;
-      }
+      const c = copy[value as Assunto] ?? padrao;
+      form.querySelector('[data-message-label]')!.textContent = c.message;
+      const submit = form.querySelector('[data-submit-label]');
+      if (submit) submit.textContent = c.submit;
+      form.querySelector('[data-foot-hint]')!.firstChild!.textContent = `${c.hint} `;
+      form.querySelector<HTMLElement>('[data-subject-hint]')!.hidden = Object.hasOwn(copy, value);
       syncIdentity();
     };
 
-    select.addEventListener('change', () => apply(select.value));
-    anonimo.addEventListener('change', syncIdentity);
+    select.addEventListener('change', () => {
+      limparErros(form); // erros de outro assunto não fazem mais sentido
+      apply(select.value);
+    });
+    form.addEventListener('laesa:reset', () => apply(''));
+    anonimo.addEventListener('change', () => {
+      limparErros(form);
+      syncIdentity();
+    });
+    // corrigir um campo tira o erro dele; sem erros restantes, o aviso some
+    form.addEventListener('input', (e) => {
+      const el = e.target as HTMLElement;
+      if (el.getAttribute('aria-invalid') !== 'true') return;
+      limparCampo(el);
+      if (!form.querySelector('[data-err]')) form.querySelector<HTMLElement>('[data-banner]')!.hidden = true;
+    });
 
     // /contato?assunto=projeto pré-seleciona o assunto (links do rodapé e da home)
     const pre = new URLSearchParams(location.search).get('assunto');
-    if (pre && pre in copy) {
-      select.value = pre;
-      apply(pre);
-    }
+    if (pre && Object.hasOwn(copy, pre)) select.value = pre;
+    // Sempre sincroniza com o valor atual: o "voltar" do navegador restaura o select sem disparar change.
+    apply(select.value);
+    window.addEventListener('pageshow', () => apply(select.value));
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      if (!form.reportValidity()) return;
-      status.textContent = 'O envio do formulário será ativado na próxima etapa do projeto.';
+      void enviarFormulario(form);
     });
   }
 </script>
