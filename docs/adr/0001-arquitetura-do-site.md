@@ -65,6 +65,7 @@ Perguntas enviadas ao iCEV em 2026-10-05.
 | 3 | SMTP / e-mail | **Google Workspace** | Envio pela conta da LAESA no Gmail |
 | 4 | O servidor pode baixar do GitHub/GHCR? Como a aplicação é atualizada? | **pendente** | Deploy por pull (Watchtower/cron), SSH a partir do CI ou SFTP |
 | 5 | Há backup da VM/volumes? | **pendente** | Se não houver, rotina de backup própria do SQLite |
+| 8 | O servidor tem saída liberada para `smtp.gmail.com` nas portas 465 ou 587? | **pendente** (2026-10-06: a rede local de desenvolvimento bloqueia as duas; HTTPS funciona) | Sem essa saída, trocar o envio para a API do Gmail via HTTPS (porta 443, OAuth da conta da LAESA) |
 | 6 | Quem administra a infraestrutura? | **Setor de tecnologia do iCEV** | A LAESA cuida só da aplicação |
 | 7 | Acesso em conta da liga? | **Sim, conta da LAESA** | Passagem de mandato sem depender de aluno |
 

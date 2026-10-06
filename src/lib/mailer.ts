@@ -18,6 +18,10 @@ function transporte(): Transporter {
     port: SMTP_PORT,
     secure: SMTP_PORT === 465, // 465 = TLS direto (Gmail); 587/1025 = STARTTLS ou texto (Mailpit)
     auth: { user: SMTP_USER, pass: SMTP_PASS },
+    // Redes que bloqueiam SMTP deixariam o formulário "Enviando" por ~2 min (padrão do nodemailer).
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   });
   return transporter;
 }
