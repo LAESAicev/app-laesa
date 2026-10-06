@@ -813,7 +813,7 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
 .sub-check a { color: var(--cyan); text-decoration: underline; text-underline-offset: 3px; }
 .sub-msg { font-size: 14.5px; line-height: 1.45; min-height: 1px; }
 .sub-msg[data-kind="erro"] { color: #FFB4B4; }
-.sub-msg[data-kind="ok"] { color: var(--mint); }
+.sub-msg[data-kind="ok"] { color: var(--cyan); } /* menta fica reservada para aberto/agora */
 @media (max-width: 640px) { .sub-row { flex-direction: column; } .sub-row .input { flex: none; height: 50px; } .sub-row .btn { justify-content: center; } }
 .err-banner:focus { outline: 2px solid #C42B2B; outline-offset: 2px; }
 .sub-row .input[aria-invalid] { border-color: #FFB4B4; }

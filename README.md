@@ -49,6 +49,7 @@ As variáveis de servidor (`SMTP_*`, `INSCRICAO_SECRET`…) são lidas do ambien
 .
 ├── LICENSE             uso exclusivo da LAESA, todos os direitos reservados
 ├── PRODUCT.md            contexto do produto: público, objetivos, regras de conteúdo
+├── DESIGN.md             sistema visual (cores, tipografia, layout, componentes, regras)
 ├── src/
 │   ├── pages/            /, /processos-seletivos, /processos-seletivos/[slug], /contato, /privacidade, 404
 │   ├── components/       componentes portados do protótipo (Nav, GitLog, EditalPage, ContactForm…)

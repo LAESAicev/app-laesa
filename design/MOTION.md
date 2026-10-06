@@ -31,15 +31,15 @@ O menta continua reservado para "aberto/agora": a energia nunca usa menta.
 ### 1. Preenchimento acompanha o scroll
 - A ponta do preenchimento fica sempre na agulha (40% da viewport). Acima dela, a linha está preenchida; abaixo, só o trilho.
 - Rolar para cima desfaz o preenchimento. É uma posição, não uma conquista.
-- **Implementação:** um elemento `.spine-fill` por seção, com `transform: scaleY(p)` e `transform-origin: top`, onde `p` (0–1) é a fração da seção acima da agulha.
+- **Implementação:** um elemento `.spine-fill` por seção, recortado com `clip-path: inset(0 … calc((1 - p) * 100%) …)`, onde `p` (0–1) é a fração da seção acima da agulha. Usa `clip-path` e não `scaleY` para a energia dentro dele não ser achatada.
   - Onde há suporte: CSS scroll-driven, com `animation-timeline: view()` e `animation-range` calibrado para a agulha. Roda fora da main thread.
   - Fallback (Firefox/Safari antigos): um listener de scroll `passive` que atualiza `--p` via `requestAnimationFrame`, uma escrita por frame.
-- Nada de animar `height`/`top`: só `transform`.
+- Nada de animar `height`/`top`: só `clip-path` e `transform`.
 
 ### 2. Energia flui pelo trecho preenchido
 - Um brilho de 64px (degradê linear de 0 → cor → 0) desce pelo preenchimento em loop contínuo, como corrente passando por um circuito. É o "fluxo" do logo (as linhas do cérebro terminam em nós).
-- Fica recortado pelo preenchimento (`overflow: hidden` no `.spine-fill`), então só circula pelo caminho já commitado. Abaixo da agulha a linha fica parada.
-- **Implementação:** CSS animation em `transform: translateY(-64px → 100%)`, `linear`, **2.4s**, `infinite`. Usa dois brilhos defasados em 1.2s para a linha nunca ficar "vazia". Velocidade constante: é movimento contínuo, então usa `linear`.
+- Fica recortado pelo `clip-path` do preenchimento, então só circula pelo caminho já commitado. Abaixo da agulha a linha fica parada.
+- **Implementação:** CSS animation em `transform: translateY(-64px → 100%)`, `linear`, `infinite`. A duração é proporcional à altura da seção (**420 px/s**, mínimo 1,6s), para a velocidade ser a mesma em seções curtas e altas. Dois brilhos defasados em meia duração, para a linha nunca ficar "vazia".
 - Pausa quando a seção sai da tela (`animation-play-state: paused` via IntersectionObserver) para não gastar bateria.
 
 ### 3. Nó é preenchido quando a agulha passa

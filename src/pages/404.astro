@@ -5,9 +5,9 @@ import Button from '../components/Button.astro';
 ---
 <BaseLayout title="Página não encontrada" description="Esta página não existe ou mudou de endereço.">
   <Section class="page-head" node={104} label="Erro 404">
-    <span class="meta">error: pathspec did not match any file</span>
     <h1 class="d1">Essa página <em>não existe.</em></h1>
-    <p class="lead" style="margin: 24px 0 36px">O endereço pode ter mudado ou estar escrito errado.</p>
+    <p class="lead" style="margin: 24px 0 12px">O endereço pode ter mudado ou estar escrito errado.</p>
+    <p class="meta" style="margin-bottom: 36px">error: pathspec did not match any file</p>
     <Button href="/">Voltar para o início</Button>
   </Section>
 </BaseLayout>
