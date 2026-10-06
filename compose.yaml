@@ -1,0 +1,67 @@
+# Site da LAESA em produção (infraestrutura do iCEV). Uso: docker compose up -d --build
+# Variáveis: copie .env.example para .env no servidor (o compose lê o mesmo arquivo para os build args e
+# entrega os segredos ao contêiner em tempo de execução). Guia completo: docs/operacao.md
+services:
+  app:
+    build:
+      context: .
+      args:
+        SITE_URL: ${SITE_URL:?defina SITE_URL no .env}
+        PUBLIC_CONTACT_EMAIL: ${PUBLIC_CONTACT_EMAIL:?defina PUBLIC_CONTACT_EMAIL no .env}
+        PUBLIC_INSTAGRAM_URL: ${PUBLIC_INSTAGRAM_URL:-}
+        PUBLIC_LINKEDIN_URL: ${PUBLIC_LINKEDIN_URL:-}
+        PUBLIC_GITHUB_URL: ${PUBLIC_GITHUB_URL:-}
+        TRUST_PROXY: "1"
+    image: ${IMAGE:-ghcr.io/laesaicev/app-laesa:latest}
+    restart: unless-stopped
+    init: true # repassa o SIGTERM ao Node: atualizações sem esperar 10s nem cortar escrita no SQLite
+    env_file: .env
+    environment:
+      INSCRITOS_STORE: sqlite
+      INSCRITOS_DB: /data/laesa.db
+    volumes:
+      - dados:/data
+    # sem "ports": o app só é alcançável pelo proxy, na rede interna do compose
+    expose:
+      - "4321"
+    # endurecimento: só /data (volume) e /tmp são graváveis; sem capacidades extras
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 200
+    logging: &logs
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  proxy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    logging: *logs
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SITE_DOMAIN: "${SITE_DOMAIN:?defina SITE_DOMAIN no .env, por exemplo laesa.icev.edu.br ou localhost}"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  dados: # SQLite dos inscritos: faça backup (docs/operacao.md)
+  caddy_data: # certificados HTTPS
+  caddy_config:

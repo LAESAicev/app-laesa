@@ -1,0 +1,33 @@
+# Proxy e HTTPS automático (Let's Encrypt) para o site da LAESA.
+# SITE_DOMAIN vem do .env (ex.: laesa.icev.edu.br). Com "localhost", o Caddy usa um certificado local.
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	# formulários: no máximo 64 KB (o app também limita)
+	request_body {
+		max_size 64KB
+	}
+
+	header {
+		# CSP mínima, sem risco de quebrar a página; a política completa entra testada com Report-Only
+		Content-Security-Policy "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# HSTS só no domínio real (sem preload: o domínio é do iCEV)
+	@publico not host localhost
+	header @publico Strict-Transport-Security "max-age=31536000"
+
+	# O app confia em X-Forwarded-For (TRUST_PROXY=1) porque aqui ele é SOBRESCRITO com o IP real
+	# do visitante; um valor forjado pelo cliente nunca chega ao app. Se o iCEV tiver um proxy/NAT na frente
+	# deste Caddy, {remote_host} vira o IP dele: configure trusted_proxies com o IP desse proxy.
+	reverse_proxy app:4321 {
+		header_up X-Forwarded-For {remote_host}
+	}
+
+	# Sem log de acesso de propósito: as URLs de confirmação/descadastro carregam e-mails em tokens.
+}

@@ -20,3 +20,9 @@ dist/
 
 # capturas de revisão de design (geradas)
 .impeccable/review/
+
+# dados pessoais (inscritos): bancos e backups nunca entram aqui
+*.db
+*.db-wal
+*.db-shm
+backup-*

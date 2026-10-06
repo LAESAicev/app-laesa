@@ -1,0 +1,86 @@
+# Testa e gera o site a cada push/PR; na main, publica a imagem Docker no GitHub Container Registry.
+# Variáveis públicas vêm de "Settings → Secrets and variables → Actions → Variables" (com fallback para
+# os valores do .env.example). O deploy no servidor do iCEV entra quando a hospedagem for definida.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ASTRO_TELEMETRY_DISABLED: 1
+  SITE_URL: ${{ vars.SITE_URL || 'https://laesa.icev.edu.br' }}
+  PUBLIC_CONTACT_EMAIL: ${{ vars.PUBLIC_CONTACT_EMAIL || 'laesa@somosicev.com' }}
+  PUBLIC_INSTAGRAM_URL: ${{ vars.PUBLIC_INSTAGRAM_URL || 'https://www.instagram.com/laesa.icev' }}
+  PUBLIC_LINKEDIN_URL: ${{ vars.PUBLIC_LINKEDIN_URL || 'https://www.linkedin.com/company/laesaicev' }}
+  PUBLIC_GITHUB_URL: ${{ vars.PUBLIC_GITHUB_URL || 'https://github.com/LAESAicev' }}
+
+jobs:
+  teste:
+    name: Checagem, testes e build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Tipos (astro check)
+        run: npx astro check
+      - name: Testes
+        run: npx vitest run
+        env:
+          INSCRICAO_SECRET: segredo-de-teste-com-mais-de-32-caracteres
+      - name: Build
+        run: npx astro build
+
+  imagem:
+    name: Imagem Docker
+    needs: teste
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: nome
+        run: echo "imagem=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.nome.outputs.imagem }}:latest
+            ${{ steps.nome.outputs.imagem }}:${{ github.sha }}
+          build-args: |
+            SITE_URL=${{ env.SITE_URL }}
+            PUBLIC_CONTACT_EMAIL=${{ env.PUBLIC_CONTACT_EMAIL }}
+            PUBLIC_INSTAGRAM_URL=${{ env.PUBLIC_INSTAGRAM_URL }}
+            PUBLIC_LINKEDIN_URL=${{ env.PUBLIC_LINKEDIN_URL }}
+            PUBLIC_GITHUB_URL=${{ env.PUBLIC_GITHUB_URL }}
+            TRUST_PROXY=1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # deploy: pendente da hospedagem do iCEV (ADR 0001). Com a VM liberando saída para o GHCR, o servidor
+  # roda `docker compose pull && docker compose up -d` (manual, cron ou Watchtower). Ver docs/operacao.md.

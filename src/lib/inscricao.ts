@@ -1,10 +1,11 @@
 // Inscrição em avisos (confirmação dupla). Links de confirmação e descadastro são assinados (HMAC),
 // então validá-los não exige guardar tokens. A ação só acontece por POST (botão na página ou o
 // descadastro de um clique do Gmail, RFC 8058): scanners de link fazem GET e não podem confirmar nada.
-// Onde guardar os inscritos está pendente (ADR 0001, P2): a interface `Inscritos` recebe a implementação
-// definitiva (SQLite no contêiner, já que vamos de Docker).
+// Inscritos: SQLite no volume /data do contêiner (INSCRITOS_STORE=sqlite, arquivo em INSCRITOS_DB) ou memória
+// (INSCRITOS_STORE=memoria, só dev e testes).
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import { INSCRICAO_SECRET, INSCRITOS_STORE } from 'astro:env/server';
+import { INSCRICAO_SECRET, INSCRITOS_DB, INSCRITOS_STORE } from 'astro:env/server';
+import { criarInscritosSqlite } from './inscritos-sqlite';
 import { criarLimite } from './rate-limit';
 
 export { inscricaoSchemaCliente as inscricaoSchema } from './inscricao.schema';
@@ -68,11 +69,14 @@ const emMemoria: Inscritos = {
   },
 };
 
-/** Armazenamento ativo. Lança InscricaoIndisponivel enquanto a P2 não for decidida. */
+let emSqlite: Inscritos | undefined;
+
+/** Armazenamento ativo. Lança InscricaoIndisponivel sem segredo ou sem INSCRITOS_STORE definido. */
 export function inscritos(): Inscritos {
   if (!INSCRICAO_SECRET) throw new InscricaoIndisponivel('INSCRICAO_SECRET não definido.');
+  if (INSCRITOS_STORE === 'sqlite') return (emSqlite ??= criarInscritosSqlite(INSCRITOS_DB));
   if (INSCRITOS_STORE === 'memoria') return emMemoria;
-  throw new InscricaoIndisponivel('Armazenamento de inscritos ainda não definido (ADR 0001, P2).');
+  throw new InscricaoIndisponivel('INSCRITOS_STORE não definido (use "sqlite" ou "memoria").');
 }
 
 export async function confirmar(token: string): Promise<boolean> {

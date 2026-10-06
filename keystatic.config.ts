@@ -1,7 +1,6 @@
 // Painel de conteúdo (ADR 0001). Este arquivo é a fonte única do schema: o painel em /keystatic
 // usa estes campos para editar, e as páginas leem o conteúdo pelo mesmo schema (src/lib/content.ts).
 // Fotos ficam em src/assets/uploads (o build redimensiona e recorta); PDFs em public/uploads.
-// Fase 2: storage local (edição em `npm run dev`). Fase 5: modo GitHub, liberado ao time da organização.
 import { config, collection, fields, singleton } from '@keystatic/core';
 
 const exemplo = fields.checkbox({
@@ -25,8 +24,13 @@ const pessoa = (label: string) =>
     { label },
   );
 
+// Modo do painel: local (edita os arquivos da máquina, em `npm run dev`) ou GitHub (edita via commits no
+// repositório da organização). O modo GitHub liga com PUBLIC_KEYSTATIC_GITHUB_REPO="LAESAicev/app-laesa" e
+// exige um GitHub App da organização (passo a passo em docs/operacao.md, seção "Painel em produção").
+const repo = import.meta.env.PUBLIC_KEYSTATIC_GITHUB_REPO as `${string}/${string}` | undefined;
+
 export default config({
-  storage: { kind: 'local' },
+  storage: repo ? { kind: 'github', repo } : { kind: 'local' },
   ui: {
     brand: { name: 'LAESA' },
     navigation: {

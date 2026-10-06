@@ -84,8 +84,8 @@ Nos dois planos, o modelo de conteúdo e o repositório são os mesmos.
 ## Outras pendências
 
 - **P1:** organização criada: [github.com/LAESAicev](https://github.com/LAESAicev). Falta transferir o `app-laesa` para ela (opcionalmente renomeando para `site-laesa`).
-- **P2:** onde ficam os inscritos dos avisos.
-  - (a) SQLite num volume do contêiner, com disparo pelo site (viável agora que o plano A está confirmado; recomendado).
+- **P2:** resolvida (2026-10-06): inscritos das novidades em SQLite (`node:sqlite`, sem dependência nativa) num volume do contêiner (`/data/laesa.db`). Backup em `docs/operacao.md`.
+  - (descartado) Google Groups.
   - (b) Google Groups da LAESA. Falta verificar se quem não tem conta Google consegue se inscrever.
 - **P3:** confirmar se a conta Workspace da LAESA permite SMTP (senha de app ou relay) e qual é o limite diário de envio.
 - **P4:** arquivar o repositório `api-laesa` no GitHub. O contrato do formulário já foi trazido para `docs/contrato-contato.md`.
@@ -94,6 +94,9 @@ Nos dois planos, o modelo de conteúdo e o repositório são os mesmos.
 
 - Fase 4: segurança revisada por agente. Proxy do iCEV deve sobrescrever `X-Forwarded-For` com o IP real (`$remote_addr`) e limitar o corpo a 64 KB; o app confia nos cabeçalhos só para o domínio de `SITE_URL` (`security.allowedDomains`). Confirmar/descadastrar exigem POST (scanners de link fazem GET).
 - Fase 4: o app usa o adaptador `@astrojs/node` (standalone). As páginas são pré-geradas e só `/api/*` e `/avisos/*` rodam no servidor. Build em formato de diretórios (`/processos-seletivos/index.html`): o formato `file` gerava `processos-seletivos.html` ao lado da pasta `processos-seletivos/`, e o servidor de arquivos do adaptador respondia 404.
+
+- Fase 5: o conteúdo de `content/*.yaml` é embutido no build (`import.meta.glob` + `yaml`), sem o leitor do Keystatic em tempo de execução. As rotas renderizadas sob demanda (`/avisos/*`) quebravam no contêiner, que não tem a pasta `content/`. Keystatic e React viraram dependências só de desenvolvimento.
+- Fase 5: Docker (`Dockerfile` multi-stage, `compose.yaml` com app + Caddy), CI no GitHub Actions publicando a imagem no GHCR. Painel em produção (modo GitHub) preparado, mas depende da transferência do repositório para a organização e de um GitHub App, com as credenciais lidas em tempo de execução.
 
 ## Consequências
 

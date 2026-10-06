@@ -58,7 +58,7 @@ Implementar `design/MOTION.md`:
 3. `POST /api/contato`: validação, honeypot, limite por IP e envio por SMTP (nodemailer) para a caixa da LAESA. Testável já com um servidor SMTP local (Mailpit).
 4. Inscrição em avisos: formulário, double opt-in, descadastro e registro de consentimento. A implementação depende da P2 (SQLite ou Google Groups) ⏸, mas o formulário e a página de confirmação dá para fazer agora.
 
-## Fase 5: Infraestrutura e deploy
+## Fase 5: Infraestrutura e deploy ✅ local (2026-10-06) / ⏸ publicação no iCEV
 - ✅ `build.yml` no GitHub Actions: lint, checagem de tipos, validação dos schemas de conteúdo e build a cada PR.
 - ✅ `Dockerfile` e `compose.yaml` para o plano A, testados localmente. Saem baratos e não se perdem se o plano B vencer.
 - ⏸ `deploy.yml` para o alvo que o iCEV definir: pull do GHCR, SSH ou SFTP.

@@ -73,9 +73,10 @@ export default defineConfig({
       MAIL_TO: envField.string({ context: 'server', access: 'secret', optional: true }),
 
       // Inscrição em avisos: segredo que assina os links de confirmação e descadastro, e onde guardar
-      // os inscritos (pendente, ADR 0001 P2). "memoria" serve só para desenvolvimento e testes.
+      // os inscritos: "sqlite" (produção, arquivo no volume /data do contêiner) ou "memoria" (dev e testes).
       INSCRICAO_SECRET: envField.string({ context: 'server', access: 'secret', optional: true, min: 32 }),
-      INSCRITOS_STORE: envField.enum({ context: 'server', access: 'secret', values: ['memoria'], optional: true }),
+      INSCRITOS_STORE: envField.enum({ context: 'server', access: 'secret', values: ['memoria', 'sqlite'], optional: true }),
+      INSCRITOS_DB: envField.string({ context: 'server', access: 'secret', default: '/data/laesa.db' }),
     },
     validateSecrets: true,
   },

@@ -1,0 +1,28 @@
+# segredos e artefatos locais nunca entram na imagem
+.env
+.env.*
+!.env.example
+.git
+node_modules
+dist
+.astro
+design/dist
+.impeccable/review
+.impeccable/questions
+.impeccable/mocks
+tests
+*.log
+.DS_Store
+
+# dados pessoais (inscritos): bancos e backups nunca entram aqui
+*.db
+*.db-wal
+*.db-shm
+backup-*
+
+# não usados no build (só aceleram o envio do contexto)
+design
+docs
+.github
+*.md
+!src/**/*.md

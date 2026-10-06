@@ -38,7 +38,17 @@ No `.env`: `SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_USER=dev`, `SMTP_PASS=
 HOST=0.0.0.0 PORT=4321 node dist/server/entry.mjs
 ```
 
-As variáveis de servidor (`SMTP_*`, `INSCRICAO_SECRET`…) são lidas do ambiente em tempo de execução. O Dockerfile entra na Fase 5.
+As variáveis de servidor (`SMTP_*`, `INSCRICAO_SECRET`…) são lidas do ambiente em tempo de execução.
+
+### Docker
+
+O deploy é com Docker (`Dockerfile` + `compose.yaml`, com o Caddy fazendo o HTTPS). Para testar localmente:
+
+```sh
+SITE_DOMAIN=localhost docker compose up -d --build   # https://localhost
+```
+
+Instalação no servidor, atualização, backup e painel em produção estão em [docs/operacao.md](docs/operacao.md). O CI (`.github/workflows/ci.yml`) testa cada push e publica a imagem no GitHub Container Registry.
 
 ```sh
 ```
@@ -59,6 +69,8 @@ As variáveis de servidor (`SMTP_*`, `INSCRICAO_SECRET`…) são lidas do ambien
 │   ├── styles/global.css tokens e estilos (portados de design/src/styles.css)
 │   └── icons/            ícones 24px
 ├── keystatic.config.ts   schema do painel (fonte única do modelo de conteúdo)
+├── Dockerfile, compose.yaml, deploy/Caddyfile   imagem e deploy (docs/operacao.md)
+├── .github/workflows/ci.yml                     testes, build e imagem
 ├── content/              conteúdo editável pelo painel (YAML)
 ├── public/               favicon e uploads do painel (public/uploads)
 ├── docs/

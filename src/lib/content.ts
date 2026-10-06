@@ -1,17 +1,33 @@
 // Lê o conteúdo editável (content/*.yaml) com o schema do painel (keystatic.config.ts).
 // Roda no build: o site continua estático. Os tipos expostos são os mesmos que os componentes já usam.
-import { createReader } from '@keystatic/core/reader';
+import { parse } from 'yaml';
 import { PUBLIC_CONTACT_EMAIL, PUBLIC_LINKEDIN_URL, PUBLIC_GITHUB_URL, PUBLIC_INSTAGRAM_URL } from 'astro:env/client';
-import keystaticConfig from '../../keystatic.config';
 import type { Canal, StatusSelecao } from '../data/site';
 import type { Commit, Pessoa, Projeto } from '../data/home';
 import type { Edital } from '../data/editais';
 
-const reader = createReader(process.cwd(), keystaticConfig);
+// O conteúdo (content/*.yaml, escrito pelo painel) entra NO BUILD via import.meta.glob: o servidor de
+// produção (rotas /avisos/* renderizadas sob demanda) não precisa da pasta content/ nem do Keystatic.
+// Os nomes de campo espelham keystatic.config.ts (fonte do schema, usado pelo painel ao salvar).
+const arquivos = import.meta.glob<string>('/content/**/*.yaml', { query: '?raw', import: 'default', eager: true });
 
-function required<T>(value: T | null, what: string): T {
-  if (value === null) throw new Error(`Conteúdo ausente: ${what}. Abra o painel (/keystatic) e preencha.`);
+type Yaml = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+const ler = (caminho: string): Yaml | null => (arquivos[caminho] ? (parse(arquivos[caminho]) ?? {}) : null);
+const colecao = (pasta: string) =>
+  Object.entries(arquivos)
+    .filter(([k]) => k.startsWith(`/content/${pasta}/`))
+    .map(([k, raw]) => ({ slug: k.slice(`/content/${pasta}/`.length, -'.yaml'.length), entry: (parse(raw) ?? {}) as Yaml }));
+
+function required<T>(value: T | null | undefined, what: string): T {
+  if (value == null) throw new Error(`Conteúdo ausente: ${what}. Abra o painel (/keystatic) e preencha.`);
   return value;
+}
+
+/** Links vindos do painel: só http(s), mailto e caminhos do próprio site (nada de javascript:). */
+function linkSeguro(v: unknown): string | undefined {
+  if (typeof v !== 'string' || !v.trim()) return undefined;
+  const url = v.trim();
+  return /^(https?:\/\/|mailto:|\/(?!\/))/i.test(url) ? url : undefined;
 }
 
 const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -23,10 +39,10 @@ export function dataCurta(iso: string): string {
 }
 
 // ---- configurações
-const siteRaw = required(await reader.singletons.configuracoes.read(), 'Configurações');
+const siteRaw = required(ler('/content/site.yaml'), 'Configurações');
 
 export const selecao: { status: StatusSelecao; editalAtual: string } = {
-  status: siteRaw.statusSelecao,
+  status: (siteRaw.statusSelecao ?? 'finalizado') as StatusSelecao,
   editalAtual: required(siteRaw.editalAtual, 'Edital atual'),
 };
 
@@ -45,17 +61,17 @@ export const canais: Canal[] = [
   ...(PUBLIC_GITHUB_URL ? [{ icon: 'github', rotulo: 'GitHub', valor: urlCurta(PUBLIC_GITHUB_URL), href: PUBLIC_GITHUB_URL } as const] : []),
 ];
 
-export const estatutoUrl = siteRaw.estatutoUrl || '#';
+export const estatutoUrl = linkSeguro(siteRaw.estatutoUrl) ?? '#';
 
 // ---- hero
-export const heroLog: Commit[] = required(await reader.singletons.hero.read(), 'Hero').commits.map((c) => ({
+export const heroLog: Commit[] = (required(ler('/content/hero.yaml'), 'Hero').commits ?? []).map((c: Yaml) => ({
   mensagem: c.mensagem,
   hash: c.hash,
   meta: c.meta || undefined,
 }));
 
 // ---- mesa diretora (ordem fixa dos cargos)
-const mesaRaw = required(await reader.singletons.mesa.read(), 'Mesa Diretora');
+const mesaRaw = required(ler('/content/mesa.yaml'), 'Mesa Diretora');
 const cargos = [
   ['presidente', 'Presidente'],
   ['vicePresidente', 'Vice-Presidente'],
@@ -64,47 +80,47 @@ const cargos = [
 ] as const;
 
 export const mesa: Pessoa[] = cargos.map(([key, cargo]) => {
-  const p = mesaRaw[key];
-  return { nome: p.nome, cargo, foto: p.foto ?? undefined, orientacao: key === 'orientador', exemplo: p.exemplo };
+  const p: Yaml = mesaRaw[key] ?? {};
+  return { nome: p.nome ?? 'Nome a confirmar', cargo, foto: p.foto ?? undefined, orientacao: key === 'orientador', exemplo: Boolean(p.exemplo) };
 });
 
 // ---- FAQ
 export type Pergunta = { pergunta: string; resposta: string; ref?: string };
 
-export const faq: Pergunta[] = required(await reader.singletons.faq.read(), 'Perguntas frequentes').perguntas.map((q) => ({
+export const faq: Pergunta[] = (required(ler('/content/faq.yaml'), 'Perguntas frequentes').perguntas ?? []).map((q: Yaml) => ({
   pergunta: q.pergunta,
   resposta: q.resposta,
   ref: q.ref || undefined,
 }));
 
 // ---- projetos (só os marcados para a home, pela ordem)
-export const projetos: Projeto[] = (await reader.collections.projetos.all())
-  .filter(({ entry }) => entry.destaque)
-  .sort((a, b) => (a.entry.ordem ?? 10) - (b.entry.ordem ?? 10) || a.entry.nome.localeCompare(b.entry.nome))
+export const projetos: Projeto[] = colecao('projetos')
+  .filter(({ entry }) => entry.destaque ?? true)
+  .sort((a, b) => (a.entry.ordem ?? 10) - (b.entry.ordem ?? 10) || String(a.entry.nome).localeCompare(String(b.entry.nome)))
   .map(({ entry }) => ({
     nome: entry.nome,
     descricao: entry.descricao,
-    tags: [...entry.tags],
-    status: entry.status,
+    tags: [...(entry.tags ?? [])],
+    status: entry.status ?? 'concluido',
     ano: entry.ano ?? undefined,
-    link: entry.link ?? undefined,
+    link: linkSeguro(entry.link),
     imagem: entry.imagem ?? undefined,
-    exemplo: entry.exemplo,
+    exemplo: Boolean(entry.exemplo),
   }));
 
 // ---- editais (mais recente primeiro, pelo endereço: 2026-2 > 2026-1 > 2025-2 …)
-export const editais: Edital[] = (await reader.collections.editais.all())
+export const editais: Edital[] = colecao('editais')
   .map(({ slug, entry }) => ({
     slug,
     titulo: entry.titulo,
-    inscricoesAte: entry.inscricoesAte ? dataCurta(entry.inscricoesAte) : undefined,
+    inscricoesAte: entry.inscricoesAte ? dataCurta(String(entry.inscricoesAte)) : undefined,
     analise: entry.analise || undefined,
     vagas: entry.vagas ?? undefined,
-    linkInscricao: entry.linkInscricao ?? undefined,
-    pdfEdital: entry.pdfEdital ?? undefined,
-    modeloCarta: entry.modeloCarta ?? undefined,
-    resultado: entry.resultado ?? undefined,
-    exemplo: entry.exemplo,
+    linkInscricao: linkSeguro(entry.linkInscricao),
+    pdfEdital: linkSeguro(entry.pdfEdital),
+    modeloCarta: linkSeguro(entry.modeloCarta),
+    resultado: linkSeguro(entry.resultado),
+    exemplo: Boolean(entry.exemplo),
   }))
   .sort((a, b) => b.slug.localeCompare(a.slug, 'pt-BR', { numeric: true }));
 
