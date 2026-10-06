@@ -78,3 +78,11 @@ O menta continua reservado para "aberto/agora": a energia nunca usa menta.
 - Ver em 0.25× no inspetor de animações do DevTools: o anel não pode "piscar" e o miolo precisa crescer, não aparecer.
 - Rolar rápido para cima e para baixo sobre um nó: ele deve reverter suave, sem reiniciar.
 - Testar no celular de verdade: a ponta do preenchimento colada ao gesto, sem engasgo.
+
+## Implementação (Fase 3)
+- CSS: `src/styles/global.css`, seção "movimento: a linha de commit". Script: `src/scripts/spine.ts`, carregado no `BaseLayout`.
+- Cada `Section` (e o rodapé) tem um `.spine-fill` com dois `.spine-energy`.
+- O preenchimento usa `clip-path`, e não `scaleY`, para a energia dentro dele não ser achatada.
+- Onde há suporte, o preenchimento é feito pelo navegador com `animation-timeline: view()` e `animation-range: cover 60vh cover calc(100% - 40vh)`. Nos outros, o script escreve `--p`.
+- Atenção: a declaração `animation-timeline` fica num seletor separado (`.wrap > .spine-fill`). Se ficar no mesmo seletor, o minificador funde tudo num atalho `animation: … view()`, que é inválido e anula a animação.
+- Velocidade da energia: 420 px/s (duração proporcional à altura da seção, mínimo 1,6 s).

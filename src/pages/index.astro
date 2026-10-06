@@ -39,8 +39,8 @@ const join = {
           { href: '/contato?assunto=projeto', label: 'Tenho um projeto para a LAESA', variant: 'outline' as const },
         ].map((b) => (
           <div class="branch">
-            <svg class="branch-svg dk" viewBox="0 0 104 112" aria-hidden="true"><path d="M27 30 Q27 76 67 76 H92" /><circle cx="97" cy="76" r="6" style="fill: var(--blue)" /></svg>
-            <svg class="branch-svg mb" viewBox="0 0 64 112" aria-hidden="true"><path d="M7 30 Q7 76 37 76 H52" /><circle cx="57" cy="76" r="6" style="fill: var(--blue)" /></svg>
+            <svg class="branch-svg dk" viewBox="0 0 104 112" aria-hidden="true"><path d="M27 30 Q27 76 67 76 H92" pathLength="1" /><circle cx="97" cy="76" r="6" style="fill: var(--blue)" /></svg>
+            <svg class="branch-svg mb" viewBox="0 0 64 112" aria-hidden="true"><path d="M7 30 Q7 76 37 76 H52" pathLength="1" /><circle cx="57" cy="76" r="6" style="fill: var(--blue)" /></svg>
             <div class="branch-body"><Button href={b.href} variant={b.variant}>{b.label}</Button></div>
           </div>
         ))}

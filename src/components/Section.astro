@@ -1,5 +1,6 @@
 ---
-// Seção com a espinha do grafo: o nó marca o "commit" da seção (design/MOTION.md).
+// Seção com a espinha do grafo: a linha preenche com o scroll e o nó marca o "commit" da seção
+// (design/MOTION.md; comportamento em src/scripts/spine.ts).
 interface Props {
   id?: string;
   class?: string;
@@ -15,6 +16,7 @@ const { id, class: className, colClass, node = 120, head = false, as: Tag = 'sec
 ---
 <Tag class:list={['sec', className]} id={id} aria-label={label}>
   <div class="wrap">
+    <span class="spine-fill" aria-hidden="true"><span class="spine-energy"></span><span class="spine-energy"></span></span>
     {node !== false && <span class:list={['node', { head }]} style={`top:${node}px`} aria-hidden="true" />}
     <div class:list={['col', colClass]}>
       <slot />

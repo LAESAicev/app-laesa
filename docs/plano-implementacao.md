@@ -43,7 +43,7 @@ Legenda: ✅ dá para fazer agora · ⏸ depende das respostas do iCEV (ADR 0001
 3. Keystatic em **modo local** com esses schemas, para editar em `localhost:4321/keystatic`. O modo GitHub fica para a Fase 5.
 4. 👤 Validar com um membro que não é dev: editar o hero e criar um edital sem ajuda.
 
-## Fase 3: Movimento ✅
+## Fase 3: Movimento ✅ concluída (2026-10-05)
 Implementar `design/MOTION.md`:
 - espinha preenchendo com o scroll (scroll-driven, com fallback);
 - energia em loop no trecho preenchido;

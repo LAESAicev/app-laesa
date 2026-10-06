@@ -658,7 +658,8 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  *, *::before, *::after { transition-duration: 0.01ms !important; }
+  .btn:active { transform: none; }
+  details.qa .qi { transition: background-color 160ms ease; }
 }
 
 /* ================= tablet (641–1100px) ================= */
@@ -694,3 +695,101 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
   .foot-top > :first-child { grid-column: 1 / -1; }
 }
 .fstep.done::before { background: var(--blue); }
+
+/* ================= movimento: a linha de commit (design/MOTION.md) ================= */
+/* Preenchimento: clip-path (não scaleY) para a energia não ser achatada. --p (0–1) vem do
+   scroll-driven animation quando suportado, ou de src/scripts/spine.ts como fallback. */
+.spine-fill {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: calc(var(--gutter) + var(--spine-x));
+  width: 2px;
+  background: var(--blue);
+  clip-path: inset(0 -6px calc((1 - var(--p, 0)) * 100%) -6px);
+  pointer-events: none;
+  --energy: var(--cyan);
+}
+.navy .spine-fill { background: var(--cyan); --energy: rgba(255, 255, 255, 0.8); }
+.foot .spine-fill { bottom: auto; height: 72px; }
+@supports (animation-timeline: view()) {
+  .spine-fill {
+    animation: spine-fill linear both;
+    /* 0 quando o topo da seção cruza a agulha (40% da viewport); 1 quando o fim da seção cruza */
+    animation-range: cover 60vh cover calc(100% - 40vh);
+  }
+  /* Seletor separado de propósito: o minificador funde regras iguais num atalho `animation: … view()`,
+     que é inválido (animation-timeline não entra no atalho) e anula a animação inteira. */
+  .wrap > .spine-fill { animation-timeline: view(); }
+}
+@keyframes spine-fill {
+  from { clip-path: inset(0 -6px 100% -6px); }
+  to { clip-path: inset(0 -6px 0 -6px); }
+}
+
+/* Energia: brilho de 64px descendo em loop; só roda com a seção visível (.is-active) */
+.spine-energy {
+  position: absolute; top: 0; left: -1px;
+  width: 4px; height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, var(--energy) 60%, #fff 82%, transparent) 0 0 / 100% 64px no-repeat;
+  transform: translateY(-64px);
+  animation: spine-energy var(--energy-dur, 2.4s) linear infinite paused;
+}
+.spine-energy + .spine-energy { animation-delay: calc(var(--energy-dur, 2.4s) / -2); }
+.spine-fill.is-active .spine-energy { animation-play-state: running; }
+@keyframes spine-energy {
+  from { transform: translateY(-64px); }
+  to { transform: translateY(100%); }
+}
+
+/* Nó: miolo cresce ao virar commit; anel único na descida; HEAD respira */
+.node::before, .node::after { content: ""; position: absolute; border-radius: 50%; pointer-events: none; }
+.node::before {
+  inset: 1px;
+  background: var(--blue);
+  transform: scale(0.4);
+  opacity: 0;
+  transition: transform 180ms ease-out, opacity 180ms ease-out;
+}
+.navy .node::before { background: var(--cyan); }
+.node[data-state="committed"]::before {
+  transform: scale(1);
+  opacity: 1;
+  transition: transform 280ms cubic-bezier(0.23, 1, 0.32, 1), opacity 280ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.node::after { inset: -2px; border: 2px solid var(--blue); opacity: 0; }
+.navy .node::after { border-color: var(--cyan); }
+.node.ring::after { animation: node-ring 600ms cubic-bezier(0.23, 1, 0.32, 1); }
+@keyframes node-ring {
+  from { transform: scale(1); opacity: 0.45; }
+  to { transform: scale(2.2); opacity: 0; }
+}
+.node.head::before { display: none; }
+.node.head::after { border-color: var(--mint); animation: node-breathe 2.4s cubic-bezier(0.23, 1, 0.32, 1) infinite; }
+@keyframes node-breathe {
+  from { transform: scale(1); opacity: 0.35; }
+  to { transform: scale(1.8); opacity: 0; }
+}
+
+/* Branches do hero: desenhadas uma vez na carga */
+.branch-svg path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: branch-draw 600ms cubic-bezier(0.23, 1, 0.32, 1) 150ms forwards; }
+.branch-svg circle { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: branch-node 280ms cubic-bezier(0.23, 1, 0.32, 1) 620ms forwards; }
+.branch + .branch .branch-svg path { animation-delay: 230ms; }
+.branch + .branch .branch-svg circle { animation-delay: 700ms; }
+@keyframes branch-draw { to { stroke-dashoffset: 0; } }
+@keyframes branch-node { to { transform: scale(1); } }
+
+@media (max-width: 640px) {
+  .spine-energy + .spine-energy { display: none; }
+  @keyframes node-ring {
+    from { transform: scale(1); opacity: 0.45; }
+    to { transform: scale(1.8); opacity: 0; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spine-energy, .node::after { display: none; }
+  .node::before, .node[data-state="committed"]::before { transform: scale(1); transition: opacity 150ms ease; }
+  .branch-svg path { stroke-dashoffset: 0; animation: none; }
+  .branch-svg circle { transform: none; animation: none; }
+}
