@@ -1,127 +1,134 @@
-# app-laesa
+# Site da LAESA
 
-Site da **Liga Acadêmica de Engenharia de Software Aplicada** (iCEV, Teresina-PI). É um único app Astro com site, painel de conteúdo e rotas de API, conforme o [ADR 0001](docs/adr/0001-arquitetura-do-site.md).
+[![CI](https://github.com/LAESAicev/app-laesa/actions/workflows/ci.yml/badge.svg)](https://github.com/LAESAicev/app-laesa/actions/workflows/ci.yml)
 
-**Status:** protótipo validado no Figma. A implementação em Astro segue o [plano de implementação](docs/plano-implementacao.md). O deploy aguarda as respostas do iCEV sobre a hospedagem.
+Site da **Liga Acadêmica de Engenharia de Software Aplicada** (iCEV, Teresina-PI).
 
-- Figma: [LAESA — Site v2 e Componentes](https://www.figma.com/design/xBth5y7AzKE2UxvbGaXuzf?node-id=3046-758)
-- Direção visual: *Grafo de Commits*. A página é um `git log --graph`: a linha principal atravessa as seções e as branches são as portas de entrada.
+O design segue a direção *Grafo de Commits*: a página funciona como um `git log --graph`. A linha principal atravessa as seções, cada seção "faz commit" ao passar por ela, e as branches são as portas de entrada: entrar na liga, propor um projeto, receber as novidades.
 
-## Rodar localmente
+- **Design:** [Figma: LAESA Site v2 e Componentes](https://www.figma.com/design/xBth5y7AzKE2UxvbGaXuzf?node-id=3046-758) · sistema visual em [DESIGN.md](DESIGN.md)
+- **Arquitetura:** [ADR 0001](docs/adr/0001-arquitetura-do-site.md). É um único app Astro com o site, o painel de conteúdo e as rotas de API.
+- **Imagem Docker:** `ghcr.io/laesaicev/app-laesa`, publicada pelo CI a cada push na `main`.
+
+**Status:** as fases 1 a 5 estão prontas (páginas, painel, animação, formulários, Docker e CI). Para publicar, faltam as respostas do iCEV sobre a hospedagem. Detalhes em [docs/plano-implementacao.md](docs/plano-implementacao.md).
+
+## Começar
+
+Requisitos: Node 24 e npm. Docker é opcional para desenvolver e necessário para o deploy.
 
 ```sh
 npm install
-cp .env.example .env   # contatos, redes e domínio (ver comentários no arquivo)
-npm run dev       # site em http://localhost:4321 e painel em http://localhost:4321/keystatic
-npm run build     # checa tipos e gera dist/
-npm run design    # regera o protótipo HTML (design/dist) usado no Figma
-npm run dev:limpo # painel em branco ou erro de cache? reinicia o dev limpando o cache do Vite
-npm test          # testes (validação, links de inscrição, limite, rota de contato)
+cp .env.example .env   # contato, redes, domínio e e-mail (veja os comentários no arquivo)
+npm run dev            # site em http://localhost:4321 e painel em http://localhost:4321/keystatic
 ```
 
-### E-mails em desenvolvimento
+| Comando | O que faz |
+| --- | --- |
+| `npm run dev` | servidor de desenvolvimento, com o painel em `/keystatic` |
+| `npm run dev:limpo` | reinicia o dev limpando o cache do Vite (painel em branco? use este) |
+| `npm test` | testes: validação, rotas de contato e inscrição, links assinados, SQLite |
+| `npm run build` | checa os tipos e gera `dist/` (páginas estáticas e servidor das rotas de API) |
+| `npm run design` | regera o protótipo HTML (`design/dist`) usado no Figma |
 
-Os formulários enviam e-mail de verdade. Em desenvolvimento, use o [Mailpit](https://mailpit.axllent.org), que mostra numa página os e-mails que o site mandaria:
+O Astro 7 deixa o servidor de desenvolvimento rodando em segundo plano. Depois de mudar o `astro.config.mjs` ou o `.env`, reinicie com `npx astro dev stop && npm run dev`.
+
+## Editar o conteúdo
+
+Com `npm run dev` no ar, abra `/keystatic`. O painel edita os arquivos de `content/`, e o site atualiza na hora.
+
+| No painel | O que muda no site |
+| --- | --- |
+| Configurações e status da seleção | aberto, em andamento ou finalizado: tag do menu, seção "Quer entrar?" da home e página de processos seletivos. Também o edital atual e o link do estatuto |
+| Hero: git log | painel do topo da home (o primeiro commit é o HEAD) |
+| Mesa Diretora | nome e foto de cada cargo (a foto é recortada sozinha no quadro 4:5) |
+| Perguntas frequentes | FAQ da página de processos seletivos |
+| Projetos | lista "O que já saiu do papel" (marque "Mostrar na home" e defina a ordem) |
+| Editais | uma página por edital, com datas, vagas, PDF e modelo da carta |
+
+Depois de editar, faça commit das mudanças em `content/`, `src/assets/uploads/` e `public/uploads/`. O CI publica a nova versão. O painel salvando direto no GitHub, sem `npm run dev`, está em [docs/operacao.md](docs/operacao.md#painel-em-produção-pendente).
+
+Contato e redes sociais não ficam no código nem no painel: vêm de variáveis de ambiente (`PUBLIC_*` no `.env`).
+
+## E-mails em desenvolvimento
+
+O formulário de contato e a inscrição nas novidades enviam e-mail de verdade. Para testar sem mandar nada, use o [Mailpit](https://mailpit.axllent.org), que mostra numa página os e-mails que o site enviaria:
 
 ```sh
 docker run -d --name laesa-mailpit -p 8025:8025 -p 1025:1025 \
   -e MP_SMTP_AUTH_ACCEPT_ANY=1 -e MP_SMTP_AUTH_ALLOW_INSECURE=1 axllent/mailpit
 ```
 
-No `.env`: `SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_USER=dev`, `SMTP_PASS=dev`. Para testar a inscrição em avisos, defina também `INSCRICAO_SECRET` e `INSCRITOS_STORE=memoria`. Caixa de entrada: http://localhost:8025
+No `.env`: `SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_USER=dev` e `SMTP_PASS=dev`. Para a inscrição, defina também `INSCRICAO_SECRET` (`openssl rand -hex 32`) e `INSCRITOS_STORE=memoria`. A caixa de entrada fica em http://localhost:8025.
 
-### Produção
+Para o envio real, use a conta Google Workspace da LAESA com uma senha de app (`SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`). Redes de faculdade e empresa costumam bloquear as portas 465 e 587; nesse caso, teste em outra rede.
 
-`npm run build` gera `dist/client` (páginas estáticas) e `dist/server` (rotas de API). Para subir:
+## Deploy (Docker)
 
-```sh
-HOST=0.0.0.0 PORT=4321 node dist/server/entry.mjs
-```
+Produção usa `compose.yaml` com dois contêineres:
+- o app, que não expõe porta;
+- o Caddy, que cuida do HTTPS automático, dos cabeçalhos de segurança e do IP real dos visitantes.
 
-As variáveis de servidor (`SMTP_*`, `INSCRICAO_SECRET`…) são lidas do ambiente em tempo de execução.
-
-### Docker
-
-O deploy é com Docker (`Dockerfile` + `compose.yaml`, com o Caddy fazendo o HTTPS). Para testar localmente:
+Os inscritos das novidades ficam em SQLite, num volume.
 
 ```sh
-SITE_DOMAIN=localhost docker compose up -d --build   # https://localhost
+SITE_DOMAIN=localhost docker compose up -d --build   # testar localmente em https://localhost
 ```
 
-Instalação no servidor, atualização, backup e painel em produção estão em [docs/operacao.md](docs/operacao.md). O CI (`.github/workflows/ci.yml`) testa cada push e publica a imagem no GitHub Container Registry.
-
-```sh
-```
+Instalação no servidor, atualização, como desfazer uma mudança, backup (`deploy/backup.sh`), troca de mandato e painel em produção: [docs/operacao.md](docs/operacao.md).
 
 ## Estrutura
 
 ```
 .
-├── LICENSE             uso exclusivo da LAESA, todos os direitos reservados
-├── PRODUCT.md            contexto do produto: público, objetivos, regras de conteúdo
-├── DESIGN.md             sistema visual (cores, tipografia, layout, componentes, regras)
 ├── src/
-│   ├── pages/            /, /processos-seletivos, /processos-seletivos/[slug], /contato, /privacidade, 404
-│   ├── components/       componentes portados do protótipo (Nav, GitLog, EditalPage, ContactForm…)
-│   ├── lib/              content.ts (lê o YAML), contato.schema.ts (validação compartilhada), mailer, inscrição
-│   ├── pages/api/        contato.ts e inscricao.ts (rodam no servidor)
+│   ├── pages/            /, /processos-seletivos(/[slug]), /contato, /novidades, /privacidade, 404
+│   │   ├── api/          contato.ts e inscricao.ts (rodam no servidor)
+│   │   └── avisos/       confirmar e descadastrar inscrição (rodam no servidor)
+│   ├── components/       Nav, GitLog, Section (espinha do grafo), EditalPage, ContactForm, SubscribeForm…
+│   ├── lib/              conteúdo, validação compartilhada, e-mail, inscrição, SQLite, limite de envios
+│   ├── scripts/spine.ts  animação da linha de commit
 │   ├── data/             conteúdo fixo do estatuto e tipos
-│   ├── styles/global.css tokens e estilos (portados de design/src/styles.css)
+│   ├── styles/global.css tokens e estilos
+│   ├── assets/uploads/   fotos enviadas pelo painel (recortadas no build)
 │   └── icons/            ícones 24px
-├── keystatic.config.ts   schema do painel (fonte única do modelo de conteúdo)
-├── Dockerfile, compose.yaml, deploy/Caddyfile   imagem e deploy (docs/operacao.md)
-├── .github/workflows/ci.yml                     testes, build e imagem
 ├── content/              conteúdo editável pelo painel (YAML)
-├── public/               favicon e uploads do painel (public/uploads)
+├── public/               favicon e PDFs enviados pelo painel (public/uploads)
+├── keystatic.config.ts   schema do painel
+├── tests/                testes (Vitest)
+├── Dockerfile · compose.yaml · deploy/   imagem, Caddy e script de backup
+├── .github/workflows/ci.yml              testes, build e imagem
 ├── docs/
-│   ├── estatuto-2026.md  estatuto da liga, fonte de toda regra citada no site
-│   ├── adr/              decisões de arquitetura (0001: repositório único, Keystatic, iCEV)
-│   ├── plano-implementacao.md
-│   └── contrato-contato.md  campos e respostas do formulário de contato
-├── brand/
-│   ├── logo/
-│   │   ├── horizontal/   laesa-horizontal-<cor>.svg|png
-│   │   ├── vertical/     laesa-vertical-<cor>.svg|png
-│   │   └── icone/        laesa-icone-<cor>.svg|png
-│   └── avatar/           fotos de perfil para redes sociais
-├── design/               protótipo em HTML/CSS, a fonte das telas do Figma
-│   ├── src/              páginas, partials, ícones e styles.css
-│   ├── build.py          gera design/dist/ (desktop + mobile)
-│   ├── MOTION.md         spec da animação da linha de commit
-│   └── README.md
-└── .impeccable/          contrato da direção visual (surfaces/site.md)
+│   ├── adr/0001-arquitetura-do-site.md   decisões e pendências com o iCEV
+│   ├── plano-implementacao.md            fases do projeto
+│   ├── operacao.md                       deploy, backup, troca de mandato
+│   ├── contrato-contato.md               campos e respostas das rotas de API
+│   └── estatuto-2026.md                  estatuto da liga (fonte de toda regra citada no site)
+├── design/               protótipo HTML/CSS (origem das telas do Figma) e MOTION.md (spec da animação)
+├── brand/                logos oficiais (horizontal, vertical, ícone) e avatares
+├── DESIGN.md · PRODUCT.md                sistema visual e contexto do produto
+└── .impeccable/          contrato da direção visual
 ```
 
-Contato e redes não ficam no código nem no painel: vêm de variáveis de ambiente (`.env`, modelo em `.env.example`).
+Cores dos logos (`brand/logo`): `azul` #0A2BFF · `menta` #5CEAD2 · `ciano` #1DD0F8 · `navy` #043F63 · `degrade-navy` · `degrade-azul` · `branco` · `preto`. O azul da interface do site é #0078D4 (ver DESIGN.md).
 
-Cores dos logos: `azul` #0A2BFF · `menta` #5CEAD2 · `ciano` #1DD0F8 · `navy` #043F63 · `degrade-navy` · `degrade-azul` · `branco` · `preto`.
+## Pendências
 
-## Conteúdo pendente
+No site, o conteúdo provisório aparece com um selo tracejado ("exemplo", "[data]").
 
-Nas telas, os itens provisórios estão marcados com um selo tracejado ("exemplo", "confirmar", "[data]"):
-
-- [x] E-mail, Instagram, LinkedIn e GitHub (em `.env`)
-- [ ] Transferir este repositório para a organização [LAESAicev](https://github.com/LAESAicev)
-- [ ] Datas, número de vagas e links do edital 2026.2
+**Conteúdo (LAESA, pelo painel)**
+- [ ] Edital 2026.2: datas, vagas, link de inscrição, PDF e modelo da carta
 - [ ] Projetos realizados: nome, descrição, tipo e ano
-- [ ] Nomes e fotos da Vice-Presidência, da Diretoria de Projetos e do(a) Professor(a) Orientador(a)
-- [ ] Respostas do iCEV sobre hospedagem, subdomínio e backups (ADR 0001)
+- [ ] Mesa Diretora: nomes e fotos da Vice-Presidência, da Diretoria de Projetos e do(a) Professor(a) Orientador(a)
+- [ ] Editais anteriores reais (ou remover os de exemplo)
+- [ ] Prazo de retenção das mensagens e revisão da página de privacidade pelo iCEV
+
+**Infraestrutura**
+- [ ] Respostas do iCEV: DNS de `laesa.icev.edu.br`, portas 80 e 443, saída para o Gmail (porta 465), proxy na frente do servidor ([ADR 0001](docs/adr/0001-arquitetura-do-site.md))
+- [ ] Tornar público o pacote `app-laesa` no GitHub Container Registry
+- [ ] GitHub App da organização para o painel em produção
+- [x] Repositório na organização [LAESAicev](https://github.com/LAESAicev)
+- [x] E-mail, Instagram, LinkedIn e GitHub da LAESA (variáveis de ambiente)
 
 ## Licença
 
 Uso exclusivo da LAESA, com todos os direitos reservados. Ninguém tem permissão para copiar, modificar, distribuir ou usar comercialmente este código, o design, a marca ou o conteúdo sem autorização por escrito da Mesa Diretora. Veja [LICENSE](LICENSE).
-
-## Editar o conteúdo
-
-Rode `npm run dev` e abra `/keystatic`. O painel edita os arquivos de `content/`; o site atualiza na hora.
-
-| No painel | O que muda no site |
-| --- | --- |
-| Configurações e status da seleção | tag do menu, seção "Quer entrar?" da home e a página de processos seletivos; redes e e-mail |
-| Hero: git log | painel do topo da home (o primeiro commit é o HEAD) |
-| Mesa Diretora | nomes e fotos dos cargos |
-| Perguntas frequentes | FAQ da página de processos seletivos |
-| Projetos | lista "O que já saiu do papel" (marque "Mostrar na home" e defina a ordem) |
-| Editais | uma página por edital, com datas, vagas, PDF e modelo da carta |
-
-Depois de editar, faça commit das mudanças em `content/` e `public/uploads/`. Na Fase 5 o painel passa a commitar sozinho no GitHub.
