@@ -34,7 +34,14 @@ export default defineConfig({
   trailingSlash: 'never',
   build: { format: 'file' },
   integrations: isDev ? [react(), keystatic()] : [],
-  vite: { plugins: isDev ? [contentReload()] : [] },
+  vite: {
+    plugins: isDev ? [contentReload()] : [],
+    // O painel só é aberto depois que o servidor já está de pé; sem isto o Vite descobre essas
+    // dependências tarde, reotimiza e a página do painel fica em branco ("504 Outdated Optimize Dep").
+    optimizeDeps: isDev
+      ? { include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react/jsx-dev-runtime', '@keystatic/core', '@keystatic/core/ui', '@keystatic/astro/ui'] }
+      : undefined,
+  },
   // Contatos e redes da LAESA: valores em .env (modelo em .env.example). São públicos e entram no HTML no build.
   env: {
     schema: {

@@ -15,6 +15,7 @@ cp .env.example .env   # contatos, redes e domínio (ver comentários no arquivo
 npm run dev       # site em http://localhost:4321 e painel em http://localhost:4321/keystatic
 npm run build     # checa tipos e gera dist/
 npm run design    # regera o protótipo HTML (design/dist) usado no Figma
+npm run dev:limpo # painel em branco ou erro de cache? reinicia o dev limpando o cache do Vite
 ```
 
 ## Estrutura

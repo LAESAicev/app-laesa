@@ -9,6 +9,7 @@
     "build": "astro check && astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "dev:limpo": "astro dev stop; rm -rf node_modules/.vite && astro dev",
     "design": "python3 design/build.py"
   },
   "dependencies": {
