@@ -1,6 +1,8 @@
 ---
+import { Image } from 'astro:assets';
 import Logo from './Logo.astro';
 import Sample from './Sample.astro';
+import { uploadedImage } from '../lib/images';
 import type { Pessoa } from '../data/home';
 
 interface Props {
@@ -8,10 +10,36 @@ interface Props {
 }
 
 const { pessoa: p } = Astro.props;
+const foto = uploadedImage(p.foto);
+// Maior recorte 4:5 que cabe na foto, até 800×1000: o Astro não amplia imagens, então uma foto pequena
+// ainda sai no formato do quadro em vez de manter a proporção original.
+const largura = foto ? Math.min(800, foto.width, Math.floor(foto.height * 0.8)) : 0;
+const altura = Math.round(largura * 1.25);
+const larguras = [...new Set([Math.min(400, largura), largura])];
 ---
 <div class:list={['person', { adv: p.orientacao }]}>
   <div class="photo">
-    {p.foto ? <img src={p.foto} alt={`Foto de ${p.nome}`} loading="lazy" width="400" height="500" /> : <><Logo variant="icone" /><Sample text="foto" /></>}
+    {foto ? (
+      // Recorte central no quadro 4:5, gerado no build em WebP.
+      <Image
+        src={foto}
+        alt={`Foto de ${p.nome}`}
+        width={largura}
+        height={altura}
+        fit="cover"
+        position="center"
+        widths={larguras}
+        sizes="(max-width: 640px) 45vw, (max-width: 1100px) 40vw, 300px"
+        format="webp"
+        quality={80}
+        loading="lazy"
+      />
+    ) : (
+      <>
+        <Logo variant="icone" />
+        <Sample text="foto" />
+      </>
+    )}
   </div>
   <div>
     <h3>{p.nome}</h3>

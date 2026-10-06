@@ -1,5 +1,6 @@
 // Painel de conteúdo (ADR 0001). Este arquivo é a fonte única do schema: o painel em /keystatic
 // usa estes campos para editar, e as páginas leem o conteúdo pelo mesmo schema (src/lib/content.ts).
+// Fotos ficam em src/assets/uploads (o build redimensiona e recorta); PDFs em public/uploads.
 // Fase 2: storage local (edição em `npm run dev`). Fase 5: modo GitHub, liberado ao time da organização.
 import { config, collection, fields, singleton } from '@keystatic/core';
 
@@ -15,9 +16,9 @@ const pessoa = (label: string) =>
       nome: fields.text({ label: 'Nome', validation: { length: { min: 2 } } }),
       foto: fields.image({
         label: 'Foto',
-        description: 'Retrato vertical (4:5), pelo menos 800×1000 px.',
-        directory: 'public/uploads/mesa',
-        publicPath: '/uploads/mesa/',
+        description: 'Qualquer foto serve: o site recorta no centro e redimensiona para o quadro 4:5 (800×1000). Prefira o rosto centralizado.',
+        directory: 'src/assets/uploads/mesa',
+        publicPath: '/src/assets/uploads/mesa/',
       }),
       exemplo,
     },
@@ -161,8 +162,8 @@ export default config({
         link: fields.url({ label: 'Link (opcional)', description: 'Repositório, artigo ou página do projeto.' }),
         imagem: fields.image({
           label: 'Imagem (opcional)',
-          directory: 'public/uploads/projetos',
-          publicPath: '/uploads/projetos/',
+          directory: 'src/assets/uploads/projetos',
+          publicPath: '/src/assets/uploads/projetos/',
         }),
         destaque: fields.checkbox({ label: 'Mostrar na home', defaultValue: true }),
         ordem: fields.integer({ label: 'Ordem na home', description: 'Menor aparece primeiro.', defaultValue: 10 }),
