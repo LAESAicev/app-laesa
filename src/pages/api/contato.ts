@@ -5,7 +5,7 @@ import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
 import { validarContato } from '../../lib/contato.schema';
 import { montarEmailContato } from '../../lib/contato.email';
 import { enviar, EnvioIndisponivel } from '../../lib/mailer';
-import { criarLimite, chaveIp } from '../../lib/rate-limit';
+import { criarLimite, chaveIp, isentoLocal } from '../../lib/rate-limit';
 import { json, lerJson, resumoErro } from '../../lib/http';
 
 export const prerender = false;
@@ -13,7 +13,7 @@ export const prerender = false;
 const permitido = criarLimite(5, 10 * 60 * 1000); // 5 mensagens a cada 10 minutos por IP
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
-  if (!permitido(chaveIp(clientAddress))) {
+  if (!isentoLocal(clientAddress) && !permitido(chaveIp(clientAddress))) {
     return json(429, { erro: 'Muitas mensagens em pouco tempo. Tente de novo em alguns minutos.' });
   }
   const dados = await lerJson(request);

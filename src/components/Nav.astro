@@ -4,13 +4,14 @@ import Icon from './Icon.astro';
 import StatusTag from './StatusTag.astro';
 import { navLinks, type NavKey } from '../data/site';
 import { selecao, editalAtual } from '../lib/content';
+import { numeroDo } from '../data/editais';
 
 interface Props {
   active?: NavKey | 'inicio';
 }
 
 const { active = 'inicio' } = Astro.props;
-const numero = editalAtual.titulo.replace('Edital ', '');
+const numero = numeroDo(editalAtual);
 const tag =
   selecao.status === 'aberto'
     ? { text: `Edital ${numero} aberto` }

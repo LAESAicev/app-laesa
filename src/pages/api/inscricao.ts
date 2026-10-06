@@ -3,16 +3,16 @@ import type { APIRoute } from 'astro';
 import { errosPorCampo } from '../../lib/contato.schema';
 import { inscricaoSchema, inscritos, emailConfirmacao, podeEnviarConfirmacao, InscricaoIndisponivel } from '../../lib/inscricao';
 import { enviar, EnvioIndisponivel } from '../../lib/mailer';
-import { criarLimite, chaveIp } from '../../lib/rate-limit';
+import { criarLimite, chaveIp, isentoLocal } from '../../lib/rate-limit';
 import { json, lerJson, resumoErro } from '../../lib/http';
 
 export const prerender = false;
 
 const permitido = criarLimite(5, 10 * 60 * 1000);
-const emBreve = { erro: 'As inscrições em avisos abrem em breve. Enquanto isso, acompanhe a LAESA no Instagram.' };
+const emBreve = { erro: 'As inscrições nas novidades abrem em breve. Enquanto isso, acompanhe a LAESA no Instagram.' };
 
 export const POST: APIRoute = async ({ request, clientAddress, site, url }) => {
-  if (!permitido(chaveIp(clientAddress))) return json(429, { erro: 'Muitas tentativas. Tente de novo em alguns minutos.' });
+  if (!isentoLocal(clientAddress) && !permitido(chaveIp(clientAddress))) return json(429, { erro: 'Muitas tentativas. Tente de novo em alguns minutos.' });
   const dados = await lerJson(request);
   if (dados instanceof Response) return dados;
   if (dados.nao_preencher) return json(202, { ok: true }); // honeypot

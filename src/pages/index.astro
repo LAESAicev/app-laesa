@@ -13,9 +13,9 @@ import Channels from '../components/Channels.astro';
 import ContactForm from '../components/ContactForm.astro';
 import { selecao, estatutoUrl, heroLog, projetos, mesa, editalAtual } from '../lib/content';
 import { eixos, areas, sprint, regrasPublicas } from '../data/home';
-import { etapasDo, etapaAtual, rotuloStatus } from '../data/editais';
+import { etapasDo, etapaAtual, rotuloStatus, numeroDo } from '../data/editais';
 
-const numero = editalAtual.titulo.replace('Edital ', '');
+const numero = numeroDo(editalAtual);
 const etapas = etapasDo(editalAtual).slice(0, 4);
 const join = {
   aberto: { titulo: 'Quer entrar?', destaque: `O edital ${numero} está aberto.`, cta: 'Ver edital e se inscrever' },
@@ -37,11 +37,16 @@ const join = {
         {[
           { href: '/processos-seletivos', label: 'Quero entrar na liga', variant: 'primary' as const },
           { href: '/contato?assunto=projeto', label: 'Tenho um projeto para a LAESA', variant: 'outline' as const },
+          { href: '/novidades', label: 'Receber as novidades da LAESA', variant: 'link' as const },
         ].map((b) => (
-          <div class="branch">
+          <div class:list={['branch', { 'branch-link': b.variant === 'link' }]}>
             <svg class="branch-svg dk" viewBox="0 0 104 112" aria-hidden="true"><path d="M27 30 Q27 76 67 76 H92" pathLength="1" /><circle cx="97" cy="76" r="6" style="fill: var(--blue)" /></svg>
             <svg class="branch-svg mb" viewBox="0 0 64 112" aria-hidden="true"><path d="M7 30 Q7 76 37 76 H52" pathLength="1" /><circle cx="57" cy="76" r="6" style="fill: var(--blue)" /></svg>
-            <div class="branch-body"><Button href={b.href} variant={b.variant}>{b.label}</Button></div>
+            <div class="branch-body">
+              {b.variant === 'link'
+                ? <a class="link" href={b.href}><Icon name="mail" />{b.label}</a>
+                : <Button href={b.href} variant={b.variant}>{b.label}</Button>}
+            </div>
           </div>
         ))}
       </div>

@@ -1,5 +1,5 @@
 ---
-// Inscrição em avisos (POST /api/inscricao): e-mail + consentimento; confirmação dupla por e-mail.
+// Inscrição nas novidades da LAESA (POST /api/inscricao): e-mail + consentimento; confirmação dupla por e-mail.
 import Icon from './Icon.astro';
 ---
 <form class="subscribe" action="/api/inscricao" method="post" novalidate data-subscribe>
@@ -15,7 +15,7 @@ import Icon from './Icon.astro';
   <label class="check sub-check">
     <input type="checkbox" name="consentimento" value="true" required aria-describedby="sub-msg" />
     <span class="box" aria-hidden="true"></span>
-    <span>Autorizo a LAESA a me enviar avisos de editais e atividades.<small>Dá para cancelar a qualquer momento. <a href="/privacidade">Privacidade</a></small></span>
+    <span>Autorizo a LAESA a me enviar novidades por e-mail (editais, eventos e atividades).<small>Dá para cancelar a qualquer momento. <a href="/privacidade">Privacidade</a></small></span>
   </label>
   <p class="sub-msg" id="sub-msg" role="status" aria-live="polite" data-msg></p>
 </form>

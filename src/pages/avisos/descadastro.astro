@@ -17,12 +17,12 @@ try {
   if (!(e instanceof InscricaoIndisponivel)) throw e;
 }
 ---
-<BaseLayout title="Cancelar avisos" description="Cancelamento da inscrição nos avisos da LAESA." noindex>
+<BaseLayout title="Cancelar novidades" description="Cancelamento da inscrição nas novidades da LAESA." noindex>
   <Section class="page-head" node={104} label="Cancelar avisos">
     {estado === 'pedir' && (
       <>
-        <h1 class="d1">Cancelar <em>os avisos?</em></h1>
-        <p class="lead" style="margin: 24px 0 36px">Seu e-mail sai da lista e você não recebe mais avisos da LAESA.</p>
+        <h1 class="d1">Cancelar <em>as novidades?</em></h1>
+        <p class="lead" style="margin: 24px 0 36px">Seu e-mail sai da lista e você não recebe mais as novidades da LAESA.</p>
         <form method="post" action={`/avisos/descadastro?t=${encodeURIComponent(token)}`}>
           <Button type="submit" variant="outline" icon={false}>Cancelar inscrição</Button>
         </form>
@@ -31,7 +31,7 @@ try {
     {estado === 'ok' && (
       <>
         <h1 class="d1">Inscrição <em>cancelada.</em></h1>
-        <p class="lead" style="margin: 24px 0 36px">Você não vai mais receber avisos da LAESA. Seu e-mail foi removido da lista.</p>
+        <p class="lead" style="margin: 24px 0 36px">Você não vai mais receber as novidades da LAESA. Seu e-mail foi removido da lista.</p>
         <Button href="/">Voltar para o início</Button>
       </>
     )}

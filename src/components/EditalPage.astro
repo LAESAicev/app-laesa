@@ -8,7 +8,7 @@ import StatusTag from './StatusTag.astro';
 import RulesList from './RulesList.astro';
 import SubscribeForm from './SubscribeForm.astro';
 import { faq, editais, editalAtual } from '../lib/content';
-import { statusDo, etapasDo, etapaAtual, rotuloStatus, type Edital } from '../data/editais';
+import { statusDo, etapasDo, etapaAtual, rotuloStatus, numeroDo, type Edital } from '../data/editais';
 
 interface Props {
   edital: Edital;
@@ -18,7 +18,7 @@ const { edital } = Astro.props;
 const status = statusDo(edital);
 const atual = etapaAtual(status);
 const etapas = etapasDo(edital);
-const numero = edital.titulo.replace('Edital ', '');
+const numero = numeroDo(edital);
 const isAtual = edital.slug === editalAtual.slug;
 const outros = editais.filter((e) => e.slug !== edital.slug);
 const temDados = Boolean(edital.inscricoesAte && edital.vagas);
@@ -200,7 +200,7 @@ const regrasDepois = [
 <Section class="navy deep ps-band" node={96} colClass="ps-band-grid" label="Avisos e colaboração">
   <div class="band-item" id="avisos">
     <h2 class="d3">{status === 'aberto' ? 'Quer saber dos próximos editais?' : 'Chegou fora do período de inscrição?'}</h2>
-    <p class="body">Deixe seu e-mail e a gente avisa quando o próximo edital abrir.</p>
+    <p class="body">Deixe seu e-mail e receba as novidades da LAESA, inclusive quando o próximo edital abrir.</p>
     <SubscribeForm />
   </div>
   <div class="band-item">

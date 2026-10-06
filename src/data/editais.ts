@@ -23,6 +23,11 @@ export function statusDo(edital: Edital): StatusSelecao {
   return edital.slug === editalAtual.slug ? selecao.status : 'finalizado';
 }
 
+/** "Edital 2026.2" ou "edital 2026.2" → "2026.2" (o painel aceita qualquer título). */
+export function numeroDo(edital: Edital): string {
+  return edital.titulo.replace(/^edital\s*/i, '').trim() || edital.titulo;
+}
+
 export type Etapa = { titulo: string; texto: string; quando: string };
 
 export function etapasDo(edital: Edital): Etapa[] {

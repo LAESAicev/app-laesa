@@ -55,8 +55,9 @@ O menta continua reservado para "aberto/agora": a energia nunca usa menta.
 - Sem edital aberto, o HEAD vira um nó comum e para de respirar.
 
 ### 5. Branches do hero (na carga da página)
-- As duas branches que levam aos botões ("Quero entrar", "Tenho um projeto") se desenham uma vez na carga: `stroke-dashoffset` do comprimento até 0, em **600ms** com ease-out forte.
-- A segunda começa **80ms** depois da primeira. Os nós das pontas se preenchem quando o traço chega.
+- As três branches se desenham uma vez na carga: as duas portas ("Quero entrar", "Tenho um projeto") e o link terciário "Receber as novidades da LAESA". O desenho anima o `stroke-dashoffset` do comprimento até 0, em **600ms** com ease-out forte.
+- Escalonamento de **80ms**: a segunda começa 80ms depois da primeira, e a terceira 80ms depois da segunda. Os nós das pontas se preenchem quando o traço chega.
+- Em `/novidades`, o formulário também nasce de uma branch (ciano, sobre navy) com o mesmo desenho.
 - A espinha do hero já começa preenchida até o primeiro nó, para a página nunca abrir "vazia".
 
 ## Mobile

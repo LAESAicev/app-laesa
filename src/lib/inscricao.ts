@@ -107,9 +107,9 @@ export function emailConfirmacao(email: string, site: URL) {
   const link = new URL(`/avisos/confirmar?t=${gerarToken(email, 'confirmar')}`, site);
   return {
     to: email,
-    subject: 'Confirme sua inscrição nos avisos da LAESA',
+    subject: 'Confirme sua inscrição nas novidades da LAESA',
     text: [
-      'Oi! Recebemos um pedido para enviar avisos da LAESA (novos editais e atividades) para este e-mail.',
+      'Oi! Recebemos um pedido para enviar as novidades da LAESA (editais, eventos, oficinas e projetos) para este e-mail.',
       '',
       `Para confirmar, abra o link e clique em "Confirmar inscrição" (vale por 7 dias): ${link}`,
       '',

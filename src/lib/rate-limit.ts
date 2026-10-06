@@ -18,6 +18,13 @@ export function criarLimite(max: number, janelaMs: number) {
   };
 }
 
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost']);
+
+/** Em desenvolvimento, o próprio computador não entra no limite (testes e uso local compartilham o IP). */
+export function isentoLocal(ip: string | undefined): boolean {
+  return import.meta.env.DEV && !!ip && LOOPBACK.has(ip);
+}
+
 /** IPv6 agrupado por /64 (uma pessoa costuma ter o prefixo inteiro); IPv4 inteiro. */
 export function chaveIp(ip: string | undefined): string {
   if (!ip) return 'desconhecido';

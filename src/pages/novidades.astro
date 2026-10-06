@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/Section.astro';
+import SubscribeForm from '../components/SubscribeForm.astro';
+---
+<BaseLayout
+  title="Novidades"
+  description="Receba no seu e-mail as novidades da LAESA: editais, eventos, oficinas e projetos."
+>
+  <Section class="navy deep novidades" node={104} colClass="novidades-grid" label="Novidades da LAESA">
+    <div>
+      <h1 class="d1">As novidades da LAESA <em>no seu <span class="nowrap">e-mail.</span></em></h1>
+      <p class="lead">Novos editais, eventos, oficinas e projetos da liga. Poucos e-mails, só quando tem algo para contar, e dá para cancelar a qualquer momento.</p>
+      <!-- a ação nasce da linha de commit, como as portas da home -->
+      <div class="branch branch-form">
+        <svg class="branch-svg dk" viewBox="0 0 104 112" aria-hidden="true"><path d="M27 30 Q27 76 67 76 H92" pathLength="1" /><circle cx="97" cy="76" r="6" style="fill: var(--cyan)" /></svg>
+        <svg class="branch-svg mb" viewBox="0 0 64 112" aria-hidden="true"><path d="M7 30 Q7 76 37 76 H52" pathLength="1" /><circle cx="57" cy="76" r="6" style="fill: var(--cyan)" /></svg>
+        <div class="branch-body"><SubscribeForm /></div>
+      </div>
+    </div>
+    <div class="novidades-form">
+      <ul class="novidades-lista" aria-label="O que você recebe">
+        <li>Aviso quando um processo seletivo abrir</li>
+        <li>Palestras, oficinas e eventos abertos</li>
+        <li>Projetos que saíram do papel</li>
+      </ul>
+    </div>
+  </Section>
+</BaseLayout>

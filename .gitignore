@@ -17,3 +17,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# capturas de revisão de design (geradas)
+.impeccable/review/

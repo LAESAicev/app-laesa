@@ -21,13 +21,13 @@ try {
   else throw e;
 }
 const texto = {
-  pedir: { h: 'Falta', em: 'um clique.', p: 'Confirme que quer receber os avisos da LAESA, como novos editais. Dá para cancelar a qualquer momento.' },
-  ok: { h: 'Inscrição', em: 'confirmada.', p: 'Você vai receber os avisos da LAESA, como novos editais. Todo e-mail tem um link para cancelar.' },
-  invalido: { h: 'Link', em: 'inválido ou expirado.', p: 'O link de confirmação vale por 7 dias. Peça um novo na página de processos seletivos.' },
-  indisponivel: { h: 'Inscrições', em: 'em breve.', p: 'As inscrições em avisos ainda não estão abertas. Tente de novo mais tarde.' },
+  pedir: { h: 'Falta', em: 'um clique.', p: 'Confirme que quer receber as novidades da LAESA: editais, eventos, oficinas e projetos. Dá para cancelar a qualquer momento.' },
+  ok: { h: 'Inscrição', em: 'confirmada.', p: 'Você vai receber as novidades da LAESA. Todo e-mail tem um link para cancelar.' },
+  invalido: { h: 'Link', em: 'inválido ou expirado.', p: 'O link de confirmação vale por 7 dias. Peça um novo na página de novidades.' },
+  indisponivel: { h: 'Inscrições', em: 'em breve.', p: 'As inscrições nas novidades ainda não estão abertas. Tente de novo mais tarde.' },
 }[estado];
 ---
-<BaseLayout title="Inscrição em avisos" description="Confirmação da inscrição nos avisos da LAESA." noindex>
+<BaseLayout title="Confirmar inscrição" description="Confirmação da inscrição nas novidades da LAESA." noindex>
   <Section class="page-head" node={104} head={estado === 'ok'} label="Inscrição em avisos">
     <h1 class="d1">{texto.h} <em>{texto.em}</em></h1>
     <p class="lead" style="margin: 24px 0 36px">{texto.p}</p>
@@ -37,7 +37,7 @@ const texto = {
         <Button type="submit" icon="check">Confirmar inscrição</Button>
       </form>
     ) : (
-      <Button href={estado === 'ok' ? '/' : '/processos-seletivos#avisos'}>{estado === 'ok' ? 'Voltar para o início' : 'Ir para processos seletivos'}</Button>
+      <Button href={estado === 'ok' ? '/' : '/novidades'}>{estado === 'ok' ? 'Voltar para o início' : 'Ir para novidades'}</Button>
     )}
   </Section>
 </BaseLayout>
