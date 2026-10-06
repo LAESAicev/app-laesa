@@ -1,6 +1,7 @@
 // Lê o conteúdo editável (content/*.yaml) com o schema do painel (keystatic.config.ts).
 // Roda no build: o site continua estático. Os tipos expostos são os mesmos que os componentes já usam.
 import { createReader } from '@keystatic/core/reader';
+import { PUBLIC_CONTACT_EMAIL, PUBLIC_LINKEDIN_URL, PUBLIC_GITHUB_URL, PUBLIC_INSTAGRAM_URL } from 'astro:env/client';
 import keystaticConfig from '../../keystatic.config';
 import type { Canal, StatusSelecao } from '../data/site';
 import type { Commit, Pessoa, Projeto } from '../data/home';
@@ -29,13 +30,20 @@ export const selecao: { status: StatusSelecao; editalAtual: string } = {
   editalAtual: required(siteRaw.editalAtual, 'Edital atual'),
 };
 
-export const canais: Canal[] = siteRaw.canais.map((c) => ({
-  icon: c.icon,
-  rotulo: c.rotulo,
-  valor: c.valor,
-  href: c.href || '#',
-  exemplo: c.exemplo,
-}));
+/** "https://www.linkedin.com/company/laesaicev/" → "linkedin.com/company/laesaicev" */
+function urlCurta(url: string): string {
+  const u = new URL(url);
+  return (u.host.replace(/^www\./, '') + u.pathname).replace(/\/$/, '');
+}
+
+// Contato e redes vêm de variáveis de ambiente (astro.config.mjs → env.schema; modelo em .env.example).
+// Uma rede sem variável definida simplesmente não aparece.
+export const canais: Canal[] = [
+  { icon: 'mail', rotulo: 'E-mail', valor: PUBLIC_CONTACT_EMAIL, href: `mailto:${PUBLIC_CONTACT_EMAIL}` },
+  ...(PUBLIC_INSTAGRAM_URL ? [{ icon: 'instagram', rotulo: 'Instagram', valor: urlCurta(PUBLIC_INSTAGRAM_URL), href: PUBLIC_INSTAGRAM_URL } as const] : []),
+  ...(PUBLIC_LINKEDIN_URL ? [{ icon: 'linkedin', rotulo: 'LinkedIn', valor: urlCurta(PUBLIC_LINKEDIN_URL), href: PUBLIC_LINKEDIN_URL } as const] : []),
+  ...(PUBLIC_GITHUB_URL ? [{ icon: 'github', rotulo: 'GitHub', valor: urlCurta(PUBLIC_GITHUB_URL), href: PUBLIC_GITHUB_URL } as const] : []),
+];
 
 export const estatutoUrl = siteRaw.estatutoUrl || '#';
 

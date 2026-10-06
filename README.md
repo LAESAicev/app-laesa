@@ -11,6 +11,7 @@ Site da **Liga Acadêmica de Engenharia de Software Aplicada** (iCEV, Teresina-P
 
 ```sh
 npm install
+cp .env.example .env   # contatos, redes e domínio (ver comentários no arquivo)
 npm run dev       # site em http://localhost:4321 e painel em http://localhost:4321/keystatic
 npm run build     # checa tipos e gera dist/
 npm run design    # regera o protótipo HTML (design/dist) usado no Figma
@@ -51,13 +52,16 @@ npm run design    # regera o protótipo HTML (design/dist) usado no Figma
 └── .impeccable/          contrato da direção visual (surfaces/site.md)
 ```
 
+Contato e redes não ficam no código nem no painel: vêm de variáveis de ambiente (`.env`, modelo em `.env.example`).
+
 Cores dos logos: `azul` #0A2BFF · `menta` #5CEAD2 · `ciano` #1DD0F8 · `navy` #043F63 · `degrade-navy` · `degrade-azul` · `branco` · `preto`.
 
 ## Conteúdo pendente
 
 Nas telas, os itens provisórios estão marcados com um selo tracejado ("exemplo", "confirmar", "[data]"):
 
-- [ ] Instagram, LinkedIn, GitHub e e-mail oficial
+- [x] E-mail, Instagram, LinkedIn e GitHub (em `.env`)
+- [ ] Transferir este repositório para a organização [LAESAicev](https://github.com/LAESAicev)
 - [ ] Datas, número de vagas e links do edital 2026.2
 - [ ] Projetos realizados: nome, descrição, tipo e ano
 - [ ] Nomes e fotos da Vice-Presidência, da Diretoria de Projetos e do(a) Professor(a) Orientador(a)

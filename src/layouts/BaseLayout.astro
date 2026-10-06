@@ -19,7 +19,8 @@ interface Props {
 
 const { title, description, active } = Astro.props;
 const fullTitle = title === 'LAESA' ? 'LAESA · Liga Acadêmica de Engenharia de Software Aplicada' : `${title} · LAESA`;
-const canonical = new URL(Astro.url.pathname, Astro.site);
+// build.format 'file' gera /index.html e /contato.html; o endereço público é / e /contato
+const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ''), Astro.site);
 ---
 <!doctype html>
 <html lang="pt-BR">

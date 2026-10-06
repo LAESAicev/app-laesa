@@ -58,25 +58,7 @@ export default config({
           validation: { isRequired: true },
         }),
         estatutoUrl: fields.url({ label: 'Link do estatuto (PDF)' }),
-        canais: fields.array(
-          fields.object({
-            icon: fields.select({
-              label: 'Tipo',
-              options: [
-                { label: 'E-mail', value: 'mail' },
-                { label: 'Instagram', value: 'instagram' },
-                { label: 'LinkedIn', value: 'linkedin' },
-                { label: 'GitHub', value: 'github' },
-              ],
-              defaultValue: 'mail',
-            }),
-            rotulo: fields.text({ label: 'Rótulo', description: 'Ex.: Instagram' }),
-            valor: fields.text({ label: 'Texto exibido', description: 'Ex.: @laesa.icev' }),
-            href: fields.text({ label: 'Link', description: 'Ex.: https://instagram.com/... ou mailto:contato@...' }),
-            exemplo,
-          }),
-          { label: 'Redes e contato', itemLabel: (p) => p.fields.rotulo.value || 'Canal' },
-        ),
+        // Redes e e-mail vêm de variáveis de ambiente (.env.example), não do painel.
       },
     }),
 

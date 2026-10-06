@@ -48,7 +48,9 @@ Restrições:
    - Nenhuma configuração manual no servidor depende da memória de alguém.
    - Um checklist de passagem de mandato fica em `docs/`.
 
-6. **Contas e acessos da LAESA, nunca de um aluno.**
+6. **Configuração por ambiente.** Contatos, redes e domínio vêm de variáveis de ambiente validadas pelo `astro:env` (`.env.example`), sem valores no código. Credenciais (SMTP etc., Fase 4) seguirão o mesmo caminho como segredos.
+
+7. **Contas e acessos da LAESA, nunca de um aluno.**
    - Inclui a organização no GitHub, a conta Workspace, os segredos e o acesso ao servidor.
    - O repositório vai para a organização LAESA no GitHub.
 
@@ -80,7 +82,7 @@ Nos dois planos, o modelo de conteúdo e o repositório são os mesmos.
 
 ## Outras pendências
 
-- **P1:** criar a organização LAESA no GitHub e transferir o `app-laesa`, opcionalmente renomeando para `site-laesa`. Precisa da conta da LAESA.
+- **P1:** organização criada: [github.com/LAESAicev](https://github.com/LAESAicev). Falta transferir o `app-laesa` para ela (opcionalmente renomeando para `site-laesa`).
 - **P2:** onde ficam os inscritos dos avisos.
   - (a) SQLite no servidor, com disparo pelo site. Exige o plano A.
   - (b) Google Groups da LAESA. Falta verificar se quem não tem conta Google consegue se inscrever.

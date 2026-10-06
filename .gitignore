@@ -12,3 +12,8 @@ design/dist/
 # astro
 dist/
 .astro/
+
+# variáveis de ambiente locais (modelo em .env.example)
+.env
+.env.*
+!.env.example

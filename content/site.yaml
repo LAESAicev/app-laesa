@@ -1,23 +1,2 @@
 statusSelecao: aberto
 editalAtual: 2026-2
-canais:
-  - icon: mail
-    rotulo: E-mail
-    valor: contato@laesa.com.br
-    href: mailto:contato@laesa.com.br
-    exemplo: true
-  - icon: instagram
-    rotulo: Instagram
-    valor: '@laesa.icev'
-    href: '#'
-    exemplo: true
-  - icon: linkedin
-    rotulo: LinkedIn
-    valor: LAESA
-    href: '#'
-    exemplo: true
-  - icon: github
-    rotulo: GitHub
-    valor: github.com/laesa
-    href: '#'
-    exemplo: true
