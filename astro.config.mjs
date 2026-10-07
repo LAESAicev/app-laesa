@@ -6,11 +6,14 @@ import keystatic from '@keystatic/astro';
 import node from '@astrojs/node';
 import { resolve, sep } from 'node:path';
 
-// Páginas pré-geradas no build; só as rotas /api/* (contato, inscrição) rodam no servidor Node
-// (plano A do ADR 0001: contêiner na VM do iCEV). O painel (/keystatic) roda só em `astro dev` por enquanto;
-// na Fase 5 passa a rodar em produção (modo GitHub).
+// Páginas pré-geradas no build; só as rotas /api/* (contato, inscrição) e o painel rodam no servidor Node
+// (plano A do ADR 0001: contêiner na VM do iCEV).
 const isDev = process.argv.includes('dev');
-const { SITE_URL, TRUST_PROXY } = loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), '');
+const { SITE_URL, TRUST_PROXY, PUBLIC_KEYSTATIC_GITHUB_REPO } = loadEnv(process.env.NODE_ENV ?? 'production', process.cwd(), '');
+// Painel (/keystatic): em dev, sempre (modo local, ou GitHub se o repo estiver definido). Em produção, só no
+// modo GitHub: login com a conta do GitHub e só salva quem tem escrita no repositório (docs/operacao.md).
+// Sem PUBLIC_KEYSTATIC_GITHUB_REPO no build, a imagem sai sem painel nenhum.
+const painel = isDev || Boolean(PUBLIC_KEYSTATIC_GITHUB_REPO);
 
 /** Em dev, recarrega a página quando o painel (ou alguém) altera content/: src/lib/content.ts lê o YAML só ao carregar. */
 function contentReload() {
@@ -47,8 +50,10 @@ export default defineConfig({
     // ATENÇÃO: qualquer rota nova que aceite formulário precisa da própria verificação de origem.
     checkOrigin: false,
   },
-  integrations: isDev ? [react(), keystatic()] : [],
+  integrations: painel ? [react(), keystatic()] : [],
   vite: {
+    // Nenhum script inline nas páginas: a CSP do site (deploy/Caddyfile) usa script-src 'self'.
+    build: { assetsInlineLimit: 0 },
     plugins: isDev ? [contentReload()] : [],
     // O painel só é aberto depois que o servidor já está de pé; sem isto o Vite descobre essas
     // dependências tarde, reotimiza e a página do painel fica em branco ("504 Outdated Optimize Dep").
@@ -77,6 +82,12 @@ export default defineConfig({
       INSCRICAO_SECRET: envField.string({ context: 'server', access: 'secret', optional: true, min: 32 }),
       INSCRITOS_STORE: envField.enum({ context: 'server', access: 'secret', values: ['memoria', 'sqlite'], optional: true }),
       INSCRITOS_DB: envField.string({ context: 'server', access: 'secret', default: '/data/laesa.db' }),
+
+      // Painel em produção (modo GitHub): credenciais do GitHub App da organização. Lidas em tempo de
+      // execução pelo @keystatic/astro (getSecret), nunca gravadas na imagem.
+      KEYSTATIC_GITHUB_CLIENT_ID: envField.string({ context: 'server', access: 'secret', optional: true }),
+      KEYSTATIC_GITHUB_CLIENT_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
+      KEYSTATIC_SECRET: envField.string({ context: 'server', access: 'secret', optional: true, min: 32 }),
     },
     validateSecrets: true,
   },

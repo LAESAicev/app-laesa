@@ -96,7 +96,7 @@ Nos dois planos, o modelo de conteúdo e o repositório são os mesmos.
 - Fase 4: o app usa o adaptador `@astrojs/node` (standalone). As páginas são pré-geradas e só `/api/*` e `/avisos/*` rodam no servidor. Build em formato de diretórios (`/processos-seletivos/index.html`): o formato `file` gerava `processos-seletivos.html` ao lado da pasta `processos-seletivos/`, e o servidor de arquivos do adaptador respondia 404.
 
 - Fase 5: o conteúdo de `content/*.yaml` é embutido no build (`import.meta.glob` + `yaml`), sem o leitor do Keystatic em tempo de execução. As rotas renderizadas sob demanda (`/avisos/*`) quebravam no contêiner, que não tem a pasta `content/`. Keystatic e React viraram dependências só de desenvolvimento.
-- Fase 5: Docker (`Dockerfile` multi-stage, `compose.yaml` com app + Caddy), CI no GitHub Actions publicando a imagem no GHCR. Painel em produção (modo GitHub) preparado, mas depende da transferência do repositório para a organização e de um GitHub App, com as credenciais lidas em tempo de execução.
+- Fase 5: Docker (`Dockerfile` multi-stage, `compose.yaml` com app + Caddy), CI no GitHub Actions publicando a imagem no GHCR. Painel em produção (modo GitHub) pronto no código desde 2026-10-07: entra no build quando `PUBLIC_KEYSTATIC_GITHUB_REPO` está definido, e as credenciais do GitHub App são lidas em tempo de execução. Falta criar o App (docs/operacao.md).
 
 ## Consequências
 

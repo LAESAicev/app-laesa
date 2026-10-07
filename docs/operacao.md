@@ -100,13 +100,75 @@ docker compose logs -f app
 docker compose down
 ```
 
-## Painel em produção (pendente)
+## Painel em produção
 
-Hoje o painel (`/keystatic`) roda em `npm run dev`, editando os arquivos da máquina. Para a Mesa editar direto no site publicado:
+Com o modo GitHub, o painel também fica no site publicado (`https://laesa.icev.edu.br/keystatic`):
+- **Login:** é feito com a conta do GitHub, com a senha e a verificação em duas etapas da própria pessoa. O site não guarda senha nenhuma.
+- **Quem salva:** cada edição vira um commit com o nome de quem editou, e só salva quem tem escrita no repositório `LAESAicev/app-laesa`. Um curioso consegue entrar, mas não consegue salvar nada.
+- **Quando aparece no site:** o commit passa pelo CI, que gera uma imagem nova. A mudança aparece quando o servidor atualiza (`docker compose pull && docker compose up -d`, manual ou por cron).
 
-1. Transferir este repositório para a organização [LAESAicev](https://github.com/LAESAicev).
-2. Criar um GitHub App da organização para o Keystatic ([guia oficial](https://keystatic.com/docs/github-mode)) e instalá-lo só neste repositório.
-3. Definir `PUBLIC_KEYSTATIC_GITHUB_REPO=LAESAicev/app-laesa`. Isso já troca o painel para o modo GitHub (`keystatic.config.ts`).
-4. Ligar o painel no build de produção, lendo as credenciais do App (`KEYSTATIC_GITHUB_CLIENT_ID`, `KEYSTATIC_GITHUB_CLIENT_SECRET`, `KEYSTATIC_SECRET`) em **tempo de execução**. Elas não podem ficar gravadas na imagem; esse ajuste no código entra junto com o passo 2.
+Sem `PUBLIC_KEYSTATIC_GITHUB_REPO` no build, a imagem sai sem painel, e o painel continua só em `npm run dev`, no modo local.
 
-Quem edita precisa estar no time da organização com acesso ao repositório. Na troca de mandato, basta tirar e pôr pessoas no time.
+### 1. Criar o GitHub App (uma vez, uns 10 minutos)
+
+Faça com uma conta que seja **dona (Owner)** da organização LAESAicev, de preferência a conta institucional da LAESA, nunca a de um aluno. Confira em https://github.com/orgs/LAESAicev/people.
+
+1. No seu computador, com o repositório clonado, coloque no `.env`:
+   ```sh
+   PUBLIC_KEYSTATIC_GITHUB_REPO=LAESAicev/app-laesa
+   ```
+2. Rode `npm run dev` e abra http://127.0.0.1:4321/keystatic. Aparece a tela **Keystatic Setup**:
+   - **Deployed App URL:** `https://laesa.icev.edu.br`, ou o domínio que o iCEV confirmar;
+   - **GitHub organization:** `LAESAicev`;
+   - clique em **Create GitHub App**.
+3. No GitHub, dê um nome ao App (ex.: `LAESA Painel`; o nome precisa ser único no GitHub) e confirme.
+4. O GitHub volta para o painel, e o Keystatic grava no seu `.env`:
+   - `KEYSTATIC_GITHUB_CLIENT_ID`
+   - `KEYSTATIC_GITHUB_CLIENT_SECRET`
+   - `KEYSTATIC_SECRET`
+   - `PUBLIC_KEYSTATIC_GITHUB_APP_SLUG`
+
+   O `.env` não vai para o git.
+5. Reinicie (`npx astro dev stop && npm run dev`), abra `/keystatic` de novo e clique em **Install**. Escolha **Only select repositories → app-laesa**.
+6. Nas configurações do App (https://github.com/organizations/LAESAicev/settings/apps):
+   - **Advanced → Make private**, para que só a organização possa instalá-lo. Com o App público, o token de quem edita alcançaria outros repositórios onde terceiros o instalassem.
+   - **Callback URL:** quando o site estiver no ar, deixe só `https://<domínio>/api/keystatic/github/oauth/callback` e apague as de `http://127.0.0.1`. Elas servem só para testar no computador.
+7. Depois de copiar as credenciais para o servidor e para o cofre, **apague `KEYSTATIC_GITHUB_CLIENT_SECRET` do `.env` do seu computador.**
+
+### 2. Ligar no site publicado
+
+1. **Variáveis do repositório:** em Settings → Secrets and variables → Actions → **Variables**. Precisa de admin no repositório.
+   - `PUBLIC_KEYSTATIC_GITHUB_REPO` = `LAESAicev/app-laesa`
+   - `PUBLIC_KEYSTATIC_GITHUB_APP_SLUG` = o valor que o Keystatic gravou
+
+   Elas são públicas. O próximo push gera a imagem com o painel.
+2. **`.env` do servidor:** copie as três credenciais do passo 1.4 (`KEYSTATIC_GITHUB_CLIENT_ID`, `KEYSTATIC_GITHUB_CLIENT_SECRET`, `KEYSTATIC_SECRET`) e as duas variáveis públicas acima. Depois rode `docker compose up -d`.
+   - **Elas não vão para o GitHub Actions:** só o servidor as usa.
+   - **Guarde uma cópia no cofre da LAESA,** junto com o resto do `.env`.
+3. **O compose precisa de `TRUST_PROXY=1`, que é o padrão.** Sem isso, o retorno do login sai com `http://` e o GitHub recusa (`redirect_uri_mismatch`).
+
+### 3. Quem pode editar
+
+- **Time no GitHub:** crie o time `mesa-diretora` em https://github.com/orgs/LAESAicev/teams, com papel **Write** no `app-laesa`. Quem edita entra no time.
+- **Primeiro acesso:** cada pessoa entra em `/keystatic`, clica em **Log in with GitHub** e autoriza o App uma vez.
+- **Troca de mandato:** tire do time quem saiu e ponha quem entrou. Não há senha para trocar.
+- **Proteção da organização:**
+  - exija verificação em duas etapas de todos os membros (Settings → Authentication security);
+  - bloqueie force-push e exclusão da `main` (Settings → Rules).
+
+  Não exija PR na `main`, senão o painel não consegue salvar.
+- **O token vale para o repositório inteiro, não só para o conteúdo.** Quem tem o token de um editor consegue mudar o código também. Por isso:
+  - atualize o servidor só depois do CI verde, sem `pull` automático de qualquer commit;
+  - não ligue a permissão `workflows` no App.
+- **Vazamento ou suspeita:**
+  - nas configurações do App, use **Advanced → Revoke all user tokens**. Um token já roubado vale no máximo 8 horas;
+  - troque `KEYSTATIC_SECRET` e reinicie; quem estava logado só entra de novo;
+  - se o `KEYSTATIC_GITHUB_CLIENT_SECRET` vazar, gere outro nas configurações do App e atualize o `.env` do servidor.
+- **Proteções no site:**
+  - as páginas públicas têm uma CSP que só roda scripts do próprio site, porque o token do editor fica legível no navegador, no mesmo domínio;
+  - os arquivos enviados pelo painel (`/uploads`, SVGs) abrem em sandbox (`deploy/Caddyfile`).
+- **Risco aceito:** o login do Keystatic não confere o parâmetro `state` do OAuth. Um atacante conseguiria deixar alguém logado no painel com a conta *dele*, mas não ganha acesso a nada. Se uma versão nova do Keystatic corrigir isso, atualize.
+
+### Usar o modo local de novo
+
+Para editar sem internet ou sem conta no GitHub, comente `PUBLIC_KEYSTATIC_GITHUB_REPO` no `.env` do seu computador. O painel volta a editar os arquivos da máquina, e depois é preciso fazer commit e push.

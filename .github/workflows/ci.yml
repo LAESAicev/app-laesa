@@ -22,6 +22,10 @@ env:
   PUBLIC_INSTAGRAM_URL: ${{ vars.PUBLIC_INSTAGRAM_URL || 'https://www.instagram.com/laesa.icev' }}
   PUBLIC_LINKEDIN_URL: ${{ vars.PUBLIC_LINKEDIN_URL || 'https://www.linkedin.com/company/laesaicev' }}
   PUBLIC_GITHUB_URL: ${{ vars.PUBLIC_GITHUB_URL || 'https://github.com/LAESAicev' }}
+  # Painel em produção: defina as duas variáveis do repositório (Settings → Variables) quando o GitHub App
+  # existir. Vazias, a imagem sai sem painel. As credenciais do App ficam só no .env do servidor.
+  PUBLIC_KEYSTATIC_GITHUB_REPO: ${{ vars.PUBLIC_KEYSTATIC_GITHUB_REPO }}
+  PUBLIC_KEYSTATIC_GITHUB_APP_SLUG: ${{ vars.PUBLIC_KEYSTATIC_GITHUB_APP_SLUG }}
 
 jobs:
   teste:
@@ -78,6 +82,8 @@ jobs:
             PUBLIC_INSTAGRAM_URL=${{ env.PUBLIC_INSTAGRAM_URL }}
             PUBLIC_LINKEDIN_URL=${{ env.PUBLIC_LINKEDIN_URL }}
             PUBLIC_GITHUB_URL=${{ env.PUBLIC_GITHUB_URL }}
+            PUBLIC_KEYSTATIC_GITHUB_REPO=${{ env.PUBLIC_KEYSTATIC_GITHUB_REPO }}
+            PUBLIC_KEYSTATIC_GITHUB_APP_SLUG=${{ env.PUBLIC_KEYSTATIC_GITHUB_APP_SLUG }}
             TRUST_PROXY=1
           cache-from: type=gha
           cache-to: type=gha,mode=max

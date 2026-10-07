@@ -45,7 +45,7 @@ Com `npm run dev` no ar, abra `/keystatic`. O painel edita os arquivos de `conte
 | Atividades e projetos | oficinas, cursos, eventos, pesquisas e projetos. A ordem e o status ("em breve", "inscrições abertas", "concluído") saem da **data**. A home mostra as 5 mais perto de hoje, e `/atividades` mostra todas, com busca e filtro por eixo ([ADR 0002](docs/adr/0002-atividades-pela-data.md)) |
 | Editais | uma página por edital, com datas, vagas, PDF e modelo da carta |
 
-Depois de editar, faça commit das mudanças em `content/`, `src/assets/uploads/` e `public/uploads/`. O CI publica a nova versão. O painel salvando direto no GitHub, sem `npm run dev`, está em [docs/operacao.md](docs/operacao.md#painel-em-produção-pendente).
+Depois de editar, faça commit das mudanças em `content/`, `src/assets/uploads/` e `public/uploads/`. O CI publica a nova versão. Com o modo GitHub ligado, o painel também fica no site publicado, com login pelo GitHub, e cada edição vira um commit. Como ligar: [docs/operacao.md](docs/operacao.md#painel-em-produção).
 
 Contato e redes sociais não ficam no código nem no painel: vêm de variáveis de ambiente (`PUBLIC_*` no `.env`).
 
@@ -117,7 +117,6 @@ No site, o conteúdo provisório aparece com um selo tracejado ("exemplo", "[dat
 
 **Conteúdo (LAESA, pelo painel)**
 - [ ] Edital 2026.2: datas, vagas, link de inscrição, PDF e modelo da carta
-- [ ] Atividades e projetos que faltam (posts do LinkedIn e destaques do Instagram), com data e eixos
 - [ ] Mesa Diretora: nomes e fotos da Vice-Presidência, da Diretoria de Projetos, da Diretoria de Marketing e do(a) Professor(a) Orientador(a)
 - [ ] Editais anteriores reais (ou remover os de exemplo)
 - [ ] Prazo de retenção das mensagens e revisão da página de privacidade pelo iCEV
@@ -125,7 +124,7 @@ No site, o conteúdo provisório aparece com um selo tracejado ("exemplo", "[dat
 **Infraestrutura**
 - [ ] Respostas do iCEV: DNS de `laesa.icev.edu.br`, portas 80 e 443, saída para o Gmail (porta 465), proxy na frente do servidor ([ADR 0001](docs/adr/0001-arquitetura-do-site.md))
 - [x] Imagem `ghcr.io/laesaicev/app-laesa` pública (o servidor baixa sem login)
-- [ ] GitHub App da organização para o painel em produção
+- [ ] GitHub App da organização para o painel em produção (código pronto; passo a passo em [docs/operacao.md](docs/operacao.md#painel-em-produção))
 - [x] Repositório na organização [LAESAicev](https://github.com/LAESAicev)
 - [x] E-mail, Instagram, LinkedIn e GitHub da LAESA (variáveis de ambiente)
 

@@ -11,6 +11,8 @@ services:
         PUBLIC_INSTAGRAM_URL: ${PUBLIC_INSTAGRAM_URL:-}
         PUBLIC_LINKEDIN_URL: ${PUBLIC_LINKEDIN_URL:-}
         PUBLIC_GITHUB_URL: ${PUBLIC_GITHUB_URL:-}
+        PUBLIC_KEYSTATIC_GITHUB_REPO: ${PUBLIC_KEYSTATIC_GITHUB_REPO:-}
+        PUBLIC_KEYSTATIC_GITHUB_APP_SLUG: ${PUBLIC_KEYSTATIC_GITHUB_APP_SLUG:-}
         TRUST_PROXY: "1"
     image: ${IMAGE:-ghcr.io/laesaicev/app-laesa:latest}
     restart: unless-stopped

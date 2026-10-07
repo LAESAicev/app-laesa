@@ -9,14 +9,28 @@
 	}
 
 	header {
-		# CSP mínima, sem risco de quebrar a página; a política completa entra testada com Report-Only
-		Content-Security-Policy "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
 		X-Content-Type-Options nosniff
 		X-Frame-Options DENY
 		Referrer-Policy strict-origin-when-cross-origin
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		-Server
 	}
+
+	# CSP por área. O token do GitHub de quem edita no painel fica legível por JS neste mesmo domínio
+	# (Keystatic), então as páginas públicas só rodam scripts do próprio site: um XSS não carrega nada de fora.
+	# O build não gera script inline (astro.config.mjs: assetsInlineLimit 0).
+	@site not path /keystatic /keystatic/* /api/keystatic/* /uploads/* *.svg
+	header @site Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+
+	# Painel: fala direto com a API do GitHub, então fica só com o básico; fora dos buscadores e sem cache.
+	@painel path /keystatic /keystatic/* /api/keystatic/*
+	header @painel Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+	header @painel X-Robots-Tag "noindex, nofollow"
+	header @painel Cache-Control "no-store"
+
+	# Arquivos enviados pelo painel (PDFs, SVGs): abertos em sandbox, sem rodar script no domínio do site.
+	@uploads path /uploads/* *.svg
+	header @uploads Content-Security-Policy "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'"
 
 	# HSTS só no domínio real (sem preload: o domínio é do iCEV)
 	@publico not host localhost

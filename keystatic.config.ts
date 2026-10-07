@@ -29,6 +29,8 @@ const pessoa = (label: string) =>
 // repositório da organização). O modo GitHub liga com PUBLIC_KEYSTATIC_GITHUB_REPO="LAESAicev/app-laesa" e
 // exige um GitHub App da organização (passo a passo em docs/operacao.md, seção "Painel em produção").
 const repo = import.meta.env.PUBLIC_KEYSTATIC_GITHUB_REPO as `${string}/${string}` | undefined;
+// O modo local não tem login: nunca pode ir para o site publicado.
+if (import.meta.env.PROD && !repo) throw new Error('Painel em produção exige PUBLIC_KEYSTATIC_GITHUB_REPO (modo GitHub).');
 
 export default config({
   storage: repo ? { kind: 'github', repo } : { kind: 'local' },

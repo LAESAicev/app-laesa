@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Imagem do site da LAESA: páginas pré-geradas + servidor Node para /api/* e /avisos/*.
-# Variáveis PUBLIC_* e SITE_URL entram no build (ficam no HTML); segredos (SMTP_*, INSCRICAO_SECRET)
+# Variáveis PUBLIC_* e SITE_URL entram no build (ficam no HTML); segredos (SMTP_*, INSCRICAO_SECRET, KEYSTATIC_*)
 # só em tempo de execução, pelo ambiente do contêiner. Nada de .env dentro da imagem (.dockerignore).
 
 FROM node:24-slim AS base
@@ -18,6 +18,9 @@ ARG PUBLIC_CONTACT_EMAIL
 ARG PUBLIC_INSTAGRAM_URL
 ARG PUBLIC_LINKEDIN_URL
 ARG PUBLIC_GITHUB_URL
+# Painel em produção (modo GitHub): só o repositório e o slug do GitHub App, que são públicos. Vazio = sem painel.
+ARG PUBLIC_KEYSTATIC_GITHUB_REPO
+ARG PUBLIC_KEYSTATIC_GITHUB_APP_SLUG
 # 0 por padrão: só confiar em X-Forwarded-For atrás de um proxy que o sobrescreve (o compose e o CI passam 1)
 ARG TRUST_PROXY=0
 ENV SITE_URL=$SITE_URL \
@@ -25,6 +28,8 @@ ENV SITE_URL=$SITE_URL \
     PUBLIC_INSTAGRAM_URL=$PUBLIC_INSTAGRAM_URL \
     PUBLIC_LINKEDIN_URL=$PUBLIC_LINKEDIN_URL \
     PUBLIC_GITHUB_URL=$PUBLIC_GITHUB_URL \
+    PUBLIC_KEYSTATIC_GITHUB_REPO=$PUBLIC_KEYSTATIC_GITHUB_REPO \
+    PUBLIC_KEYSTATIC_GITHUB_APP_SLUG=$PUBLIC_KEYSTATIC_GITHUB_APP_SLUG \
     TRUST_PROXY=$TRUST_PROXY
 RUN test -n "$SITE_URL" && test -n "$PUBLIC_CONTACT_EMAIL" || (echo 'defina SITE_URL e PUBLIC_CONTACT_EMAIL (build args)' >&2; exit 1)
 RUN npx astro build
