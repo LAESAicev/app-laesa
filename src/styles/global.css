@@ -892,3 +892,19 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
   .chip-toggle { height: 44px; }
   .atividades .sec-head { margin-bottom: 32px; }
 }
+
+/* ---------- cronograma completo do edital ---------- */
+.crono { margin-top: 64px; }
+.crono-titulo { font-size: 20px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; margin-bottom: 16px; }
+.crono-lista { list-style: none; border-top: 1px solid var(--rule-strong); }
+.crono-linha { display: grid; grid-template-columns: 340px 1fr 72px; gap: 24px; align-items: baseline; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.crono-quando { font-family: var(--mono); font-size: 13.5px; color: var(--blue-text); }
+.crono-linha .meta { text-align: right; }
+.crono-etapa { font-size: 16px; color: var(--ink); line-height: 1.45; }
+@media (max-width: 640px) {
+  .crono { margin-top: 48px; }
+  .crono-linha { grid-template-columns: 1fr auto; gap: 4px 16px; }
+  .crono-linha .meta { text-align: left; }
+  .crono-quando { grid-column: 1 / -1; }
+}
+@media (min-width: 641px) and (max-width: 1100px) { .crono-linha { grid-template-columns: 240px 1fr 64px; gap: 16px; } }

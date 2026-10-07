@@ -201,8 +201,18 @@ export default config({
           name: { label: 'Título', description: 'Ex.: Edital 2026.2' },
           slug: { label: 'Endereço da página', description: 'Ex.: 2026-2 → /processos-seletivos/2026-2' },
         }),
+        inscricoesInicio: fields.date({ label: 'Inscrições de' }),
         inscricoesAte: fields.date({ label: 'Inscrições até' }),
-        analise: fields.text({ label: 'Período de análise', description: 'Ex.: 3 a 7 nov 2026' }),
+        analise: fields.text({ label: 'Análise e entrevistas', description: 'Período, como aparece nas etapas. Ex.: 23 out a 3 nov 2026' }),
+        integracao: fields.date({ label: 'Assinatura do termo e boas-vindas', description: 'Última etapa da seleção.' }),
+        cronograma: fields.array(
+          fields.object({
+            etapa: fields.text({ label: 'Etapa', description: 'Ex.: Divulgação dos horários de entrevista' }),
+            quando: fields.text({ label: 'Quando', description: 'Ex.: 27 out 2026, ou "Até 48h após o fim das entrevistas"' }),
+            ref: fields.text({ label: 'Artigo do estatuto (opcional)', description: 'Ex.: Art. 57' }),
+          }),
+          { label: 'Cronograma completo', description: 'Todas as datas do edital, na ordem. Aparece na página do edital.', itemLabel: (l) => l.fields.etapa.value || 'Etapa' },
+        ),
         vagas: fields.integer({ label: 'Número de vagas', validation: { min: 2 } }),
         linkInscricao: fields.url({ label: 'Link de inscrição' }),
         pdfEdital: fields.file({

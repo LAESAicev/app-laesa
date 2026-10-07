@@ -60,9 +60,9 @@ const regrasDepois = [
     <div class="ed-body">
       <h2 class="d3">{edital.titulo}</h2>
       <dl class="ed-facts">
-        <div><dt>Inscrições</dt><dd>{edital.inscricoesAte ? `até ${edital.inscricoesAte}` : 'até [data]'}</dd></div>
+        <div><dt>Inscrições</dt><dd>{edital.inscricoes ?? 'até [data]'}</dd></div>
         <div><dt>Vagas</dt><dd>{edital.vagas ? `${edital.vagas} vagas` : '[n] vagas'}</dd></div>
-        <div><dt>Resultado</dt><dd>até 48h após a seleção</dd></div>
+        <div><dt>Resultado</dt><dd>até 48h após as entrevistas</dd></div>
         <div><dt>Quem pode</dt><dd>estudantes de nível técnico ou superior</dd></div>
       </dl>
       <div class="ed-actions">
@@ -70,7 +70,7 @@ const regrasDepois = [
         {status === 'finalizado' && edital.resultado && <Button href={edital.resultado} variant="light">Ver resultado</Button>}
         <Button href={edital.pdfEdital ?? '#'} variant="ghost-light" icon="doc">Baixar edital (PDF)</Button>
       </div>
-      {!temDados && <Sample text="datas e vagas a confirmar no edital" />}
+      {!temDados && <Sample text={edital.inscricoesAte ? 'vagas a confirmar no edital' : 'datas e vagas a confirmar no edital'} />}
     </div>
   </aside>
 </Section>
@@ -93,6 +93,20 @@ const regrasDepois = [
       </li>
     ))}
   </ol>
+  {edital.cronograma.length > 0 && (
+    <div class="crono">
+      <h3 class="crono-titulo">Cronograma completo</h3>
+      <ol class="crono-lista">
+        {edital.cronograma.map((l) => (
+          <li class="crono-linha">
+            <span class="crono-quando">{l.quando}</span>
+            <span class="crono-etapa">{l.etapa}</span>
+            {l.ref ? <span class="meta">{l.ref}</span> : <span></span>}
+          </li>
+        ))}
+      </ol>
+    </div>
+  )}
   <p class="flow-note"><span class="meta">Art. 59º</span> Se alguma vaga for recusada, a liga pode fazer uma nova chamada de candidatos, ou optar por não aprovar ninguém.</p>
 </Section>
 

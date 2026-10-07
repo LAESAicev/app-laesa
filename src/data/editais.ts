@@ -9,7 +9,11 @@ export type Edital = {
   slug: string; // ex.: "2026-2" → /processos-seletivos/2026-2
   titulo: string; // ex.: "Edital 2026.2"
   inscricoesAte?: string; // data legível, ex.: "30 out 2026"
+  /** Período legível: "12 a 23 out 2026" (com início) ou "até 23 out 2026". */
+  inscricoes?: string;
   analise?: string;
+  integracao?: string; // data legível da assinatura do termo e boas-vindas
+  cronograma: { etapa: string; quando: string; ref?: string }[];
   vagas?: number;
   linkInscricao?: string;
   pdfEdital?: string;
@@ -32,11 +36,11 @@ export type Etapa = { titulo: string; texto: string; quando: string };
 
 export function etapasDo(edital: Edital): Etapa[] {
   return [
-    { titulo: 'Inscrição', quando: edital.inscricoesAte ? `até ${edital.inscricoesAte}` : 'até [data]', texto: 'Envie a carta de apresentação no modelo do edital e, se quiser, comprovantes e recomendações.' },
-    { titulo: 'Análise da comissão', quando: edital.analise ?? '[data]', texto: 'A comissão de seleção avalia as inscrições. Passam os candidatos com maior aprovação.' },
-    { titulo: 'Resultado', quando: 'em até 48h', texto: 'Divulgado em até 48 horas depois do fim do processo seletivo.' },
+    { titulo: 'Inscrição', quando: edital.inscricoes ?? 'até [data]', texto: 'Envie a carta de apresentação no modelo do edital e, se quiser, comprovantes e recomendações.' },
+    { titulo: 'Análise e entrevistas', quando: edital.analise ?? '[data]', texto: 'A comissão de seleção analisa os documentos e entrevista os candidatos. Passam os de maior aprovação.' },
+    { titulo: 'Resultado', quando: 'em até 48h', texto: 'Resultado preliminar em até 48 horas depois das entrevistas, com prazo para recurso, e depois o resultado final.' },
     { titulo: 'Aceite por e-mail', quando: 'em até 24h', texto: 'Responda ao e-mail aceitando ou recusando a vaga. Sem resposta, a vaga é considerada recusada.' },
-    { titulo: 'Integração', quando: 'início da Sprint', texto: 'Você assina o termo de compromisso e é alocado em um Squad.' },
+    { titulo: 'Integração', quando: edital.integracao ?? 'início da Sprint', texto: 'Você assina o termo de compromisso, participa da reunião de boas-vindas e é alocado em um Squad.' },
   ];
 }
 

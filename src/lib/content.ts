@@ -33,6 +33,16 @@ function linkSeguro(v: unknown): string | undefined {
 
 const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
+/** Período de inscrições: "12 a 23 out 2026", "28 set a 3 out 2026" ou "até 23 out 2026". */
+function periodo(inicio: string | undefined, fim: string | undefined): string | undefined {
+  if (!fim) return undefined;
+  if (!inicio || inicio >= fim) return `até ${dataCurta(fim)}`;
+  const [ai, mi, di] = inicio.split('-').map(Number);
+  const [af, mf] = fim.split('-').map(Number);
+  if (ai === af && mi === mf) return `${di} a ${dataCurta(fim)}`;
+  return `${di} ${meses[mi - 1]}${ai === af ? '' : ` ${ai}`} a ${dataCurta(fim)}`;
+}
+
 /** "2026-10-30" → "30 out 2026" */
 export function dataCurta(iso: string): string {
   const [ano, mes, dia] = iso.split('-').map(Number);
@@ -144,8 +154,13 @@ export const editais: Edital[] = colecao('editais')
   .map(({ slug, entry }) => ({
     slug,
     titulo: entry.titulo,
-    inscricoesAte: entry.inscricoesAte ? dataCurta(String(entry.inscricoesAte)) : undefined,
+    inscricoesAte: dataIso(entry.inscricoesAte) ? dataCurta(dataIso(entry.inscricoesAte)!) : undefined,
+    inscricoes: periodo(dataIso(entry.inscricoesInicio), dataIso(entry.inscricoesAte)),
     analise: entry.analise || undefined,
+    integracao: dataIso(entry.integracao) ? dataCurta(dataIso(entry.integracao)!) : undefined,
+    cronograma: (entry.cronograma ?? [])
+      .filter((l: Yaml) => l?.etapa && l?.quando)
+      .map((l: Yaml) => ({ etapa: String(l.etapa), quando: String(l.quando), ref: l.ref || undefined })),
     vagas: entry.vagas ?? undefined,
     linkInscricao: linkSeguro(entry.linkInscricao),
     pdfEdital: linkSeguro(entry.pdfEdital),
