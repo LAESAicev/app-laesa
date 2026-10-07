@@ -22,6 +22,7 @@ colors:
   spine: "#B4C6D6"
   spine-navy: "rgba(29, 208, 248, 0.55)"
   error: "#C42B2B"
+  prorrogado: "#8A4B00"
 typography:
   display-1:
     fontFamily: "Bebas Neue, Oswald, Arial Narrow, sans-serif"
@@ -204,6 +205,7 @@ Paleta fria de duas superfícies (off-white e navy) com um azul de interface e d
 - **Tinta** (`ink`), **Tinta 2** (`ink-2`), **Tinta 3** (`ink-3`): texto principal, texto corrido, e metadados/placeholder/dicas. `ink-3` foi ajustado para AA; o Figma ainda tem #5E7487.
 - **Fio** (`rule`) e **Fio Forte** (`rule-strong`): divisores de lista e bordas de campo; `spine` (mesmo valor de `rule-strong`) é o trilho da espinha em fundo claro.
 - **Sobre-navy** (`on-navy`, `on-navy-2`, `on-navy-rule`): texto principal, texto secundário e fios dentro das seções navy. `spine-navy` é o trilho da espinha no navy.
+- **Prorrogado** (`prorrogado`, fundo `#FFF1D6`; sobre navy `#FFC965` em fundo âmbar a 14%): só na data nova de uma etapa prorrogada do edital, ao lado da original riscada em `ink-3` (`DataProrrogada.astro`). Não é erro (vermelho) nem estado aberto (menta).
 - **Erro** (`error`): borda e mensagem de campo inválido. Hoje é valor literal no CSS, junto com o fundo do banner (#FBEDED), o texto do banner (#A32222) e o erro sobre navy (#FFB4B4).
 
 ### Named Rules

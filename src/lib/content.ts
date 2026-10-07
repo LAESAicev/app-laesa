@@ -156,11 +156,15 @@ export const editais: Edital[] = colecao('editais')
     titulo: entry.titulo,
     inscricoesAte: dataIso(entry.inscricoesAte) ? dataCurta(dataIso(entry.inscricoesAte)!) : undefined,
     inscricoes: periodo(dataIso(entry.inscricoesInicio), dataIso(entry.inscricoesAte)),
+    inscricoesProrrogadas:
+      dataIso(entry.inscricoesProrrogadasAte) && dataIso(entry.inscricoesProrrogadasAte)! > (dataIso(entry.inscricoesAte) ?? '')
+        ? periodo(dataIso(entry.inscricoesInicio), dataIso(entry.inscricoesProrrogadasAte))
+        : undefined,
     analise: entry.analise || undefined,
     integracao: dataIso(entry.integracao) ? dataCurta(dataIso(entry.integracao)!) : undefined,
     cronograma: (entry.cronograma ?? [])
       .filter((l: Yaml) => l?.etapa && l?.quando)
-      .map((l: Yaml) => ({ etapa: String(l.etapa), quando: String(l.quando), ref: l.ref || undefined })),
+      .map((l: Yaml) => ({ etapa: String(l.etapa), quando: String(l.quando), ref: l.ref || undefined, prorrogadoPara: l.prorrogadoPara || undefined })),
     vagas: entry.vagas ?? undefined,
     linkInscricao: linkSeguro(entry.linkInscricao),
     pdfEdital: linkSeguro(entry.pdfEdital),

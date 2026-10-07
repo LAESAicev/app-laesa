@@ -1,0 +1,15 @@
+---
+// Data de uma etapa que pode ser prorrogada: a original fica riscada e a nova aparece ao lado, em destaque.
+interface Props {
+  original: string;
+  nova?: string;
+}
+
+const { original, nova } = Astro.props;
+---
+{nova ? (
+  <span class="data-prorrogada">
+    <del class="data-original"><span class="sr-only">Data original: </span>{original}</del>
+    <ins class="data-nova"><span class="sr-only">, prorrogado para </span>{nova}</ins>
+  </span>
+) : original}

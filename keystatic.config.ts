@@ -202,7 +202,11 @@ export default config({
           slug: { label: 'Endereço da página', description: 'Ex.: 2026-2 → /processos-seletivos/2026-2' },
         }),
         inscricoesInicio: fields.date({ label: 'Inscrições de' }),
-        inscricoesAte: fields.date({ label: 'Inscrições até' }),
+        inscricoesAte: fields.date({ label: 'Inscrições até', description: 'A data original. Se prorrogar, não mude aqui: use o campo abaixo.' }),
+        inscricoesProrrogadasAte: fields.date({
+          label: 'Inscrições prorrogadas até (opcional)',
+          description: 'Se as inscrições forem prorrogadas: a data original aparece riscada e esta ao lado, em destaque. Lembre de prorrogar também a linha do cronograma.',
+        }),
         analise: fields.text({ label: 'Análise e entrevistas', description: 'Período, como aparece nas etapas. Ex.: 23 out a 3 nov 2026' }),
         integracao: fields.date({ label: 'Assinatura do termo e boas-vindas', description: 'Última etapa da seleção.' }),
         cronograma: fields.array(
@@ -210,6 +214,10 @@ export default config({
             etapa: fields.text({ label: 'Etapa', description: 'Ex.: Divulgação dos horários de entrevista' }),
             quando: fields.text({ label: 'Quando', description: 'Ex.: 27 out 2026, ou "Até 48h após o fim das entrevistas"' }),
             ref: fields.text({ label: 'Artigo do estatuto (opcional)', description: 'Ex.: Art. 57' }),
+            prorrogadoPara: fields.text({
+              label: 'Prorrogado para (opcional)',
+              description: 'Nova data, se a etapa for prorrogada. Não apague o "Quando": a data original aparece riscada, com esta ao lado em destaque.',
+            }),
           }),
           { label: 'Cronograma completo', description: 'Todas as datas do edital, na ordem. Aparece na página do edital.', itemLabel: (l) => l.fields.etapa.value || 'Etapa' },
         ),

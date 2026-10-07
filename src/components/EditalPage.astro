@@ -1,5 +1,6 @@
 ---
 // Template único de edital. Usado em /processos-seletivos (edital atual) e /processos-seletivos/[slug].
+import DataProrrogada from './DataProrrogada.astro';
 import Section from './Section.astro';
 import Button from './Button.astro';
 import Icon from './Icon.astro';
@@ -60,7 +61,7 @@ const regrasDepois = [
     <div class="ed-body">
       <h2 class="d3">{edital.titulo}</h2>
       <dl class="ed-facts">
-        <div><dt>Inscrições</dt><dd>{edital.inscricoes ?? 'até [data]'}</dd></div>
+        <div><dt>Inscrições</dt><dd><DataProrrogada original={edital.inscricoes ?? 'até [data]'} nova={edital.inscricoesProrrogadas} /></dd></div>
         <div><dt>Vagas</dt><dd>{edital.vagas ? `${edital.vagas} vagas` : '[n] vagas'}</dd></div>
         <div><dt>Resultado</dt><dd>até 48h após as entrevistas</dd></div>
         <div><dt>Quem pode</dt><dd>estudantes de nível técnico ou superior</dd></div>
@@ -87,7 +88,7 @@ const regrasDepois = [
         class:list={['fstep', { now: i === atual, end: i === etapas.length - 1, done: atual === -1 || i < atual }]}
         aria-current={i === atual ? 'step' : undefined}
       >
-        <span class="meta">{e.quando}</span>
+        <span class="meta"><DataProrrogada original={e.quando} nova={e.prorrogado} /></span>
         <h3>{e.titulo}</h3>
         <p class="body">{e.texto}</p>
       </li>
@@ -99,7 +100,7 @@ const regrasDepois = [
       <ol class="crono-lista">
         {edital.cronograma.map((l) => (
           <li class="crono-linha">
-            <span class="crono-quando">{l.quando}</span>
+            <span class="crono-quando"><DataProrrogada original={l.quando} nova={l.prorrogadoPara} /></span>
             <span class="crono-etapa">{l.etapa}</span>
             {l.ref ? <span class="meta">{l.ref}</span> : <span></span>}
           </li>

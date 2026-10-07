@@ -11,9 +11,11 @@ export type Edital = {
   inscricoesAte?: string; // data legível, ex.: "30 out 2026"
   /** Período legível: "12 a 23 out 2026" (com início) ou "até 23 out 2026". */
   inscricoes?: string;
+  /** Novo período das inscrições, se prorrogadas: "12 a 30 out 2026". O original continua visível, riscado. */
+  inscricoesProrrogadas?: string;
   analise?: string;
   integracao?: string; // data legível da assinatura do termo e boas-vindas
-  cronograma: { etapa: string; quando: string; ref?: string }[];
+  cronograma: { etapa: string; quando: string; ref?: string; prorrogadoPara?: string }[];
   vagas?: number;
   linkInscricao?: string;
   pdfEdital?: string;
@@ -32,11 +34,11 @@ export function numeroDo(edital: Edital): string {
   return edital.titulo.replace(/^edital\s*/i, '').trim() || edital.titulo;
 }
 
-export type Etapa = { titulo: string; texto: string; quando: string };
+export type Etapa = { titulo: string; texto: string; quando: string; prorrogado?: string };
 
 export function etapasDo(edital: Edital): Etapa[] {
   return [
-    { titulo: 'Inscrição', quando: edital.inscricoes ?? 'até [data]', texto: 'Envie a carta de apresentação no modelo do edital e, se quiser, comprovantes e recomendações.' },
+    { titulo: 'Inscrição', quando: edital.inscricoes ?? 'até [data]', prorrogado: edital.inscricoesProrrogadas, texto: 'Envie a carta de apresentação no modelo do edital e, se quiser, comprovantes e recomendações.' },
     { titulo: 'Análise e entrevistas', quando: edital.analise ?? '[data]', texto: 'A comissão de seleção analisa os documentos e entrevista os candidatos. Passam os de maior aprovação.' },
     { titulo: 'Resultado', quando: 'em até 48h', texto: 'Resultado preliminar em até 48 horas depois das entrevistas, com prazo para recurso, e depois o resultado final.' },
     { titulo: 'Aceite por e-mail', quando: 'em até 24h', texto: 'Responda ao e-mail aceitando ou recusando a vaga. Sem resposta, a vaga é considerada recusada.' },
