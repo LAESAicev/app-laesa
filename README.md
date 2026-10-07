@@ -124,7 +124,7 @@ No site, o conteúdo provisório aparece com um selo tracejado ("exemplo", "[dat
 **Infraestrutura**
 - [ ] Respostas do iCEV: DNS de `laesa.icev.edu.br`, portas 80 e 443, saída para o Gmail (porta 465), proxy na frente do servidor ([ADR 0001](docs/adr/0001-arquitetura-do-site.md))
 - [x] Imagem `ghcr.io/laesaicev/app-laesa` pública (o servidor baixa sem login)
-- [ ] GitHub App da organização para o painel em produção (código pronto; passo a passo em [docs/operacao.md](docs/operacao.md#painel-em-produção))
+- [ ] Painel em produção: criar o GitHub App e ligar no servidor. O código está pronto, mas isso fica **para depois do domínio e do servidor do iCEV**. Passo a passo em [docs/operacao.md](docs/operacao.md#painel-em-produção)
 - [x] Repositório na organização [LAESAicev](https://github.com/LAESAicev)
 - [x] E-mail, Instagram, LinkedIn e GitHub da LAESA (variáveis de ambiente)
 

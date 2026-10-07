@@ -102,6 +102,8 @@ docker compose down
 
 ## Painel em produção
 
+> **Pendente (2026-10-07):** o código está pronto. A configuração abaixo fica para depois que o iCEV entregar o domínio e o servidor. Até lá, o painel roda só em `npm run dev`, no modo local.
+
 Com o modo GitHub, o painel também fica no site publicado (`https://laesa.icev.edu.br/keystatic`):
 - **Login:** é feito com a conta do GitHub, com a senha e a verificação em duas etapas da própria pessoa. O site não guarda senha nenhuma.
 - **Quem salva:** cada edição vira um commit com o nome de quem editou, e só salva quem tem escrita no repositório `LAESAicev/app-laesa`. Um curioso consegue entrar, mas não consegue salvar nada.
