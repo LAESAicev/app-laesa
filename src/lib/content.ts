@@ -3,7 +3,8 @@
 import { parse } from 'yaml';
 import { PUBLIC_CONTACT_EMAIL, PUBLIC_LINKEDIN_URL, PUBLIC_GITHUB_URL, PUBLIC_INSTAGRAM_URL } from 'astro:env/client';
 import type { Canal, StatusSelecao } from '../data/site';
-import type { Commit, Pessoa, Projeto } from '../data/home';
+import type { Atividade, Commit, Pessoa } from '../data/home';
+import { EIXOS, candidatasHome, comparar, hojeEm, type StatusManual } from './atividades';
 import type { Edital } from '../data/editais';
 
 // O conteúdo (content/*.yaml, escrito pelo painel) entra NO BUILD via import.meta.glob: o servidor de
@@ -76,6 +77,7 @@ const cargos = [
   ['presidente', 'Presidente'],
   ['vicePresidente', 'Vice-Presidente'],
   ['diretorProjetos', 'Diretor(a) de Projetos'],
+  ['diretorMarketing', 'Diretor(a) de Marketing'],
   ['orientador', 'Professor(a) Orientador(a)'],
 ] as const;
 
@@ -93,20 +95,49 @@ export const faq: Pergunta[] = (required(ler('/content/faq.yaml'), 'Perguntas fr
   ref: q.ref || undefined,
 }));
 
-// ---- projetos (só os marcados para a home, pela ordem)
-export const projetos: Projeto[] = colecao('projetos')
-  .filter(({ entry }) => entry.destaque ?? true)
-  .sort((a, b) => (a.entry.ordem ?? 10) - (b.entry.ordem ?? 10) || String(a.entry.nome).localeCompare(String(b.entry.nome)))
-  .map(({ entry }) => ({
-    nome: entry.nome,
-    descricao: entry.descricao,
-    tags: [...(entry.tags ?? [])],
-    status: entry.status ?? 'concluido',
-    ano: entry.ano ?? undefined,
-    link: linkSeguro(entry.link),
-    imagem: entry.imagem ?? undefined,
-    exemplo: Boolean(entry.exemplo),
-  }));
+/** Data do painel ("2026-10-02", ou Date se o YAML vier sem aspas) → "2026-10-02" */
+function dataIso(v: unknown): string | undefined {
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined;
+}
+
+const eixosValidos = new Set<string>(EIXOS.map((e) => e.valor));
+const statusValidos = new Set<StatusManual>(['auto', 'em-andamento', 'concluido']);
+
+// ---- atividades e projetos (content/projetos): ordem e estado pela data, ver src/lib/atividades.ts
+/** Data do build em Teresina. O navegador recalcula com a data do dia (src/scripts/atividades.ts). */
+export const hojeBuild = hojeEm();
+
+export const atividades: Atividade[] = colecao('projetos')
+  .map(({ slug, entry }) => {
+    const inicio = dataIso(entry.data);
+    const fim = dataIso(entry.dataFim);
+    const linkInscricao = linkSeguro(entry.linkInscricao);
+    return {
+      slug,
+      nome: String(entry.nome),
+      descricao: entry.descricao,
+      tags: [...(entry.tags ?? [])],
+      eixos: (entry.eixos ?? []).filter((e: string) => eixosValidos.has(e)),
+      status: statusValidos.has(entry.status) ? entry.status : 'auto',
+      inicio,
+      fim: fim && inicio && fim > inicio ? fim : undefined,
+      ano: inicio ? Number(inicio.slice(0, 4)) : (entry.ano ?? undefined),
+      inscricao: Boolean(linkInscricao),
+      ordem: entry.ordem ?? 10,
+      link: linkSeguro(entry.link),
+      linkInscricao,
+      destaque: entry.destaque ?? true,
+      exemplo: Boolean(entry.exemplo),
+    } satisfies Atividade;
+  })
+  .sort(comparar(hojeBuild));
+
+/** Quantas atividades a home mostra. */
+export const LIMITE_HOME = 5;
+
+/** Candidatas da home (ver candidatasHome): o navegador reordena com a data do dia e mostra as LIMITE_HOME primeiras. */
+export const atividadesHome: Atividade[] = candidatasHome(atividades.filter((a) => a.destaque), hojeBuild, LIMITE_HOME);
 
 // ---- editais (mais recente primeiro, pelo endereço: 2026-2 > 2026-1 > 2025-2 …)
 export const editais: Edital[] = colecao('editais')

@@ -1,0 +1,17 @@
+nome: 'I Mostra Científica do iCEV'
+descricao: 'Ligantes apresentaram trabalhos das linhas de pesquisa da LAESA, com temas como Inteligência Artificial na Educação e IoT aplicada à Saúde.'
+eixos:
+  - pesquisa
+tags:
+  - 'IA'
+  - 'IoT'
+status: auto
+data: '2025-11-26'
+dataFim: null
+ano: null
+linkInscricao: null
+link: 'https://www.instagram.com/laesa.icev/reel/DRncOBqks8S/'
+imagem: null
+destaque: true
+ordem: 10
+exemplo: false

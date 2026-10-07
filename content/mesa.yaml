@@ -10,6 +10,10 @@ diretorProjetos:
   nome: Nome a confirmar
   foto: null
   exemplo: true
+diretorMarketing:
+  nome: Nome a confirmar
+  foto: null
+  exemplo: true
 orientador:
   nome: Nome a confirmar
   foto: null

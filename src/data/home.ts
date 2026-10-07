@@ -1,5 +1,6 @@
 // Conteúdo fixo, tirado do estatuto (não editável pelo painel), e tipos do conteúdo editável.
 // Hero, projetos e Mesa vêm de content/ via src/lib/content.ts.
+import type { Datas, Eixo } from '../lib/atividades';
 
 export type Commit = { mensagem: string; hash: string; meta?: string };
 
@@ -38,14 +39,16 @@ export const regrasPublicas: Regra[] = [
   { texto: 'Mandato da Mesa Diretora', ref: 'Art. 43º e 49º', valor: '2', unidade: 'semestres' },
 ];
 
-export type Projeto = {
-  nome: string;
+/** Item da lista de atividades e projetos (content/projetos, src/lib/content.ts). */
+export type Atividade = Datas & {
+  slug: string;
   descricao: string;
   tags: string[];
-  status: 'concluido' | 'em-andamento';
-  ano?: number;
+  eixos: Eixo[];
   link?: string;
-  imagem?: string;
+  linkInscricao?: string;
+  /** Pode aparecer na home (as N mais perto de hoje). */
+  destaque: boolean;
   exemplo?: boolean;
 };
 

@@ -26,7 +26,7 @@ Liga acadêmica sem fins lucrativos, fundada em 2023 por alunos de Engenharia de
 
 ## Operating Context
 
-- Mesa Diretora: Presidente, Vice-Presidente, Diretor(a) de Projetos; Professor(a) Orientador(a) como apoio. Mandatos de 2 semestres, eleição em novembro.
+- Mesa Diretora: Presidente, Vice-Presidente, Diretor(a) de Projetos (estatuto); Diretor(a) de Marketing (adicionado no site em 2026-10, ainda não consta no estatuto); Professor(a) Orientador(a) como apoio. Mandatos de 2 semestres, eleição em novembro.
 - Máximo 15 membros; seleção anual com no mínimo 2 vagas, conduzida por comissão.
 - Inscrição: carta de apresentação (modelo no edital), atividades complementares opcionais, até 3 cartas de recomendação de professores do iCEV. Resultado em até 48h; aceite por e-mail em até 24h.
 - Certificados: 60h Mesa Diretora, 45h efetivos, carga da atividade para convidados; exige 75% de frequência.

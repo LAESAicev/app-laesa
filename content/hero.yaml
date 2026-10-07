@@ -5,15 +5,13 @@ commits:
   - mensagem: Novo estatuto da liga publicado
     hash: 3d8f512
     meta: 02 jun 2026
-  - mensagem: 'Mesa Diretora: Presidência, Vice e Projetos'
+  - mensagem: 'Mesa Diretora: Presidência, Vice, Projetos e Marketing'
     hash: b51e9c7
     meta: '2026'
   - mensagem: 'Quatro eixos: ensino, pesquisa, extensão e projetos'
     hash: c94e0aa
-    meta: ''
   - mensagem: Sprints e Squads como método de trabalho
     hash: 7be21d4
-    meta: ''
   - mensagem: LAESA fundada por alunos do iCEV
     hash: a1f3c09
     meta: 2023 · Teresina (PI)

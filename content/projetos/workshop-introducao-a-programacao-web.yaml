@@ -1,0 +1,18 @@
+nome: 'Workshop: Introdução à Programação Web'
+descricao: 'Como a internet funciona: do que acontece ao digitar uma URL a DNS, hospedagem, HTTP/HTTPS, SSL/TLS e TCP/IP, passando por front-end, back-end e ameaças como phishing, man-in-the-middle e SQL injection. Encontro único no iCEV, com certificado.'
+eixos:
+  - ensino
+  - extensao
+tags:
+  - 'Web'
+  - 'Segurança'
+status: auto
+data: '2026-09-26'
+dataFim: null
+ano: null
+linkInscricao: null
+link: 'https://www.instagram.com/laesa.icev/p/DdsMgygB7Vd/'
+imagem: null
+destaque: true
+ordem: 10
+exemplo: false

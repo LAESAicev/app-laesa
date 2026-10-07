@@ -1,0 +1,46 @@
+---
+// Lista de atividades na espinha do grafo. Na home mostra as `limite` mais perto de hoje; na página de
+// atividades mostra todas, agrupadas ("agora e em breve" e um grupo por ano). O navegador refaz a ordem, os
+// estados e os grupos com a data do dia (src/scripts/atividades.ts); sem JS fica a ordem do build.
+import AtividadeRow from './AtividadeRow.astro';
+import { chaveGrupo, nomeGrupo } from '../lib/atividades';
+import { hojeBuild } from '../lib/content';
+import type { Atividade } from '../data/home';
+
+interface Props {
+  itens: Atividade[];
+  limite?: number;
+  agrupar?: boolean;
+  id?: string;
+}
+
+const { itens, limite, agrupar = false, id } = Astro.props;
+
+type Bloco = { chave: string; itens: Atividade[] };
+const blocos: Bloco[] = [];
+for (const a of itens) {
+  const chave = agrupar ? chaveGrupo(a, hojeBuild) : '';
+  const ultimo = blocos.at(-1);
+  if (ultimo && ultimo.chave === chave) ultimo.itens.push(a);
+  else blocos.push({ chave, itens: [a] });
+}
+let i = 0;
+---
+<div class="proj-list" id={id} data-atividades data-limite={limite} data-agrupar={agrupar ? '' : undefined}>
+  {blocos.map((b) => (
+    <>
+      {agrupar && (
+        <h2 class:list={['proj-grupo', { 'is-primeiro': b === blocos[0] }]} data-grupo={b.chave}>
+          <span class="proj-grupo-nome">{nomeGrupo(b.chave)}</span><span class="sr-only">, </span>
+          <span class="proj-grupo-conta">{b.itens.length === 1 ? '1 atividade' : `${b.itens.length} atividades`}</span>
+        </h2>
+      )}
+      {b.itens.map((a) => <AtividadeRow atividade={a} hidden={limite != null && i++ >= limite} />)}
+    </>
+  ))}
+</div>
+
+<script>
+  import { iniciarListas } from '../scripts/atividades';
+  iniciarListas();
+</script>

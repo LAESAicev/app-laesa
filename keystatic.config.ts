@@ -2,6 +2,7 @@
 // usa estes campos para editar, e as páginas leem o conteúdo pelo mesmo schema (src/lib/content.ts).
 // Fotos ficam em src/assets/uploads (o build redimensiona e recorta); PDFs em public/uploads.
 import { config, collection, fields, singleton } from '@keystatic/core';
+import { EIXOS } from './src/lib/atividades';
 
 const exemplo = fields.checkbox({
   label: 'Conteúdo provisório',
@@ -99,6 +100,7 @@ export default config({
         presidente: pessoa('Presidente'),
         vicePresidente: pessoa('Vice-Presidente'),
         diretorProjetos: pessoa('Diretor(a) de Projetos'),
+        diretorMarketing: pessoa('Diretor(a) de Marketing'),
         orientador: pessoa('Professor(a) Orientador(a)'),
       },
     }),
@@ -122,37 +124,66 @@ export default config({
 
   collections: {
     projetos: collection({
-      label: 'Projetos',
+      label: 'Atividades e projetos',
       slugField: 'nome',
       path: 'content/projetos/*',
       format: { data: 'yaml' },
-      columns: ['nome', 'status', 'ordem'],
+      columns: ['nome', 'data', 'status'],
       schema: {
-        nome: fields.slug({ name: { label: 'Nome do projeto' } }),
+        nome: fields.slug({ name: { label: 'Nome', description: 'Ex.: Oficina: Git na prática' } }),
         descricao: fields.text({
           label: 'Descrição',
-          description: 'Para quem foi feito, que problema resolveu e o que o Squad entregou. Duas ou três linhas.',
+          description: 'O que foi (ou vai ser), para quem e quem conduziu. Duas ou três linhas.',
           multiline: true,
           validation: { length: { min: 20, max: 320 } },
         }),
-        tags: fields.array(fields.text({ label: 'Tag' }), { label: 'Tags', itemLabel: (p) => p.value || 'Tag', validation: { length: { max: 4 } } }),
+        eixos: fields.multiselect({
+          label: 'Eixos',
+          description: 'Os eixos do estatuto (Art. 3º). São os filtros da página de atividades. Uma oficina aberta a outros cursos, por exemplo, é Ensino e Extensão.',
+          options: EIXOS.map((e) => ({ label: e.rotulo, value: e.valor })),
+          defaultValue: [],
+        }),
+        tags: fields.array(fields.text({ label: 'Tag' }), {
+          label: 'Tags',
+          description: 'Temas, para a busca: Figma, Segurança, IA…',
+          itemLabel: (p) => p.value || 'Tag',
+          validation: { length: { max: 4 } },
+        }),
+        data: fields.date({
+          label: 'Data (ou início)',
+          description: 'Dia do evento ou início do projeto. Define a ordem: o que está mais perto de hoje fica em cima. Sem data, o item vai para o fim da lista.',
+        }),
+        dataFim: fields.date({
+          label: 'Data de fim (opcional)',
+          description: 'Para cursos de vários dias ou projetos com prazo; precisa ser depois da data de início (senão é ignorada). Entre o início e o fim, o site mostra "acontecendo agora".',
+        }),
         status: fields.select({
           label: 'Status',
+          description: 'Automático: "em breve" antes da data, "concluído" depois. Use os outros só para projetos longos.',
           options: [
-            { label: 'Concluído', value: 'concluido' },
+            { label: 'Automático (pela data)', value: 'auto' },
             { label: 'Em andamento', value: 'em-andamento' },
+            { label: 'Concluído', value: 'concluido' },
           ],
-          defaultValue: 'concluido',
+          defaultValue: 'auto',
         }),
-        ano: fields.integer({ label: 'Ano de conclusão', validation: { min: 2023, max: 2100 } }),
-        link: fields.url({ label: 'Link (opcional)', description: 'Repositório, artigo ou página do projeto.' }),
+        linkInscricao: fields.url({
+          label: 'Link de inscrição (opcional)',
+          description: 'Com ele, um evento futuro aparece como "inscrições abertas", com o botão Inscrever-se. Some depois da data (no navegador de quem visita; o HTML sem JavaScript só atualiza na próxima publicação).',
+        }),
+        link: fields.url({ label: 'Link (opcional)', description: 'Post do Instagram, repositório, artigo ou página do projeto.' }),
+        ano: fields.integer({ label: 'Ano (se não houver data)', validation: { min: 2023, max: 2100 } }),
         imagem: fields.image({
           label: 'Imagem (opcional)',
           directory: 'src/assets/uploads/projetos',
           publicPath: '/src/assets/uploads/projetos/',
         }),
-        destaque: fields.checkbox({ label: 'Mostrar na home', defaultValue: true }),
-        ordem: fields.integer({ label: 'Ordem na home', description: 'Menor aparece primeiro.', defaultValue: 10 }),
+        destaque: fields.checkbox({
+          label: 'Pode aparecer na home',
+          description: `A home mostra as atividades mais perto de hoje. Desmarque para listar só na página de atividades.`,
+          defaultValue: true,
+        }),
+        ordem: fields.integer({ label: 'Desempate', description: 'Só para itens com a mesma data: menor aparece primeiro.', defaultValue: 10 }),
         exemplo,
       },
     }),

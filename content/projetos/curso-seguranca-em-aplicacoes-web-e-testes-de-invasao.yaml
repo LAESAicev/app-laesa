@@ -1,0 +1,18 @@
+nome: 'Curso: Segurança em Aplicações Web e Testes de Invasão'
+descricao: 'Com Cristiano Altino e Keoma Sousa, da ETIPI e do programa CyberEduc: como identificar falhas, prevenir ataques e proteger aplicações desde o desenvolvimento, com prática e networking.'
+eixos:
+  - ensino
+  - extensao
+tags:
+  - 'Segurança'
+  - 'Pentest'
+status: auto
+data: '2025-05-25'
+dataFim: null
+ano: null
+linkInscricao: null
+link: 'https://www.instagram.com/laesa.icev/p/DKFaqftRQ8U/'
+imagem: null
+destaque: true
+ordem: 10
+exemplo: false

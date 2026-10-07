@@ -1,0 +1,57 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/Section.astro';
+import Button from '../components/Button.astro';
+import ListaAtividades from '../components/ListaAtividades.astro';
+import { atividades } from '../lib/content';
+import { EIXOS } from '../lib/atividades';
+
+// Só os eixos que aparecem em alguma atividade viram filtro.
+const eixos = EIXOS.filter((e) => atividades.some((a) => a.eixos.includes(e.valor)));
+---
+<BaseLayout
+  title="Atividades"
+  description="Oficinas, cursos, eventos, pesquisas e projetos da LAESA, a liga de Engenharia de Software do iCEV."
+  active="projetos"
+>
+  <Section class="paper projects atividades" node={104}>
+    <div class="sec-head atividades-head">
+      <h1 class="d1">Tudo o que a liga <em>já fez.</em></h1>
+      <p class="body">Oficinas, cursos, eventos, pesquisas e projetos da LAESA, do mais perto de hoje ao mais antigo.</p>
+    </div>
+
+    <!-- sem JS a página mostra a lista inteira; a busca aparece quando o script carrega -->
+    <form class="busca" role="search" data-busca-atividades data-lista="lista-atividades" hidden>
+      <label class="busca-label" for="busca-q">Buscar atividades</label>
+      <div class="busca-campo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <input class="input" id="busca-q" type="search" name="q" placeholder="nome, tema, tag…" autocomplete="off" enterkeyhint="search" />
+      </div>
+      {eixos.length > 1 && (
+        <div class="busca-eixos" role="group" aria-label="Filtrar por eixo">
+          <button type="button" class="chip chip-toggle" data-eixo="" aria-pressed="true">Todos</button>
+          {eixos.map((e) => <button type="button" class="chip chip-toggle" data-eixo={e.valor} aria-pressed="false">{e.rotulo}</button>)}
+        </div>
+      )}
+    </form>
+    <p class="busca-conta" role="status" aria-live="polite" data-contagem>{atividades.length === 1 ? '1 atividade' : `${atividades.length} atividades`}</p>
+
+    <ListaAtividades itens={atividades} agrupar id="lista-atividades" />
+
+    <div class="busca-vazio" data-vazio hidden>
+      <span class="proj-node" aria-hidden="true"></span>
+      <p class="busca-vazio-msg">nenhum resultado <span data-termo></span></p>
+      <p class="body">Tente outro termo ou <button type="button" class="link-btn" data-limpar>limpe a busca</button>. Sentiu falta de algo? <a href="/contato?assunto=colaborar">Sugira uma atividade</a>.</p>
+    </div>
+
+    <div class="proj-cta">
+      <p>Sua organização tem um problema que software pode resolver?</p>
+      <Button href="/contato?assunto=projeto">Propor um projeto</Button>
+    </div>
+  </Section>
+</BaseLayout>
+
+<script>
+  import { iniciarBusca } from '../scripts/atividades';
+  iniciarBusca();
+</script>

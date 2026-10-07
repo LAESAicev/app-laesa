@@ -1,0 +1,51 @@
+---
+// Uma atividade na linha do grafo. Estado e rótulo saem da data (src/lib/atividades.ts); os data-* deixam
+// o navegador recalcular no dia da visita (src/scripts/atividades.ts), já que a página é gerada no build.
+import Icon from './Icon.astro';
+import Sample from './Sample.astro';
+import { EIXOS, classificar, classeStatus, normalizar, rotulo } from '../lib/atividades';
+import { hojeBuild } from '../lib/content';
+import type { Atividade } from '../data/home';
+
+interface Props {
+  atividade: Atividade;
+  hidden?: boolean;
+}
+
+const { atividade: a, hidden } = Astro.props;
+const estado = classificar(a, hojeBuild);
+const eixos = EIXOS.filter((e) => a.eixos.includes(e.valor)).map((e) => e.rotulo);
+const busca = normalizar([a.nome, a.descricao, ...a.tags, ...eixos].join(' '));
+---
+<article
+  class="proj"
+  hidden={hidden}
+  data-atividade
+  data-estado={estado}
+  data-nome={a.nome}
+  data-inicio={a.inicio}
+  data-fim={a.fim}
+  data-ano={a.ano}
+  data-status={a.status}
+  data-inscricao={a.inscricao ? '' : undefined}
+  data-ordem={a.ordem}
+  data-eixos={a.eixos.join(' ')}
+  data-busca={busca}
+>
+  <span class="proj-node" aria-hidden="true"></span>
+  <div>
+    {eixos.length > 0 && <p class="proj-eixos">{eixos.join(' · ')}</p>}
+    <h3 class="d3">{a.link ? <a href={a.link}>{a.nome}</a> : a.nome}</h3>
+    {a.tags.length > 0 && <div class="proj-tags">{a.tags.map((t) => <span class="chip">{t}</span>)}</div>}
+  </div>
+  <p class="body">{a.descricao}</p>
+  <div class="proj-status">
+    <span class:list={['status', classeStatus(estado)]} data-rotulo><i aria-hidden="true"></i><span>{rotulo(estado, a)}</span></span>
+    {a.linkInscricao && (
+      <a class="btn btn-primary btn-sm proj-inscricao" href={a.linkInscricao}>
+        Inscrever-se<span class="sr-only">: {a.nome}</span><Icon name="arrow" />
+      </a>
+    )}
+    {a.exemplo && <Sample />}
+  </div>
+</article>

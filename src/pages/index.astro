@@ -6,12 +6,12 @@ import Icon from '../components/Icon.astro';
 import StatusTag from '../components/StatusTag.astro';
 import GitLog from '../components/GitLog.astro';
 import RulesList from '../components/RulesList.astro';
-import ProjectRow from '../components/ProjectRow.astro';
+import ListaAtividades from '../components/ListaAtividades.astro';
 import PersonCard from '../components/PersonCard.astro';
 import StageList from '../components/StageList.astro';
 import Channels from '../components/Channels.astro';
 import ContactForm from '../components/ContactForm.astro';
-import { selecao, estatutoUrl, heroLog, projetos, mesa, editalAtual } from '../lib/content';
+import { selecao, estatutoUrl, heroLog, atividades, atividadesHome, LIMITE_HOME, mesa, editalAtual } from '../lib/content';
 import { eixos, areas, sprint, regrasPublicas } from '../data/home';
 import { etapasDo, etapaAtual, rotuloStatus, numeroDo } from '../data/editais';
 
@@ -101,11 +101,13 @@ const join = {
   <Section id="projetos" class="paper projects">
     <div class="sec-head">
       <h2 class="d2">O que já <em>saiu do papel.</em></h2>
-      <p class="body">Projetos acadêmicos, científicos, tecnológicos e sociais desenvolvidos pelos Squads da liga.</p>
+      <p class="body">Oficinas, cursos, eventos, pesquisas e projetos da liga, do mais perto de hoje ao mais antigo.</p>
     </div>
-    <div class="proj-list">
-      {projetos.map((p) => <ProjectRow projeto={p} />)}
-    </div>
+    <ListaAtividades itens={atividadesHome} limite={LIMITE_HOME} />
+    <a class="proj-more" href="/atividades">
+      <span class="proj-node" aria-hidden="true"></span>
+      <span class="link">Ver todas as atividades ({atividades.length}) <Icon name="arrow" /></span>
+    </a>
     <div class="proj-cta">
       <p>Sua organização tem um problema que software pode resolver?</p>
       <Button href="/contato?assunto=projeto">Propor um projeto</Button>
