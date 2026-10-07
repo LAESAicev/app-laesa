@@ -1,20 +1,18 @@
 presidente:
   nome: Felipe Duan da Silva Sousa
-  foto: null
+  foto: /src/assets/uploads/mesa/presidente/foto.jpeg
   exemplo: false
 vicePresidente:
-  nome: Nome a confirmar
-  foto: null
+  nome: Beatriz Barreto Marreiros Barbosa
   exemplo: true
 diretorProjetos:
   nome: Nome a confirmar
-  foto: null
   exemplo: true
 diretorMarketing:
-  nome: Nome a confirmar
-  foto: null
-  exemplo: true
+  nome: Samuel Egson Milhomem
+  foto: /src/assets/uploads/mesa/diretorMarketing/foto.jpeg
+  exemplo: false
 orientador:
-  nome: Nome a confirmar
-  foto: null
-  exemplo: true
+  nome: Carlos Futino Barreto
+  foto: /src/assets/uploads/mesa/orientador/foto.png
+  exemplo: false
