@@ -296,21 +296,24 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
     processador: () => db.prepare('SELECT dono, expira_em FROM avisos_processador WHERE id = 1 AND expira_em > ?').get(agora()) as { dono: string; expira_em: string } | undefined,
 
     /**
-     * Retenção: apaga as entregas de envios terminados há mais de 30 dias. Envio pausado e esquecido por 30 dias
-     * é cancelado (com fim na última atividade), para nenhum código ficar guardado sem prazo. Ficam os totais.
+     * Retenção: apaga as entregas de envios terminados há mais de 30 dias. Envio parado por 30 dias (pausado e
+     * esquecido, ou "enviando" sem processador) é cancelado com fim na última atividade, então sai na mesma hora:
+     * nenhum código fica guardado sem prazo. Ficam os totais. O comando roda isto a cada execução e no cron diário.
      */
-    limpar(): void {
-      transacao(() => {
+    limpar(): { cancelados: number; apagadas: number } {
+      return transacao(() => {
         const limite = antes(30 * DIA);
-        db.prepare(
-          "UPDATE avisos_envios SET status = 'cancelado', motivo = 'pausado por mais de 30 dias', finalizado_em = atualizado_em WHERE status = 'pausado' AND atualizado_em < ?",
-        ).run(limite);
-        db.prepare('DELETE FROM avisos_entregas WHERE envio_id IN (SELECT id FROM avisos_envios WHERE finalizado_em < ?)').run(limite);
+        const cancelados = db
+          .prepare(
+            "UPDATE avisos_envios SET status = 'cancelado', motivo = 'parado por mais de 30 dias', finalizado_em = atualizado_em WHERE status IN ('pausado', 'enviando') AND atualizado_em < ?",
+          )
+          .run(limite).changes;
+        const apagadas = db.prepare('DELETE FROM avisos_entregas WHERE envio_id IN (SELECT id FROM avisos_envios WHERE finalizado_em < ?)').run(limite).changes;
+        return { cancelados: Number(cancelados), apagadas: Number(apagadas) };
       });
     },
 
     fechar: () => db.close(),
   };
-  api.limpar();
   return api;
 }

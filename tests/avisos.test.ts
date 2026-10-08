@@ -482,10 +482,11 @@ describe('avisos: fila', () => {
       return r;
     };
     agora += 29 * DIA;
-    criarFila(caminho, SEGREDO, relogio); // cada execução do comando limpa
+    fila.limpar(); // cada execução do comando limpa
     expect(entregas()).toEqual({ n: 5 });
     agora += 2 * DIA;
     const depois = criarFila(caminho, SEGREDO, relogio);
+    depois.limpar();
     expect(entregas()).toEqual({ n: 0 });
     expect(depois.envio(envio.id)).toMatchObject({ status: 'concluido', enviados: 5, total_previsto: 5 });
   });
@@ -496,11 +497,33 @@ describe('avisos: fila', () => {
     expect(fila.envio(envio.id)!.status).toBe('pausado');
     agora += 31 * DIA;
     const depois = criarFila(caminho, SEGREDO, relogio);
+    depois.limpar();
     expect(depois.envio(envio.id)).toMatchObject({ status: 'cancelado', enviados: 1 });
     expect(depois.enviadosUltimas24h()).toBe(0);
     const db = new DatabaseSync(caminho);
     expect(db.prepare('SELECT count(*) AS n FROM avisos_entregas').get()).toEqual({ n: 0 });
     db.close();
+  });
+
+  it('envio "enviando" travado (processador sumiu) por 30 dias é cancelado e apagado', async () => {
+    const { fila, envio } = await envioPronto();
+    const c = fila.reservar(envio.id, 'ana@example.test')!;
+    fila.registrar(envio.id, c, true); // um e-mail saiu e o processamento nunca mais voltou
+    agora += 29 * DIA;
+    expect(fila.limpar()).toEqual({ cancelados: 0, apagadas: 0 });
+    agora += 2 * DIA;
+    expect(fila.limpar()).toEqual({ cancelados: 1, apagadas: 1 });
+    expect(fila.envio(envio.id)).toMatchObject({ status: 'cancelado', enviados: 1, motivo: 'parado por mais de 30 dias' });
+    expect(fila.envio(envio.id)!.finalizado_em).toBeTruthy();
+    expect(fila.enviadosUltimas24h()).toBe(0);
+  });
+
+  it('limpar conta o que cancelou e apagou', async () => {
+    const { fila, envio } = await envioPronto();
+    await rodar(fila, caixa().enviar, { tetoDiario: 2 });
+    agora += 31 * DIA;
+    expect(fila.limpar()).toEqual({ cancelados: 1, apagadas: 2 });
+    expect(fila.envio(envio.id)!.status).toBe('cancelado');
   });
 
   it('as entregas nunca guardam o e-mail', async () => {

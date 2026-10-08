@@ -139,6 +139,6 @@ Para os avisos não caírem no spam, o domínio do remetente precisa ter SPF e D
 ## Dados guardados
 
 - Rascunhos e envios: assunto, texto, quem enviou, quando e os totais. Não têm dados de inscritos.
-- Entregas (quem já recebeu cada envio): só um código gerado a partir do e-mail, do qual não dá para recuperar o endereço. Elas são apagadas 30 dias depois do fim do envio e ficam só os totais. Um envio pausado e esquecido por 30 dias é cancelado e apagado do mesmo jeito.
+- Entregas (quem já recebeu cada envio): só um código gerado a partir do e-mail, do qual não dá para recuperar o endereço. Elas são apagadas 30 dias depois do fim do envio e ficam só os totais. Um envio parado por 30 dias (pausado e esquecido, ou travado em `enviando`) é cancelado e apagado do mesmo jeito. A limpeza roda a cada comando e todo dia pelo cron do servidor (`avisar.ts limpar`, ver [operacao.md](operacao.md#backup)).
 
 Tudo isso fica no mesmo banco dos inscritos (`/data/laesa.db`) e entra no backup (`deploy/backup.sh`).
