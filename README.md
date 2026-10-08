@@ -60,6 +60,8 @@ docker run -d --name laesa-mailpit -p 8025:8025 -p 1025:1025 \
 
 No `.env`: `SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_USER=dev` e `SMTP_PASS=dev`. Para a inscrição, defina também `INSCRICAO_SECRET` (`openssl rand -hex 32`) e `INSCRITOS_STORE=memoria`. A caixa de entrada fica em http://localhost:8025.
 
+O `.env` local deve apontar para o Mailpit. Fora de produção, o site recusa qualquer SMTP que não seja local, para um `.env` copiado do servidor não mandar e-mail de verdade. Para testar um envio real de propósito, defina `ENVIO_REAL=true` e apague a linha depois.
+
 Para o envio real, use a conta Google Workspace da LAESA com uma senha de app (`SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`). Redes de faculdade e empresa costumam bloquear as portas 465 e 587; nesse caso, teste em outra rede.
 
 ## Deploy (Docker)
@@ -71,10 +73,10 @@ Produção usa `compose.yaml` com dois contêineres:
 Os inscritos das novidades ficam em SQLite, num volume.
 
 ```sh
-SITE_DOMAIN=localhost docker compose up -d --build   # testar localmente em https://localhost
+SITE_URL=https://localhost SITE_DOMAIN=localhost docker compose up -d --build   # testar localmente em https://localhost
 ```
 
-Instalação no servidor, atualização, como desfazer uma mudança, backup (`deploy/backup.sh`), troca de mandato e painel em produção: [docs/operacao.md](docs/operacao.md).
+Instalação no servidor, atualização, como desfazer uma mudança, backup (`deploy/backup.sh`), troca de mandato e painel em produção: [docs/operacao.md](docs/operacao.md). Checklist anual da nova Mesa: [docs/passagem-de-mandato.md](docs/passagem-de-mandato.md).
 
 Mandar avisos por e-mail para os inscritos (comando no servidor): [docs/avisos.md](docs/avisos.md).
 
@@ -101,8 +103,10 @@ Mandar avisos por e-mail para os inscritos (comando no servidor): [docs/avisos.m
 ├── .github/workflows/ci.yml              testes, build e imagem
 ├── docs/
 │   ├── adr/                              0001: arquitetura e pendências com o iCEV · 0002: atividades pela data
-│   ├── plano-implementacao.md            fases do projeto
+│   ├── plano-implementacao.md            o que falta
 │   ├── operacao.md                       deploy, backup, troca de mandato
+│   ├── avisos.md                         e-mails para os inscritos
+│   ├── passagem-de-mandato.md            checklist anual da Mesa
 │   ├── contrato-contato.md               campos e respostas das rotas de API
 │   └── estatuto-2026.md                  estatuto da liga (fonte de toda regra citada no site)
 ├── design/               protótipo HTML/CSS (origem das telas do Figma) e MOTION.md (spec da animação)
@@ -118,8 +122,8 @@ Cores dos logos (`brand/logo`): `azul` #0A2BFF · `menta` #5CEAD2 · `ciano` #1D
 No site, o conteúdo provisório aparece com um selo tracejado ("exemplo", "[data]").
 
 **Conteúdo (LAESA, pelo painel)**
-- [ ] Edital 2026.2: datas, vagas, link de inscrição, PDF e modelo da carta
-- [ ] Mesa Diretora: nomes e fotos da Vice-Presidência, da Diretoria de Projetos, da Diretoria de Marketing e do(a) Professor(a) Orientador(a)
+- [ ] Edital 2026.2: link de inscrição e PDF do edital (datas, vagas e modelo da carta já estão no painel)
+- [ ] Mesa Diretora: Vice-Presidência ainda marcada como provisória e sem foto; Diretoria de Projetos sem nome e sem foto
 - [ ] Editais anteriores reais (ou remover os de exemplo)
 - [ ] Prazo de retenção das mensagens e revisão da página de privacidade pelo iCEV
 
@@ -129,6 +133,13 @@ No site, o conteúdo provisório aparece com um selo tracejado ("exemplo", "[dat
 - [ ] Painel em produção: criar o GitHub App e ligar no servidor. O código está pronto, mas isso fica **para depois do domínio e do servidor do iCEV**. Passo a passo em [docs/operacao.md](docs/operacao.md#painel-em-produção)
 - [x] Repositório na organização [LAESAicev](https://github.com/LAESAicev)
 - [x] E-mail, Instagram, LinkedIn e GitHub da LAESA (variáveis de ambiente)
+
+## Contribuir
+
+- Mensagens de commit no formato `tipo: descrição`, em português: `feat: adiciona filtro de atividades`, `fix: corrige validação do formulário`, `docs: atualiza instruções de instalação`.
+- Rode `npm test` e `npm run build` antes do push.
+- Só atualize o servidor com o CI verde no commit que vai para o ar.
+- Na troca da Mesa, siga [docs/passagem-de-mandato.md](docs/passagem-de-mandato.md).
 
 ## Licença
 

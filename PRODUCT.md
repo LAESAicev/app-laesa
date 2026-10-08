@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Astro (static site). Implementation starts only after the Figma prototype is validated by the team.
+Astro 7 with the Node adapter, in one Docker image. Pages are prerendered; only `/api/*` and `/avisos/*` run on the server. Content is YAML in `content/`, edited through the Keystatic panel (`/keystatic`). Architecture: `docs/adr/0001-arquitetura-do-site.md`.
 
 ## Users
 
@@ -34,14 +34,14 @@ Liga acadêmica sem fins lucrativos, fundada em 2023 por alunos de Engenharia de
 
 ## Capabilities and Constraints
 
-- Contact form with a type select: dúvida, feedback, contratar/propor projeto (project requests ask for extra fields). Submission endpoint left pluggable (Formspree/Web3Forms/Google Forms decided later).
+- Contact form with a type select: dúvida, feedback, contratar/propor projeto (project requests ask for extra fields). Submissions go to the app's own route (`POST /api/contato`), which e-mails the LAESA inbox; nothing is stored. Contract: `docs/contrato-contato.md`.
 - Processos Seletivos page: current edital, stages, requirements, past editions.
 - Admin panel for the Mesa Diretora/members (non-devs included) to edit: hero "git log" highlight items, featured projects, Mesa Diretora names/photos, selection status (aberto / em andamento / finalizado), new edital pages from one template (dates, vagas, PDF, modelo da carta, resultado), FAQ.
 - Visitors can subscribe to LAESA notifications (e.g. new edital): double opt-in, one-click unsubscribe, LGPD consent record; the Mesa sends announcements.
 - Hosting and domain: provided by iCEV; infrastructure administered by iCEV's technology sector. Deployment is Docker (requested by the coordenação, 2026-10-06). Subdomain, outbound access to GitHub and backups still pending. The app must be reproducible from the repo.
 - Access and accounts belong to the LAESA institutional account, never a student's personal account.
 - E-mail: iCEV uses Google Workspace; the LAESA Workspace account sends notifications and receives contact messages (contact messages are not stored elsewhere).
-- Undecided: CMS/panel tool and e-mail transport, pending iCEV IT answers.
+- Decided: Keystatic as the panel (local mode now, GitHub mode in production after the iCEV server exists) and Gmail SMTP from the LAESA Workspace account. Announcements to subscribers are sent by a server command (`docs/avisos.md`); there is no web UI for that yet.
 
 ## Brand Commitments
 

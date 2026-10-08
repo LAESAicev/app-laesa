@@ -25,8 +25,8 @@ Restrições:
    - Reabrir esta decisão se o setor de tecnologia exigir separar acessos ou segredos do back-end.
 
 2. **Conteúdo no git, editado pelo Keystatic.**
-   - Hero, projetos, Mesa, FAQ, status da seleção e editais ficam como arquivos YAML em `content/`. O schema vive só em `keystatic.config.ts`; as páginas leem o conteúdo pelo leitor do Keystatic (`src/lib/content.ts`) durante o build. Se o plano B (Sveltia) vencer, o YAML continua o mesmo e a leitura passa a usar Content Collections com zod.
-   - Imagens e PDFs ficam em `public/uploads/`.
+   - Hero, projetos, Mesa, FAQ, status da seleção e editais ficam como arquivos YAML em `content/`. O schema vive em `keystatic.config.ts`. As páginas leem os YAML no build com `import.meta.glob` (`src/lib/content.ts`), sem o leitor do Keystatic.
+   - Fotos enviadas pelo painel ficam em `src/assets/uploads/` (recortadas no build). PDFs e documentos ficam em `public/uploads/`.
    - Salvar no painel gera um commit, então há histórico, revisão e reversão.
    - Cada edital é um arquivo renderizado pelo mesmo template (`/processos-seletivos/[slug]`).
    - O status da seleção (`aberto | em-andamento | finalizado`) e o edital atual ficam num arquivo só. A tag menta do nav, a seção da home e a página de processos leem dele.
@@ -48,7 +48,7 @@ Restrições:
    - Nenhuma configuração manual no servidor depende da memória de alguém.
    - O checklist de passagem de mandato está em [docs/passagem-de-mandato.md](../passagem-de-mandato.md).
 
-6. **Configuração por ambiente.** Contatos, redes e domínio vêm de variáveis de ambiente validadas pelo `astro:env` (`.env.example`), sem valores no código. Credenciais (SMTP etc., Fase 4) seguirão o mesmo caminho como segredos.
+6. **Configuração por ambiente.** Contatos, redes e domínio vêm de variáveis de ambiente validadas pelo `astro:env` (`.env.example`), sem valores no código. Credenciais (SMTP, `INSCRICAO_SECRET`, painel) seguem o mesmo caminho como segredos, só no `.env` do servidor.
 
 7. **Contas e acessos da LAESA, nunca de um aluno.**
    - Inclui a organização no GitHub, a conta Workspace, os segredos e o acesso ao servidor.
@@ -85,8 +85,7 @@ Nos dois planos, o modelo de conteúdo e o repositório são os mesmos.
 
 - **P1:** resolvida (2026-10-06): repositório transferido para [LAESAicev/app-laesa](https://github.com/LAESAicev/app-laesa). Imagem `ghcr.io/laesaicev/app-laesa` pública e time da Mesa Diretora com acesso.
 - **P2:** resolvida (2026-10-06): inscritos das novidades em SQLite (`node:sqlite`, sem dependência nativa) num volume do contêiner (`/data/laesa.db`). Backup em `docs/operacao.md`.
-  - (descartado) Google Groups.
-  - (b) Google Groups da LAESA. Falta verificar se quem não tem conta Google consegue se inscrever.
+  - Google Groups foi descartado.
 - **P3:** confirmar se a conta Workspace da LAESA permite SMTP (senha de app ou relay) e qual é o limite diário de envio.
 - **P4:** arquivar o repositório `api-laesa` no GitHub. O contrato do formulário já foi trazido para `docs/contrato-contato.md`.
 
@@ -95,8 +94,17 @@ Nos dois planos, o modelo de conteúdo e o repositório são os mesmos.
 - Fase 4: segurança revisada por agente. Proxy do iCEV deve sobrescrever `X-Forwarded-For` com o IP real (`$remote_addr`) e limitar o corpo a 64 KB; o app confia nos cabeçalhos só para o domínio de `SITE_URL` (`security.allowedDomains`). Confirmar/descadastrar exigem POST (scanners de link fazem GET).
 - Fase 4: o app usa o adaptador `@astrojs/node` (standalone). As páginas são pré-geradas e só `/api/*` e `/avisos/*` rodam no servidor. Build em formato de diretórios (`/processos-seletivos/index.html`): o formato `file` gerava `processos-seletivos.html` ao lado da pasta `processos-seletivos/`, e o servidor de arquivos do adaptador respondia 404.
 
-- Fase 5: o conteúdo de `content/*.yaml` é embutido no build (`import.meta.glob` + `yaml`), sem o leitor do Keystatic em tempo de execução. As rotas renderizadas sob demanda (`/avisos/*`) quebravam no contêiner, que não tem a pasta `content/`. Keystatic e React viraram dependências só de desenvolvimento.
+- Fase 5: o conteúdo de `content/*.yaml` é embutido no build (`import.meta.glob` + `yaml`), sem o leitor do Keystatic em tempo de execução. As rotas renderizadas sob demanda (`/avisos/*`) quebravam no contêiner, que não tem a pasta `content/`. Keystatic e React continuam em `dependencies`, porque o painel em produção (modo GitHub) precisa deles.
 - Fase 5: Docker (`Dockerfile` multi-stage, `compose.yaml` com app + Caddy), CI no GitHub Actions publicando a imagem no GHCR. Painel em produção (modo GitHub) pronto no código desde 2026-10-07: entra no build quando `PUBLIC_KEYSTATIC_GITHUB_REPO` está definido, e as credenciais do GitHub App são lidas em tempo de execução. Falta criar o App (docs/operacao.md).
+
+## Atualizações (out/2026)
+
+Registro de 2026-10-08. As decisões acima continuam valendo; isto só acrescenta o que mudou na revisão geral.
+
+- Avisos aos inscritos por comando no servidor. O envio é feito pelo `scripts/avisar.ts`, que lê o manifesto dos itens publicados (`/avisos/itens.json`) e exige teste antes de enviar. Uma tela no site para isso fica para depois. Guia: [docs/avisos.md](../avisos.md).
+- LGPD nos inscritos. Quem se descadastra tem o e-mail apagado; fica só um código HMAC dele por 30 dias, para um link de confirmação antigo não reinscrever. As entregas dos avisos também guardam só HMAC. Os backups seguem a mesma retenção de 30 dias.
+- Trava contra envio real. Fora de produção, o app só envia por SMTP local (Mailpit), a não ser que `ENVIO_REAL=true`. Um `.env` de produção copiado para uma máquina de desenvolvimento não manda e-mail de verdade.
+- Armazenamento em desenvolvimento. `INSCRITOS_STORE=memoria` usa o mesmo SQLite, em memória (`:memory:`), no lugar de uma implementação separada.
 
 ## Consequências
 
