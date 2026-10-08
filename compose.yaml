@@ -32,8 +32,11 @@ services:
       - /tmp
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
-    mem_limit: 512m
-    cpus: 1
+    # Em repouso o app usa ~150 MB e ~0% de CPU. A sobra cobre o envio de avisos, que roda como um segundo
+    # processo Node dentro deste contêiner (docker compose exec) e divide o mesmo limite (~60 MB a mais).
+    # Se o contêiner for morto por falta de memória (docker inspect: OOMKilled=true), suba para 512m.
+    mem_limit: 384m
+    cpus: 0.5
     pids_limit: 200
     logging: &logs
       driver: json-file
@@ -47,7 +50,7 @@ services:
     cap_drop: [ALL]
     cap_add: [NET_BIND_SERVICE]
     security_opt: [no-new-privileges:true]
-    mem_limit: 256m
+    mem_limit: 128m # o Caddy usa poucas dezenas de MB servindo este site
     logging: *logs
     depends_on:
       app:
