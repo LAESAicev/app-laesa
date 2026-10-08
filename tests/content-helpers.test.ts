@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { dataIso, linkSeguro, periodo, prorrogacao } from '../src/lib/content-helpers';
+import { z } from 'astro/zod';
+import { dataIso, linkSeguro, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
 
 describe('linkSeguro (links vindos do painel)', () => {
   it('recusa javascript: e endereços que o navegador leva para outro domínio', () => {
@@ -52,4 +53,24 @@ describe('prorrogacao', () => {
     expect(prorrogacao(undefined, '2026-10-30')).toBe('2026-10-30');
     expect(prorrogacao('2026-10-23', undefined)).toBeUndefined();
   });
+});
+
+describe('validar (YAML do painel no build)', () => {
+  const schema = z.strictObject({ titulo: z.string(), cronograma: z.array(z.strictObject({ etapa: z.string(), quando: z.string() })).nullish() });
+
+  it('devolve os dados quando estão certos', () => {
+    expect(validar(schema, '/content/editais/x.yaml', { titulo: 'Edital', cronograma: null })).toEqual({ titulo: 'Edital', cronograma: null });
+  });
+
+  it('campo faltando ou renomeado: erro com o arquivo e o campo', () => {
+    const erro = () => validar(schema, '/content/editais/x.yaml', { tituloNovo: 'Edital', cronograma: [{ etapa: 'Entrevistas', quando: 3 }] });
+    expect(erro).toThrow(/content\/editais\/x\.yaml/);
+    expect(erro).toThrow(/titulo: campo obrigatório ausente/);
+    expect(erro).toThrow(/campo desconhecido "tituloNovo"/);
+    expect(erro).toThrow(/cronograma\.0\.quando: /);
+  });
+});
+
+it('o conteúdo atual (content/) passa na validação', async () => {
+  await expect(import('../src/lib/content')).resolves.toBeTruthy();
 });

@@ -1,4 +1,5 @@
 // Funções puras usadas por src/lib/content.ts para tratar o que vem do painel (testes em tests/content-helpers.test.ts).
+import type { z } from 'astro/zod';
 
 /**
  * Links vindos do painel: só http(s), mailto e caminhos do próprio site (nada de javascript:).
@@ -39,4 +40,22 @@ export function dataIso(v: unknown): string | undefined {
 /** A prorrogação só vale se for depois do fim original. */
 export function prorrogacao(ate: string | undefined, prorrogada: string | undefined): string | undefined {
   return prorrogada && prorrogada > (ate ?? '') ? prorrogada : undefined;
+}
+
+/**
+ * Valida um YAML do painel no build. Campo faltando, renomeado ou com tipo errado derruba o build com o
+ * arquivo e o campo, em vez de virar um buraco silencioso na página.
+ */
+export function validar<S extends z.ZodType>(schema: S, caminho: string, dados: unknown): z.infer<S> {
+  const r = schema.safeParse(dados, {
+    error: (i) =>
+      i.code === 'unrecognized_keys'
+        ? `campo desconhecido ${i.keys.map((k) => `"${k}"`).join(', ')} (foi renomeado em keystatic.config.ts?)`
+        : i.input === undefined
+          ? 'campo obrigatório ausente'
+          : undefined,
+  });
+  if (r.success) return r.data;
+  const erros = r.error.issues.map((i) => `  - ${i.path.join('.') || '(arquivo)'}: ${i.message}`).join('\n');
+  throw new Error(`Conteúdo inválido em ${caminho.replace(/^\//, '')}:\n${erros}\nCorrija pelo painel (/keystatic) ou no arquivo.`);
 }
