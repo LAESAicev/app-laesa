@@ -222,15 +222,17 @@ describe('limpeza do arquivo depois da migração', () => {
     expect(noDisco(caminho, 'saiu@exemplo.com')).toBe(false);
   });
 
-  it('banco já migrado com páginas livres (VACUUM de uma versão anterior que falhou) é compactado ao abrir', async () => {
+  it('banco sem a marca de limpeza pendente não roda VACUUM ao abrir', async () => {
     const caminho = bancoAntigoSujo();
     const db = new DatabaseSync(caminho);
-    db.exec('ALTER TABLE inscritos DROP COLUMN removido_em'); // como se migrado sem VACUUM, sem marca
+    db.exec('ALTER TABLE inscritos DROP COLUMN removido_em'); // já no esquema novo, sem marca
     db.exec('CREATE TABLE descadastros (codigo TEXT PRIMARY KEY, removido_em TEXT NOT NULL)');
     db.close();
-    expect(pragma(caminho, 'freelist_count')).toBeGreaterThan(0);
+    const livres = pragma(caminho, 'freelist_count');
+    expect(livres).toBeGreaterThan(0);
+    const exec = vi.spyOn(DatabaseSync.prototype, 'exec');
     await criarInscritosSqlite(caminho, SEGREDO).listar();
-    expect(pragma(caminho, 'freelist_count')).toBe(0);
-    expect(noDisco(caminho, 'apagado1@exemplo.com')).toBe(false);
+    expect(exec.mock.calls.map(([sql]) => sql)).not.toContain('VACUUM');
+    expect(pragma(caminho, 'freelist_count')).toBe(livres);
   });
 });
