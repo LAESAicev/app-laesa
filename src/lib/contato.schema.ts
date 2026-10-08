@@ -1,6 +1,7 @@
 // Contrato do formulário de contato (docs/contrato-contato.md). O mesmo schema valida no navegador
 // (ContactForm) e no servidor (/api/contato). Mensagens dizem o problema e como corrigir.
 import { z } from 'astro/zod';
+import { errosPorCampo, type Erros } from './formulario';
 
 export const ASSUNTOS = ['duvida', 'feedback', 'projeto', 'colaborar'] as const;
 export type Assunto = (typeof ASSUNTOS)[number];
@@ -117,21 +118,3 @@ export const rotuloValor: Record<string, string> = {
   'sistema-web': 'Sistema web', aplicativo: 'Aplicativo', pesquisa: 'Pesquisa', 'oficina-curso': 'Oficina ou curso',
   palestra: 'Palestra', mentoria: 'Mentoria', 'apoio-evento': 'Apoio em evento',
 };
-export type Erros = Partial<Record<string, string>>;
-
-/** Primeiro erro de cada campo, no formato da resposta 422 do contrato. */
-export function errosPorCampo(error: z.ZodError): Erros {
-  const erros: Erros = {};
-  for (const issue of error.issues) {
-    const campo = String(issue.path[0] ?? 'assunto');
-    erros[campo] ??= issue.message;
-  }
-  return erros;
-}
-
-/** FormData → objeto simples (checkbox marcado = "true"; campos desabilitados não vêm). */
-export function formParaObjeto(data: FormData): Record<string, string> {
-  const obj: Record<string, string> = {};
-  for (const [k, v] of data.entries()) if (typeof v === 'string') obj[k] = v;
-  return obj;
-}
