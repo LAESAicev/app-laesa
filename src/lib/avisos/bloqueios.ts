@@ -10,25 +10,38 @@ const ROTULO_ESTADO = { aberto: 'inscrições abertas', breve: 'em breve', acont
 const nomeDo = (item: Item) => (item.tipo === 'edital' ? item.titulo : item.nome);
 const dataBr = (iso: string) => iso.split('-').reverse().join('/');
 
-/** Domínios soltos (sem http) que costumam aparecer em texto: instagram.com/…, forms.gle/…, bit.ly/… */
-const DOMINIO_SOLTO = /(?<![@\w.\/-])(?:[a-z0-9-]+\.)+(?:com|br|net|org|io|app|me|dev|gle|ly|gl|link|site)(?:\/[^\s]*)?(?![\w@-])/gi;
-const URL_COMPLETA = /\b(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+// Filtro de links: heurística conservadora, não garantia. O teste obrigatório numa caixa real é a segunda trava.
+/** Qualquer "esquema://", mesmo grudado em letra ou número ("xhttps://"), até o próximo espaço. */
+const COM_ESQUEMA = /[a-z][a-z0-9+.-]*:\/\/\S*/gi;
+/** Domínio solto de qualquer TLD ("evil.xyz/login"); os pontos ideográficos também valem como ponto no navegador. */
+const DOMINIO = /(?:[\p{L}\d-]+[.。．｡])+\p{L}{2,}(?:\/\S*)?/gu;
+/** E-mails ficam liberados (o de contato e qualquer outro): o Gmail os transforma em mailto, não em página. */
+const EMAIL = /[\p{L}\d._%+-]+@(?:[\p{L}\d-]+[.。．｡])+\p{L}{2,}/gu;
+/** O que pode vir depois da origem num link do site: caminho, busca e âncora comuns (URLSearchParams gera isso). */
+const CAMINHO_DO_SITE = /^(?:[/?#][\w\-.~/?#=&%+*]*)?$/;
+/** Pontuação de prosa no fim ("…/2026-2.", "(…/contato)") não faz parte do link. */
+const semPontuacao = (s: string) => s.replace(/[.,;:!?)\]'"]+$/, '');
 
-/** Endereços no texto que não são do site. Pontuação no fim ("…/2026-2.") não faz parte do link. */
+/** Invisíveis e de controle (largura zero, bidi, BOM, sino…) escondem o que o link é de verdade. Tab e \n passam. */
+const INVISIVEIS = /[\p{Cf}\p{Zl}\p{Zp}\u0000-\u0008\u000b-\u001f\u007f-\u009f]/u;
+
+/**
+ * Endereços no texto que não são do site. Um link do site começa exatamente com a origem (host em qualquer caixa)
+ * e só tem caracteres comuns de caminho até o espaço: qualquer coisa emendada ("|", crase, "{", "\", "@") o reprova.
+ */
 export function linksDeFora(texto: string, site: string): string[] {
-  const origem = new URL(site).origin;
-  const host = new URL(site).host;
+  const { origin, host } = new URL(site);
   const fora = new Set<string>();
-  for (const bruto of texto.match(URL_COMPLETA) ?? []) {
-    const u = bruto.replace(/[.,;:!?)\]]+$/, '');
-    try {
-      if (new URL(u.startsWith('www.') ? `https://${u}` : u).origin !== origem) fora.add(u);
-    } catch {
-      fora.add(u);
-    }
-  }
-  const semUrls = texto.replace(URL_COMPLETA, ' ');
-  for (const d of semUrls.match(DOMINIO_SOLTO) ?? []) if (d.toLowerCase().split('/')[0] !== host) fora.add(d.replace(/[.,;:!?)\]]+$/, ''));
+  const doSite = (s: string, base: string) => s.slice(0, base.length).toLowerCase() === base && CAMINHO_DO_SITE.test(s.slice(base.length));
+  const resto = texto
+    .replace(COM_ESQUEMA, (bruto) => {
+      const u = semPontuacao(bruto);
+      if (!doSite(u, origin)) fora.add(u);
+      return ' ';
+    })
+    .replace(EMAIL, ' ');
+  for (const d of resto.match(/\S*\/\/\S*/g) ?? []) fora.add(semPontuacao(d)); // "//evil.com": o navegador completa o esquema
+  for (const d of resto.match(DOMINIO) ?? []) if (!doSite(semPontuacao(d), host)) fora.add(semPontuacao(d));
   return [...fora];
 }
 
@@ -45,6 +58,9 @@ export function bloqueios({ evento, item, manifesto, conteudo, hoje = hojeEm() }
   const { assunto, texto } = conteudo;
   if (!assunto.trim()) motivos.push('O assunto está vazio.');
   if (/[\r\n]/.test(assunto)) motivos.push('O assunto tem quebra de linha.');
+  if (INVISIVEIS.test(`${assunto}${texto}`)) {
+    motivos.push('O assunto ou o texto tem caracteres invisíveis (espaço de largura zero, controle de direção do texto). Digite o trecho de novo em vez de colar.');
+  }
   if (!texto.trim()) motivos.push('O texto está vazio.');
 
   // o texto como vai sair, com o rodapé: o link de descadastro também precisa ser do site

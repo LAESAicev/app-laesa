@@ -142,10 +142,46 @@ describe('avisos: bloqueios', () => {
     const texto = 'Veja https://www.instagram.com/laesa.icev/p/x e inscreva-se em forms.gle/abc ou www.google.com.';
     const r = verificar('livre', undefined, { assunto: 'Oi', texto }).join();
     expect(r).toMatch(/Só pode ter links do site/);
-    expect(linksDeFora(texto, SITE)).toEqual(['https://www.instagram.com/laesa.icev/p/x', 'www.google.com', 'forms.gle/abc']);
+    expect(linksDeFora(texto, SITE)).toEqual(['https://www.instagram.com/laesa.icev/p/x', 'forms.gle/abc', 'www.google.com']);
     expect(linksDeFora(`${SITE}/atividades. Fale com laesa@somosicev.com`, SITE)).toEqual([]);
     expect(linksDeFora('http://laesa.exemplo.test/x', SITE)).toEqual(['http://laesa.exemplo.test/x']); // outra origem (http)
     expect(verificar('atividade-breve', { ...workshop, descricao: 'Inscrições: https://forms.gle/x' }).join()).toMatch(/forms\.gle/);
+  });
+
+  it.each([
+    ['letra grudada antes do esquema', 'veja xhttps://evil.com'],
+    ['sublinhado grudado antes do esquema', 'veja _https://evil.com'],
+    ['número grudado antes do esquema', 'veja 1https://evil.com'],
+    ['link do site emendado com barra vertical', `${SITE}/x|https://evil.com`],
+    ['link do site emendado com crase', `${SITE}/x\`evil.com`],
+    ['link do site emendado com chave', `${SITE}/x{https://evil.com}`],
+    ['link do site emendado com barra invertida', `${SITE}/x\\evil.com`],
+    ['domínio solto .xyz com caminho', 'entre em evil.xyz/login'],
+    ['domínio solto .co', 'entre em evil.co'],
+    ['domínio solto .ru', 'entre em evil.ru'],
+    ['protocolo relativo', 'abra //evil.com/x'],
+    ['ftp', 'baixe em ftp://evil.com/arquivo'],
+    ['userinfo depois do host do site', `${SITE}@evil.com/x`],
+    ['host do site como subdomínio de outro', `${SITE}.evil.com/x`],
+    ['punycode', 'https://xn--laesa-exemplo-xyz.test/x'],
+  ])('link de fora é pego: %s', (_, texto) => {
+    expect(linksDeFora(texto, SITE)).not.toEqual([]);
+  });
+
+  it('caractere invisível ou de controle bloqueia (zero-width, bidi)', () => {
+    expect(linksDeFora(`${SITE}/x\u200bhttps://evil.com`, SITE)).not.toEqual([]);
+    for (const c of ['\u200b', '\u202e', '\u2066', '\ufeff', '\u0007']) {
+      expect(verificar('livre', undefined, { assunto: 'Oi', texto: `Detalhes${c} no site.` }).join()).toMatch(/invisíve/);
+    }
+    expect(verificar('livre', undefined, { assunto: 'Oi\u200b', texto: 'x' }).join()).toMatch(/invisíve/);
+  });
+
+  it('não bloqueia o que é do site nem prosa comum', () => {
+    expect(linksDeFora('HTTPS://LAESA.EXEMPLO.TEST/atividades', SITE)).toEqual([]);
+    expect(linksDeFora(`${SITE}/atividades?q=Oficina%3A+Figma.`, SITE)).toEqual([]);
+    expect(linksDeFora(`Veja (${SITE}/contato), e laesa.exemplo.test/editais.`, SITE)).toEqual([]);
+    expect(linksDeFora('Versão v1.2 do edital 2026.2 sai no fim. Até lá!', SITE)).toEqual([]);
+    expect(linksDeFora('Escreva para laesa@somosicev.com ou fulano@example.org.', SITE)).toEqual([]);
   });
 
   it('devolve todos os motivos de uma vez', () => {

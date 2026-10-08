@@ -116,6 +116,9 @@ O registro do processamento fica em `/data/avisos.log`, no volume do contêiner 
 | Inscrições já encerradas | o e-mail anunciaria um prazo vencido |
 | Evento que não combina com o item | por exemplo, `edital-prorrogado` sem data de prorrogação, ou "em breve" para algo que já aconteceu |
 | Link que não é do site | Instagram, formulários e encurtadores ficam na página do site, e o e-mail aponta para ela. Assim todo link do e-mail é conferível e não leva a um endereço digitado errado |
+| Caractere invisível no assunto ou no texto | espaço de largura zero e controles de direção do texto escondem o que um link é de verdade. Costumam vir de texto colado: digite o trecho de novo |
+
+O filtro de links é uma heurística: reconhece qualquer endereço com `algo://`, `//`, `www.` ou `nome.dominio`, de qualquer terminação. Endereços de e-mail passam. Às vezes ele pega o que não é link, como `Node.js` ou uma frase sem espaço depois do ponto (`Oi.Tudo`); nesses casos, reescreva o trecho (`Node`, `Oi. Tudo`). Ele não substitui o teste: é na caixa da LAESA que se confere cada link.
 
 ## Limites do Gmail
 
