@@ -11,8 +11,8 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { TIMEZONE, hojeEm } from '../src/lib/atividades.ts';
 import { bloqueios } from '../src/lib/avisos/bloqueios.ts';
-import { ErroAviso, chaveDoItem, criarFila, type Envio, type Fila, type Rascunho } from '../src/lib/avisos/fila.ts';
-import { lerManifesto, type Item, type Manifesto } from '../src/lib/avisos/manifesto.ts';
+import { ErroAviso, criarFila, quando, type Envio, type Fila, type Rascunho } from '../src/lib/avisos/fila.ts';
+import { lerManifesto, nomeDo, type Item, type Manifesto } from '../src/lib/avisos/manifesto.ts';
 import { processar } from '../src/lib/avisos/processar.ts';
 import { criarRemetente } from '../src/lib/avisos/remetente.ts';
 import { estadoDa, eventoSugerido, eventoValido, mensagemPara, renderizar, rodape, EVENTOS, type Evento } from '../src/lib/avisos/templates.ts';
@@ -78,9 +78,6 @@ function remetente(contato: string) {
   });
 }
 
-const quando = (iso: string) =>
-  new Intl.DateTimeFormat('pt-BR', { timeZone: TIMEZONE, dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
-
 const hora = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: TIMEZONE, timeStyle: 'short' }).format(new Date(iso));
 
 const numero = (v: string | undefined, o_que: string) => {
@@ -88,8 +85,6 @@ const numero = (v: string | undefined, o_que: string) => {
   if (!Number.isInteger(n) || n < 1) throw new Uso(`Diga o número do ${o_que}. Exemplo: ${comando} 3`);
   return n;
 };
-
-const nomeDo = (item: Item) => (item.tipo === 'edital' ? item.titulo : item.nome);
 
 /** "2026-2", "edital:2026-2" ou o slug de uma atividade. */
 function acharItem(m: Manifesto, chave: string | undefined): Item | undefined {
@@ -197,12 +192,7 @@ async function principal(): Promise<void> {
     if (!op.por?.trim()) throw new Uso('Diga quem está enviando: --por "Seu nome".');
     revalidar(r);
     remetente(r.contato); // falha aqui, e não em segundo plano, se o SMTP estiver mal configurado
-    if (!fila.testado(r)) throw new ErroAviso(`O rascunho ${r.id} ainda não teve teste deste conteúdo. Rode "teste ${r.id}" e confira a caixa da LAESA.`);
-    const antes = fila.notificacoes(chaveDoItem(r), r.evento);
-    if (antes.length && !op.reenviar) {
-      const u = antes.at(-1)!;
-      throw new ErroAviso(`Este aviso já foi enviado (envio ${u.envio_id}, por ${u.por}, em ${quando(u.criado_em)}). Para mandar de novo, use --reenviar.`);
-    }
+    fila.conferirEnvio(r, op.reenviar);
     const total = (await fila.inscritos()).length;
     if (!total) throw new ErroAviso('Ninguém inscrito: não há para quem enviar.');
     if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Uso('Rode "enviar" num terminal interativo (docker compose exec, sem -T): é preciso digitar a confirmação.');

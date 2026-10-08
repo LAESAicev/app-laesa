@@ -8,10 +8,13 @@ import { createHash, createHmac } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { TIMEZONE } from '../atividades.ts';
 import { criarInscritosSqlite } from '../inscritos-sqlite.ts';
 import type { Evento, Rascunho as Conteudo } from './templates.ts';
 
 const DIA = 24 * 60 * 60 * 1000;
+/** Data e hora de Teresina, para mensagens e para o status ("15/10/2026, 09:00"). */
+export const quando = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: TIMEZONE, dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
 
 export class ErroAviso extends Error {}
 
@@ -24,7 +27,7 @@ export type Rascunho = Conteudo & {
   teste_enviado_em: string | null;
 };
 
-export type StatusEnvio = 'enviando' | 'pausado' | 'concluido' | 'cancelado';
+type StatusEnvio = 'enviando' | 'pausado' | 'concluido' | 'cancelado';
 
 export type Envio = {
   id: number;
@@ -44,11 +47,11 @@ export type Envio = {
 };
 
 /** Mesmo conteúdo = mesmo hash. É o que liga o teste ao envio: mudou uma vírgula, precisa testar de novo. */
-export const hashDo = (r: Pick<Rascunho, 'item' | 'evento' | 'assunto' | 'texto' | 'site' | 'contato'>) =>
+const hashDo = (r: Pick<Rascunho, 'item' | 'evento' | 'assunto' | 'texto' | 'site' | 'contato'>) =>
   createHash('sha256').update(JSON.stringify([r.item, r.evento, r.assunto, r.texto, r.site, r.contato])).digest('hex');
 
 /** Chave da proteção contra repetição: item + evento; aviso livre conta pelo conteúdo (o SQL de notificacoes repete a regra). */
-export const chaveDoItem = (r: Pick<Rascunho, 'item' | 'hash'>) => r.item ?? `livre:${r.hash.slice(0, 16)}`;
+const chaveDoItem = (r: Pick<Rascunho, 'item' | 'hash'>) => r.item ?? `livre:${r.hash.slice(0, 16)}`;
 
 export type Fila = ReturnType<typeof criarFila>;
 
@@ -121,6 +124,9 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
   const envio = (id: number) => db.prepare(`${SELECT_ENVIO} WHERE e.id = ?`).get(id) as Envio | undefined;
   const rascunho = (id: number) => db.prepare('SELECT * FROM avisos_rascunhos WHERE id = ?').get(id) as Rascunho | undefined;
 
+  /** Houve teste de exatamente este conteúdo (em qualquer rascunho com o mesmo hash)? */
+  const testado = (r: Rascunho) => Boolean(db.prepare('SELECT 1 FROM avisos_rascunhos WHERE hash = ? AND teste_enviado_em IS NOT NULL').get(r.hash));
+
   function mudarStatus(id: number, status: StatusEnvio, motivo: string | null, de: StatusEnvio[]): Envio {
     const atual = envio(id);
     if (!atual) throw new ErroAviso(`Envio ${id} não existe.`);
@@ -147,11 +153,6 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
       db.prepare('UPDATE avisos_rascunhos SET teste_enviado_em = ? WHERE id = ?').run(agora(), id);
     },
 
-    /** Houve teste de exatamente este conteúdo (em qualquer rascunho com o mesmo hash)? */
-    testado(r: Rascunho): boolean {
-      return Boolean(db.prepare('SELECT 1 FROM avisos_rascunhos WHERE hash = ? AND teste_enviado_em IS NOT NULL').get(r.hash));
-    },
-
     /** Envios anteriores deste item com este evento (proteção contra repetir aviso). */
     notificacoes(item: string, evento: Evento): { envio_id: number; criado_em: string; por: string }[] {
       return db
@@ -162,19 +163,22 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
         .all(item, evento) as { envio_id: number; criado_em: string; por: string }[];
     },
 
-    /** Cria o envio para todos os inscritos. Recusa sem teste deste conteúdo e, sem `reenviar`, aviso repetido. */
+    /** Recusa rascunho sem teste deste conteúdo e, sem `reenviar`, aviso repetido. O comando confere antes de pedir a confirmação. */
+    conferirEnvio(r: Rascunho, reenviar: boolean): void {
+      if (!testado(r)) throw new ErroAviso(`O rascunho ${r.id} ainda não teve teste deste conteúdo. Rode "teste ${r.id}" e confira a caixa da LAESA.`);
+      const ultimo = api.notificacoes(chaveDoItem(r), r.evento).at(-1);
+      if (ultimo && !reenviar) {
+        throw new ErroAviso(`Este aviso já foi enviado (envio ${ultimo.envio_id}, por ${ultimo.por}, em ${quando(ultimo.criado_em)}). Para mandar de novo, use --reenviar.`);
+      }
+    },
+
+    /** Cria o envio para todos os inscritos, com as mesmas recusas de conferirEnvio. */
     criarEnvio(rascunhoId: number, por: string, totalPrevisto: number, { reenviar = false } = {}): Envio {
       const r = rascunho(rascunhoId);
       if (!r) throw new ErroAviso(`Rascunho ${rascunhoId} não existe.`);
       const quem = por.trim();
       if (!quem) throw new ErroAviso('Diga quem está enviando: --por "Seu nome".');
-      if (!api.testado(r)) throw new ErroAviso(`O rascunho ${r.id} ainda não teve teste deste conteúdo. Rode "teste ${r.id}" e confira a caixa da LAESA.`);
-      const chave = chaveDoItem(r);
-      const antes = api.notificacoes(chave, r.evento);
-      if (antes.length && !reenviar) {
-        const ultimo = antes[antes.length - 1];
-        throw new ErroAviso(`Este aviso já foi enviado (envio ${ultimo.envio_id}, por ${ultimo.por}, em ${ultimo.criado_em}). Para mandar de novo, use --reenviar.`);
-      }
+      api.conferirEnvio(r, reenviar);
       if (totalPrevisto < 1) throw new ErroAviso('Ninguém inscrito: não há para quem enviar.');
       const { lastInsertRowid } = db
         .prepare("INSERT INTO avisos_envios (rascunho_id, por, criado_em, total_previsto, status, atualizado_em) VALUES (?, ?, ?, ?, 'enviando', ?)")
@@ -305,7 +309,6 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
       });
     },
 
-    fechar: () => db.close(),
   };
   return api;
 }

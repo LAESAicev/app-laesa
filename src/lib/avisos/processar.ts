@@ -5,11 +5,11 @@ import type { Fila } from './fila.ts';
 import { mensagemPara, type Mensagem } from './templates.ts';
 
 /** Teto de avisos em 24h. A conta do Workspace aguenta ~2.000/dia; sobram 300 para confirmações e 100 para contato. */
-export const TETO_DIARIO = 1500;
+const TETO_DIARIO = 1500;
 /** ~1 e-mail a cada 2,5 s: 1.500 avisos levam ~1 hora. */
-export const INTERVALO_MS = 2500;
+const INTERVALO_MS = 2500;
 /** Esperas depois de uma falha passageira do SMTP (1, 5 e 15 min). Esgotou: pausa o envio. */
-export const ESPERAS_MS = [60_000, 5 * 60_000, 15 * 60_000];
+const ESPERAS_MS = [60_000, 5 * 60_000, 15 * 60_000];
 /** Falhas definitivas seguidas (recusa ou falha ambígua): mais que isso é problema da conta, não de endereços. Pausa. */
 const RECUSAS_SEGUIDAS = 3;
 const VEZ_MS = 2 * 60_000;
@@ -41,12 +41,10 @@ const resumo = (e: unknown) => {
   return [err?.code, err?.responseCode].filter(Boolean).join(' ') || 'erro desconhecido';
 };
 
-export type Opcoes = {
+type Opcoes = {
   fila: Fila;
   segredo: string;
   enviar: (m: Mensagem) => Promise<void>;
-  dono?: string;
-  intervaloMs?: number;
   esperasMs?: number[];
   tetoDiario?: number;
   dormir?: (ms: number) => Promise<void>;
@@ -56,8 +54,7 @@ export type Opcoes = {
 /** "sem-vez": outro processador está cuidando da fila (já estava, ou assumiu no meio). "fim": não sobrou nada para enviar agora. */
 export async function processar(o: Opcoes): Promise<'sem-vez' | 'fim'> {
   const { fila, segredo, enviar } = o;
-  const dono = o.dono ?? randomUUID();
-  const intervalo = o.intervaloMs ?? INTERVALO_MS;
+  const dono = randomUUID();
   const esperas = o.esperasMs ?? ESPERAS_MS;
   const teto = o.tetoDiario ?? TETO_DIARIO;
   const dormir = o.dormir ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
@@ -125,7 +122,7 @@ export async function processar(o: Opcoes): Promise<'sem-vez' | 'fim'> {
           continue;
         }
       }
-      await dormir(intervalo);
+      await dormir(INTERVALO_MS);
     }
   } finally {
     fila.liberar(dono);

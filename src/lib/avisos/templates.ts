@@ -1,7 +1,7 @@
 // Texto dos avisos: assunto e corpo a partir do item publicado e do evento. Texto puro, sem HTML, e só com
 // links para páginas do próprio site (Instagram, formulários etc. ficam na página, não no e-mail).
 // Dado que falta vira "[data]": os bloqueios (bloqueios.ts) recusam qualquer colchete desses no texto final.
-import { classificar, hojeEm, type Estado } from '../atividades.ts';
+import { classificar, diaMes, diaMesAno, hojeEm, type Estado } from '../atividades.ts';
 import { linkDescadastro } from '../tokens.ts';
 import type { Item, ItemAtividade, ItemEdital } from './manifesto.ts';
 
@@ -11,20 +11,13 @@ export const eventoValido = (v: string): v is Evento => (EVENTOS as readonly str
 
 export type Conteudo = { assunto: string; texto: string };
 
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const FALTA = '[data]';
-
-/** "2026-10-23" → "23 out" (assunto). */
-export function dataCurta(iso: string | undefined): string {
-  if (!iso) return FALTA;
-  return `${Number(iso.slice(8, 10))} ${MESES[Number(iso.slice(5, 7)) - 1]}`;
-}
-
-/** "2026-10-23" → "23 out 2026" (corpo). */
-const dataLonga = (iso: string | undefined) => (iso ? `${dataCurta(iso)} ${iso.slice(0, 4)}` : FALTA);
+/** "23 out" no assunto, "23 out 2026" no corpo; data que falta vira [data]. */
+const dataCurta = (iso: string | undefined) => (iso ? diaMes(iso) : FALTA);
+const dataLonga = (iso: string | undefined) => (iso ? diaMesAno(iso) : FALTA);
 
 /** Assunto vai num cabeçalho: quebra de linha ali permitiria injetar outros cabeçalhos. */
-export const limparAssunto = (s: string) => s.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+const limparAssunto = (s: string) => s.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 /** Fim das inscrições que vale agora: a prorrogação, se houver. */
 export const fimInscricoes = (e: ItemEdital) => e.prorrogadasAte ?? e.inscricoesAte;

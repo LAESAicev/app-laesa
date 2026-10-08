@@ -65,7 +65,10 @@ export function comparar(hoje: string) {
 }
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-const diaMesAno = (iso: string) => `${Number(iso.slice(8, 10))} ${MESES[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
+/** "2026-10-23" → "23 out" (também no assunto dos avisos). */
+export const diaMes = (iso: string) => `${Number(iso.slice(8, 10))} ${MESES[Number(iso.slice(5, 7)) - 1]}`;
+/** "2026-10-23" → "23 out 2026". */
+export const diaMesAno = (iso: string) => `${diaMes(iso)} ${iso.slice(0, 4)}`;
 const mesAno = (iso: string) => `${MESES[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`;
 
 export function rotulo(estado: Estado, a: Datas): string {

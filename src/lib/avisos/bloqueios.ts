@@ -1,13 +1,12 @@
 // O que impede um aviso de sair. Devolve todos os motivos de uma vez, em frases para quem está na Mesa:
 // cada uma diz o que está errado e onde corrigir. Lista vazia = pode seguir.
 import { hojeEm } from '../atividades.ts';
-import type { Item, Manifesto } from './manifesto.ts';
+import { nomeDo, type Item, type Manifesto } from './manifesto.ts';
 import { estadoDa, fimInscricoes, rodape, type Conteudo, type Evento } from './templates.ts';
 
 const ROTULO_STATUS = { aberto: 'Inscrições abertas', 'em-andamento': 'Seleção em andamento', finalizado: 'Finalizado' } as const;
 const ROTULO_ESTADO = { aberto: 'inscrições abertas', breve: 'em breve', acontecendo: 'acontecendo agora', andamento: 'em andamento', concluido: 'concluído' } as const;
 
-const nomeDo = (item: Item) => (item.tipo === 'edital' ? item.titulo : item.nome);
 const dataBr = (iso: string) => iso.split('-').reverse().join('/');
 
 // Filtro de links: heurística conservadora, não garantia. O teste obrigatório numa caixa real é a segunda trava.

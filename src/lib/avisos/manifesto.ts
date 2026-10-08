@@ -3,8 +3,7 @@
 // é por ele que os avisos sabem o que está no ar. Dados públicos: os mesmos que as páginas mostram.
 import { readFileSync } from 'node:fs';
 import type { StatusManual } from '../atividades.ts';
-
-export type StatusSelecao = 'aberto' | 'em-andamento' | 'finalizado';
+import type { StatusSelecao } from '../../data/site.ts';
 
 export type ItemEdital = {
   id: string; // "edital:2026-2"
@@ -39,6 +38,8 @@ export type ItemAtividade = {
 };
 
 export type Item = ItemEdital | ItemAtividade;
+
+export const nomeDo = (item: Item) => (item.tipo === 'edital' ? item.titulo : item.nome);
 
 export type Manifesto = {
   versao: 1;
