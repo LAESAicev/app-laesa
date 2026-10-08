@@ -441,7 +441,9 @@ svg { display: block; }
 
 .form.is-sending .input, .form.is-sending .select, .form.is-sending .textarea { background: var(--ground); color: var(--ink-3); border-color: var(--rule); }
 .btn.is-loading { background: #4D9FE0; cursor: progress; }
-.btn .spin { width: 18px; height: 18px; }
+/* volta contínua: em loop o movimento é linear (design/MOTION.md); anima só transform */
+.btn .spin { width: 18px; height: 18px; animation: spin 800ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .form.success { flex-direction: row; gap: 20px; align-items: stretch; min-height: 320px; }
 .ok-graph { flex: none; width: 40px; }
@@ -668,6 +670,7 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
   html { scroll-behavior: auto; }
   .btn:active { transform: none; }
   details.qa .qi { transition: background-color 160ms ease; }
+  .btn .spin { animation: none; } /* o texto "Enviando" já informa o estado */
 }
 
 /* ================= tablet (641–1100px) ================= */
