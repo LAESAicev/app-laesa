@@ -75,7 +75,7 @@ Pede a inscrição nos avisos e envia um e-mail de confirmação (confirmação 
 
 Links assinados (HMAC com `INSCRICAO_SECRET`):
 - `/avisos/confirmar?t=…`: o GET mostra o botão "Confirmar inscrição"; o POST confirma. Um link emitido antes de um descadastro não reinscreve.
-- `/avisos/descadastro?t=…`: o GET mostra o botão; o POST remove o e-mail. Também aceita o descadastro de um clique do Gmail (RFC 8058). Todo aviso enviado leva esse link e os cabeçalhos `List-Unsubscribe`.
+- `/avisos/descadastro?t=…`: o GET mostra o botão; o POST apaga o e-mail da lista. Fica só um código irreversível dele (HMAC), por 30 dias, para o link de confirmação antigo não reinscrever. Também aceita o descadastro de um clique do Gmail (RFC 8058). Todo aviso enviado leva esse link e os cabeçalhos `List-Unsubscribe`.
 
 As mensagens de erro de `422` aparecem direto na tela, então seguem o tom do site. Exemplo: "Esse e-mail parece incompleto. Use o formato nome@exemplo.com."
 

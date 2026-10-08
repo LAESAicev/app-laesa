@@ -85,7 +85,7 @@ Os acessos são da LAESA, nunca de um aluno. A cada nova Mesa Diretora:
   - o dono fixo é o(a) orientador(a) ou o setor de tecnologia;
   - no servidor, `chmod 600 .env`, com dono sendo o usuário do deploy.
 - **Senha de app do Gmail:** revogar a antiga em https://myaccount.google.com/apppasswords, gerar outra e atualizar o `SMTP_PASS`. A recuperação e a verificação em duas etapas da conta `laesa@somosicev.com` ficam presas ao(à) orientador(a), não ao celular de um aluno.
-- **`INSCRICAO_SECRET`:** só troque se ele vazar, porque trocar invalida os links de descadastro já enviados por e-mail. Se precisar trocar, avise os inscritos no próximo envio.
+- **`INSCRICAO_SECRET`:** só troque se ele vazar, porque trocar invalida os links de descadastro já enviados por e-mail. Também deixa irreconhecíveis os códigos de quem se descadastrou nos últimos 30 dias, então um link de confirmação emitido antes do descadastro (vale 7 dias) volta a funcionar até vencer. Se precisar trocar, avise os inscritos no próximo envio.
 - **Organização no GitHub:** pelo menos dois donos, um deles professor. Atualize o time `mesa-diretora`.
 - **Servidor:** revise quem tem SSH e quem está no grupo `docker`. Estar nesse grupo equivale a ter root na máquina, inclusive para ler o `.env` com `docker inspect`.
 - **Imagem no GitHub Container Registry:**

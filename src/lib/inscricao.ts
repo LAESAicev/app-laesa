@@ -74,7 +74,7 @@ let emSqlite: Inscritos | undefined;
 /** Armazenamento ativo. Lança InscricaoIndisponivel sem segredo ou sem INSCRITOS_STORE definido. */
 export function inscritos(): Inscritos {
   if (!INSCRICAO_SECRET) throw new InscricaoIndisponivel('INSCRICAO_SECRET não definido.');
-  if (INSCRITOS_STORE === 'sqlite') return (emSqlite ??= criarInscritosSqlite(INSCRITOS_DB));
+  if (INSCRITOS_STORE === 'sqlite') return (emSqlite ??= criarInscritosSqlite(INSCRITOS_DB, INSCRICAO_SECRET));
   if (INSCRITOS_STORE === 'memoria') return emMemoria;
   throw new InscricaoIndisponivel('INSCRITOS_STORE não definido (use "sqlite" ou "memoria").');
 }
