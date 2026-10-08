@@ -67,7 +67,7 @@ Implementar `design/MOTION.md`:
 
 ## Fase 6: Documentação de passagem de mandato ✅
 - `docs/onboarding.md`: "editar o site em 10 minutos" (painel, onde fica cada coisa).
-- `docs/passagem-de-mandato.md`: checklist anual com times do GitHub, segredos, senha da conta Workspace, contato do setor de tecnologia e quem tem acesso ao servidor.
+- [`docs/passagem-de-mandato.md`](passagem-de-mandato.md): checklist anual com times do GitHub, segredos, senha da conta Workspace, contato do setor de tecnologia e quem tem acesso ao servidor.
 - `docs/operacao.md`: como fazer deploy, restaurar backup e desfazer uma edição. Preenchido depois do ⏸.
 
 ## O que está bloqueado, de fato
