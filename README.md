@@ -76,6 +76,8 @@ SITE_DOMAIN=localhost docker compose up -d --build   # testar localmente em http
 
 Instalação no servidor, atualização, como desfazer uma mudança, backup (`deploy/backup.sh`), troca de mandato e painel em produção: [docs/operacao.md](docs/operacao.md).
 
+Mandar avisos por e-mail para os inscritos (comando no servidor): [docs/avisos.md](docs/avisos.md).
+
 ## Estrutura
 
 ```
