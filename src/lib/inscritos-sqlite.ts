@@ -32,13 +32,15 @@ function transacao(db: DatabaseSync, fn: () => void): void {
   }
 }
 
+/** PRAGMA user_version: 1 = migração feita, falta reescrever o arquivo (VACUUM). */
+const LIMPEZA_PENDENTE = 1;
+
 /**
  * Bancos criados antes desta versão guardavam quem saiu com o e-mail em claro (coluna removido_em).
  * Move essas saídas para `descadastros` (só o código), apaga as linhas sem consentimento e tira a coluna.
  * Roda a cada abertura e não faz nada se a coluna já não existe.
  */
 function migrar(db: DatabaseSync, registrarSaida: StatementSync, codigo: (email: string) => string): void {
-  let migrou = false;
   transacao(db, () => {
     const colunas = db.prepare('PRAGMA table_info(inscritos)').all() as { name: string }[];
     if (!colunas.some((c) => c.name === 'removido_em')) return;
@@ -49,12 +51,31 @@ function migrar(db: DatabaseSync, registrarSaida: StatementSync, codigo: (email:
     for (const s of saidas) registrarSaida.run(codigo(s.email), s.removido_em);
     db.exec('DELETE FROM inscritos WHERE consentimento_em IS NULL');
     db.exec('ALTER TABLE inscritos DROP COLUMN removido_em');
-    migrou = true;
+    db.exec(`PRAGMA user_version = ${LIMPEZA_PENDENTE}`); // na mesma transação: migrou => limpeza marcada
   });
-  // Reescreve o arquivo: restos do esquema antigo em páginas livres também somem do disco.
-  if (!migrou) return;
-  db.exec('VACUUM');
-  db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+}
+
+/**
+ * Reescreve o arquivo (VACUUM) para os restos do esquema antigo em páginas livres sumirem do disco também.
+ * O que é garantido: enquanto o VACUUM não concluir, a marca de limpeza pendente fica no banco e cada abertura
+ * tenta de novo, com aviso no log. Também roda em banco com páginas livres (ex.: migrado por uma versão anterior
+ * cujo VACUUM falhou e que não deixava marca). Não é garantido que o disco fique limpo na mesma abertura da
+ * migração: com o banco ocupado (SQLITE_BUSY), a limpeza espera a próxima.
+ */
+function limparArquivo(db: DatabaseSync): void {
+  const pendente = (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version === LIMPEZA_PENDENTE;
+  const livres = (db.prepare('PRAGMA freelist_count').get() as { freelist_count: number }).freelist_count;
+  if (!pendente && livres === 0) return;
+  try {
+    db.exec('VACUUM');
+    db.exec('PRAGMA user_version = 0');
+  } catch (e) {
+    console.warn('[inscritos] VACUUM não concluiu; tenta de novo na próxima abertura:', (e as Error).message);
+    return;
+  }
+  // O VACUUM passa pelo WAL: o checkpoint leva o arquivo limpo para o banco principal e zera o WAL.
+  const r = db.prepare('PRAGMA wal_checkpoint(TRUNCATE)').get() as { busy: number } | undefined;
+  if (r?.busy) console.warn('[inscritos] checkpoint do WAL não concluiu (banco em uso); o SQLite completa no próximo checkpoint.');
 }
 
 export function criarInscritosSqlite(caminho: string, segredo: string): Inscritos {
@@ -84,6 +105,7 @@ export function criarInscritosSqlite(caminho: string, segredo: string): Inscrito
          ON CONFLICT(codigo) DO UPDATE SET removido_em = max(removido_em, excluded.removido_em)`,
       );
       migrar(db, registrarSaida, codigo);
+      limparArquivo(db);
       conexao = {
         db,
         adicionar: db.prepare(
@@ -97,8 +119,8 @@ export function criarInscritosSqlite(caminho: string, segredo: string): Inscrito
         listar: db.prepare('SELECT email FROM inscritos ORDER BY email'),
       };
     }
-    // ponytail: expira a cada acesso ao banco; sem nenhum acesso nem reinício, um código vencido espera o próximo.
-    // Trocar por um timer diário se isso importar.
+    // ponytail: expira a cada acesso ao banco, inclusive o primeiro depois de abrir. Sem nenhum acesso, um código
+    // vencido espera o próximo; uma rotina diária que chame qualquer método (ex.: listar()) cobre esse caso.
     conexao.expirar.run(new Date(Date.now() - TRINTA_DIAS).toISOString());
     return conexao;
   }
