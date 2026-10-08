@@ -22,7 +22,8 @@ interface Props {
 
 const { title, description, active, noindex = false } = Astro.props;
 const fullTitle = title === 'LAESA' ? 'LAESA · Liga Acadêmica de Engenharia de Software Aplicada' : `${title} · LAESA`;
-// build.format 'file' gera /index.html e /contato.html; o endereço público é / e /contato
+// build.format 'directory' + trailingSlash 'never': o pathname já chega como / e /contato. O replace só
+// protege o canonical se o formato voltar a 'file' (/index.html, /contato.html).
 const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ''), Astro.site);
 ---
 <!doctype html>
