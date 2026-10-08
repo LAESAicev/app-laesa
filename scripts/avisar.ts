@@ -58,10 +58,10 @@ function segredo(): string {
   return s;
 }
 
-/** Toda execução aplica a retenção de 30 dias (fila.limpar); o cron diário ("limpar") cobre os dias sem uso. */
-function abrirFila() {
+/** Toda execução aplica a retenção de 30 dias (avisos e descadastros, fila.limpar); o cron diário ("limpar") cobre os dias sem uso. */
+async function abrirFila() {
   const fila = criarFila(DB, segredo());
-  return { fila, limpeza: fila.limpar() };
+  return { fila, limpeza: await fila.limpar() };
 }
 
 const manifesto = (): Manifesto => lerManifesto(resolve(op.manifesto || env.AVISOS_MANIFESTO || 'dist/client/avisos/itens.json'));
@@ -137,7 +137,7 @@ async function principal(): Promise<void> {
 
   if (comando === 'itens') {
     const m = manifesto();
-    const { fila } = abrirFila();
+    const { fila } = await abrirFila();
     const hoje = hojeEm();
     console.log(`Site publicado em ${quando(m.geradoEm)} (${m.site}). Hoje: ${hoje}.\n`);
     for (const item of m.itens) {
@@ -168,7 +168,7 @@ async function principal(): Promise<void> {
     if (ev === 'livre' && (!op.assunto || !texto)) throw new Uso('No aviso livre, passe --assunto "…" e --texto-arquivo arquivo (ou - para colar no terminal).');
     const conteudo = renderizar(ev, item, { assunto: op.assunto, texto });
     conferir(ev, item, m, conteudo);
-    const { fila } = abrirFila();
+    const { fila } = await abrirFila();
     const r = fila.salvarRascunho({ item: item?.id ?? null, evento: ev, ...conteudo, site: m.site, contato: m.contato });
     const total = (await fila.inscritos()).length;
     console.log(`Rascunho ${r.id} salvo.\n\nAssunto: ${r.assunto}\n\n${r.texto}\n\n${rodape(r.site, '<link de descadastro de cada pessoa>')}\n`);
@@ -180,7 +180,7 @@ async function principal(): Promise<void> {
   }
 
   if (comando === 'teste') {
-    const { fila } = abrirFila();
+    const { fila } = await abrirFila();
     const r = rascunhoOuErro(fila, args[0]);
     revalidar(r);
     const para = env.AVISOS_TESTE_PARA || r.contato;
@@ -192,7 +192,7 @@ async function principal(): Promise<void> {
   }
 
   if (comando === 'enviar') {
-    const { fila } = abrirFila();
+    const { fila } = await abrirFila();
     const r = rascunhoOuErro(fila, args[0]);
     if (!op.por?.trim()) throw new Uso('Diga quem está enviando: --por "Seu nome".');
     revalidar(r);
@@ -218,7 +218,7 @@ async function principal(): Promise<void> {
   }
 
   if (comando === 'processar') {
-    const { fila } = abrirFila();
+    const { fila } = await abrirFila();
     const proximo = fila.proximoEnvio();
     if (!proximo) return console.log(`[avisos] ${new Date().toISOString()} nada a enviar`);
     const enviar = remetente(fila.rascunho(proximo.rascunho_id)!.contato);
@@ -227,7 +227,7 @@ async function principal(): Promise<void> {
   }
 
   if (comando === 'status') {
-    const { fila } = abrirFila();
+    const { fila } = await abrirFila();
     const lista = args[0] ? [fila.envio(numero(args[0], 'envio'))].filter((e) => e !== undefined) : fila.envios().slice(0, 10);
     if (!lista.length) return console.log(args[0] ? `Envio ${args[0]} não existe.` : 'Nenhum envio ainda.');
     for (const e of lista) console.log(linhaEnvio(e));
@@ -245,7 +245,7 @@ async function principal(): Promise<void> {
   }
 
   if (comando === 'retomar') {
-    const { fila } = abrirFila();
+    const { fila } = await abrirFila();
     const e = await fila.retomar(numero(args[0], 'envio'));
     console.log(`Envio ${e.id} retomado: faltam ${Math.max(e.total_previsto - e.enviados - e.falhas, 0)} de ${e.total_previsto} (a conta usa a lista de inscritos de agora).`);
     iniciarProcessamento();
@@ -253,14 +253,14 @@ async function principal(): Promise<void> {
   }
 
   if (comando === 'cancelar') {
-    const { fila } = abrirFila();
+    const { fila } = await abrirFila();
     const e = fila.cancelar(numero(args[0], 'envio'));
     console.log(`Envio ${e.id} cancelado: ${e.enviados} já tinham recebido. O resto não recebe.`);
     return;
   }
 
   if (comando === 'limpar') {
-    const { limpeza } = abrirFila();
+    const { limpeza } = await abrirFila();
     console.log(`[avisos] ${new Date().toISOString()} limpeza: ${limpeza.cancelados} envios parados cancelados, ${limpeza.apagadas} entregas apagadas`);
     return;
   }

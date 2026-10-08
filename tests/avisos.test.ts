@@ -494,11 +494,11 @@ describe('avisos: fila', () => {
       return r;
     };
     agora += 29 * DIA;
-    fila.limpar(); // cada execução do comando limpa
+    await fila.limpar(); // cada execução do comando limpa
     expect(entregas()).toEqual({ n: 5 });
     agora += 2 * DIA;
     const depois = criarFila(caminho, SEGREDO, relogio);
-    depois.limpar();
+    await depois.limpar();
     expect(entregas()).toEqual({ n: 0 });
     expect(depois.envio(envio.id)).toMatchObject({ status: 'concluido', enviados: 5, total_previsto: 5 });
   });
@@ -509,7 +509,7 @@ describe('avisos: fila', () => {
     expect(fila.envio(envio.id)!.status).toBe('pausado');
     agora += 31 * DIA;
     const depois = criarFila(caminho, SEGREDO, relogio);
-    depois.limpar();
+    await depois.limpar();
     expect(depois.envio(envio.id)).toMatchObject({ status: 'cancelado', enviados: 1 });
     expect(depois.enviadosUltimas24h()).toBe(0);
     const db = new DatabaseSync(caminho);
@@ -522,9 +522,9 @@ describe('avisos: fila', () => {
     const c = fila.reservar(envio.id, 'ana@example.test')!;
     fila.registrar(envio.id, c, true); // um e-mail saiu e o processamento nunca mais voltou
     agora += 29 * DIA;
-    expect(fila.limpar()).toEqual({ cancelados: 0, apagadas: 0 });
+    expect(await fila.limpar()).toEqual({ cancelados: 0, apagadas: 0 });
     agora += 2 * DIA;
-    expect(fila.limpar()).toEqual({ cancelados: 1, apagadas: 1 });
+    expect(await fila.limpar()).toEqual({ cancelados: 1, apagadas: 1 });
     expect(fila.envio(envio.id)).toMatchObject({ status: 'cancelado', enviados: 1, motivo: 'parado por mais de 30 dias' });
     expect(fila.envio(envio.id)!.finalizado_em).toBeTruthy();
     expect(fila.enviadosUltimas24h()).toBe(0);
@@ -534,8 +534,18 @@ describe('avisos: fila', () => {
     const { fila, envio } = await envioPronto();
     await rodar(fila, caixa().enviar, { tetoDiario: 2 });
     agora += 31 * DIA;
-    expect(fila.limpar()).toEqual({ cancelados: 1, apagadas: 2 });
+    expect(await fila.limpar()).toEqual({ cancelados: 1, apagadas: 2 });
     expect(fila.envio(envio.id)!.status).toBe('cancelado');
+  });
+
+  it('limpar também expira os códigos de descadastro de mais de 30 dias (store de inscritos)', async () => {
+    const { caminho, fila } = await cenario();
+    const db = new DatabaseSync(caminho);
+    // o store de inscritos usa o relógio real para essa expiração
+    db.prepare('INSERT INTO descadastros (codigo, removido_em) VALUES (?, ?)').run('antigo', new Date(Date.now() - 31 * DIA).toISOString());
+    await fila.limpar();
+    expect(db.prepare('SELECT count(*) AS n FROM descadastros').get()).toEqual({ n: 0 });
+    db.close();
   });
 
   it('as entregas nunca guardam o e-mail', async () => {

@@ -109,7 +109,7 @@ O script faz uma cópia consistente com o site no ar: o `VACUUM INTO` lê um ret
 30 3 * * * cd /opt/app-laesa && docker compose exec -T app node scripts/avisar.ts limpar 2>&1 | logger -t avisos-laesa
 ```
 
-O resultado aparece em `journalctl -t backup-laesa` (ou em `/var/log/syslog`). A segunda linha aplica a retenção de 30 dias dos registros de entrega dos avisos ([avisos.md](avisos.md#dados-guardados)) mesmo em semanas sem nenhum comando de aviso; o resultado sai em `journalctl -t avisos-laesa`. O cron não criptografa, porque o `gpg` pediria a senha: os `.db` ficam na pasta `~/backups-laesa` (permissão 700) e devem ser criptografados antes de sair do servidor. Sem cron, faça o backup pelo menos uma vez por mês, ou peça ao iCEV para incluir o volume no backup do servidor. Os certificados HTTPS (volume `caddy_data`) se recriam sozinhos.
+O resultado aparece em `journalctl -t backup-laesa` (ou em `/var/log/syslog`). A segunda linha aplica a retenção de 30 dias dos registros de entrega dos avisos ([avisos.md](avisos.md#dados-guardados)) e dos códigos de descadastro mesmo em semanas sem nenhum comando de aviso nem inscrição; o resultado sai em `journalctl -t avisos-laesa`. O cron não criptografa, porque o `gpg` pediria a senha: os `.db` ficam na pasta `~/backups-laesa` (permissão 700) e devem ser criptografados antes de sair do servidor. Sem cron, faça o backup pelo menos uma vez por mês, ou peça ao iCEV para incluir o volume no backup do servidor. Os certificados HTTPS (volume `caddy_data`) se recriam sozinhos.
 
 **Restaurar:**
 

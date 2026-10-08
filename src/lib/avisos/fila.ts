@@ -289,8 +289,10 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
      * Retenção: apaga as entregas de envios terminados há mais de 30 dias. Envio parado por 30 dias (pausado e
      * esquecido, ou "enviando" sem processador) é cancelado com fim na última atividade, então sai na mesma hora:
      * nenhum código fica guardado sem prazo. Ficam os totais. O comando roda isto a cada execução e no cron diário.
+     * Também abre o store de inscritos, que expira ao ser acessado os códigos de descadastro de mais de 30 dias.
      */
-    limpar(): { cancelados: number; apagadas: number } {
+    async limpar(): Promise<{ cancelados: number; apagadas: number }> {
+      await inscritos.listar();
       return transacao(() => {
         const limite = antes(30 * DIA);
         const cancelados = db
