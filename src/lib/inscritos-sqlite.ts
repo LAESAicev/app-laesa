@@ -1,7 +1,7 @@
 // Inscritos das novidades da LAESA em SQLite (módulo nativo node:sqlite, Node 24), num arquivo do volume /data.
 // LGPD: de quem está inscrito guardamos só o e-mail e a data do consentimento. Ao descadastrar, a linha com o
-// e-mail é apagada e fica apenas um código irreversível dele (HMAC com INSCRICAO_SECRET) com a data, em
-// `descadastros`, para invalidar links de confirmação emitidos antes. O link de confirmação vale 7 dias, então
+// e-mail é apagada e fica apenas um código derivado dele (HMAC com INSCRICAO_SECRET) com a data, em
+// `descadastros`. É pseudônimo, não anônimo: com o segredo, dá para testar um e-mail candidato. Serve para invalidar links de confirmação emitidos antes. O link de confirmação vale 7 dias, então
 // o código perde a utilidade depois disso; apagamos com 30 dias, por margem.
 import { createHmac } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
