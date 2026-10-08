@@ -2,7 +2,7 @@
 import type { Transporter } from 'nodemailer';
 import { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ENVIO_REAL } from 'astro:env/server';
 import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
-import { EnvioIndisponivel, bloqueiaEnvioReal, criarTransporte } from './smtp';
+import { EnvioIndisponivel, ambienteAtual, bloqueiaEnvioReal, criarTransporte, envioRealLiberado } from './smtp';
 
 export { EnvioIndisponivel };
 
@@ -10,8 +10,7 @@ let transporter: Transporter | undefined;
 
 function transporte(): Transporter {
   if (!SMTP_USER || !SMTP_PASS) throw new EnvioIndisponivel();
-  const devOuTeste = import.meta.env.DEV || import.meta.env.MODE === 'test';
-  bloqueiaEnvioReal(SMTP_HOST, !devOuTeste || Boolean(ENVIO_REAL), import.meta.env.MODE);
+  bloqueiaEnvioReal(SMTP_HOST, envioRealLiberado(ENVIO_REAL), ambienteAtual());
   transporter ??= criarTransporte({ host: SMTP_HOST, port: SMTP_PORT, user: SMTP_USER, pass: SMTP_PASS });
   return transporter;
 }
