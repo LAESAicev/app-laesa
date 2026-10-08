@@ -48,7 +48,7 @@ export const hashDo = (r: Pick<Rascunho, 'item' | 'evento' | 'assunto' | 'texto'
   createHash('sha256').update(JSON.stringify([r.item, r.evento, r.assunto, r.texto, r.site, r.contato])).digest('hex');
 
 /** Chave da proteção contra repetição: item + evento; aviso livre conta pelo conteúdo. */
-const chaveDoItem = (r: Pick<Rascunho, 'item' | 'hash'>) => r.item ?? `livre:${r.hash.slice(0, 16)}`;
+export const chaveDoItem = (r: Pick<Rascunho, 'item' | 'hash'>) => r.item ?? `livre:${r.hash.slice(0, 16)}`;
 
 export type Fila = ReturnType<typeof criarFila>;
 
