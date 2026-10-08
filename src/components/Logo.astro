@@ -1,18 +1,32 @@
 ---
 // Logo oficial (brand/logo). A arte vive num canvas 0,0; o recorte é feito pelo CSS .lg (ver global.css).
 // A cor vem de `color` do elemento pai (fill="currentColor").
+// O horizontal aparece duas vezes por página (menu e rodapé): o desenho entra uma vez só, como <symbol>
+// emitido pelo BaseLayout (<Logo definicao />), e cada uso aponta para ele com <use>.
 import horizontal from '../../brand/logo/horizontal/laesa-horizontal-navy.svg?raw';
 import icone from '../../brand/logo/icone/laesa-icone-navy.svg?raw';
 
 interface Props {
   variant?: 'horizontal' | 'icone';
+  /** Só no BaseLayout: emite o <symbol> do logo horizontal, escondido. */
+  definicao?: boolean;
 }
 
-const { variant = 'horizontal' } = Astro.props;
-const raw = variant === 'horizontal' ? horizontal : icone;
+const { variant = 'horizontal', definicao = false } = Astro.props;
+const ID = 'laesa-logo';
+const raw = definicao || variant === 'horizontal' ? horizontal : icone;
 const [, w, h] = raw.match(/width="(\d+)" height="(\d+)"/) ?? [];
-const svg = raw
-  .replace(/<svg[^>]*>/, `<svg viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">`)
-  .replace(/fill="#[0-9A-Fa-f]{6}"/g, 'fill="currentColor"');
+const viewBox = `0 0 ${w} ${h}`;
+const paths = raw
+  .replace(/^[\s\S]*?<svg[^>]*>|<\/svg>\s*$/g, '')
+  .replace(/fill="#[0-9A-Fa-f]{6}"/g, 'fill="currentColor"')
+  // 1 casa decimal num canvas de 1080 dá erro < 0,01px no tamanho exibido; corta ~25% do desenho
+  .replace(/-?\d+\.\d+/g, (n) => String(+Number(n).toFixed(1)));
 ---
-<span class:list={['lg', variant === 'horizontal' ? 'lg-h' : 'lg-i']} set:html={svg} />
+{definicao ? (
+  <svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false"><symbol id={ID} viewBox={viewBox} set:html={paths} /></svg>
+) : variant === 'horizontal' ? (
+  <span class="lg lg-h"><svg viewBox={viewBox} fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><use href={`#${ID}`} /></svg></span>
+) : (
+  <span class="lg lg-i"><svg viewBox={viewBox} fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" set:html={paths} /></span>
+)}
