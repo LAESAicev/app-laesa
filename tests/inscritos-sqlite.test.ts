@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -80,6 +80,18 @@ describe('inscritos em SQLite', () => {
     db.close();
   });
 
+  it('a primeira chamada depois de abrir já apaga códigos vencidos (o comando diário só precisa abrir e ler)', async () => {
+    const caminho = novoBanco();
+    await criarInscritosSqlite(caminho, SEGREDO).remover('velho@exemplo.com', diasAtras(10));
+    const db = new DatabaseSync(caminho);
+    db.prepare('UPDATE descadastros SET removido_em = ?').run(diasAtras(31).toISOString()); // o tempo passou
+    db.close();
+    await criarInscritosSqlite(caminho, SEGREDO).listar();
+    const depois = new DatabaseSync(caminho);
+    expect(depois.prepare('SELECT count(*) AS n FROM descadastros').get()).toEqual({ n: 0 });
+    depois.close();
+  });
+
   it('readiciona depois de remover', async () => {
     const store = criarInscritosSqlite(novoBanco(), SEGREDO);
     await store.adicionar('a@exemplo.com', new Date());
@@ -159,5 +171,66 @@ describe('migração do esquema antigo (e-mail em claro com removido_em)', () =>
     const caminho = bancoAntigo();
     await conferir(caminho);
     await conferir(caminho);
+  });
+});
+
+describe('limpeza do arquivo depois da migração', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const pragma = (caminho: string, nome: string) => {
+    const db = new DatabaseSync(caminho);
+    const valor = Object.values(db.prepare(`PRAGMA ${nome}`).get() as object)[0];
+    db.close();
+    return valor;
+  };
+
+  /** Banco antigo com e-mails apagados ainda no disco (sem secure_delete) e páginas livres. */
+  function bancoAntigoSujo(): string {
+    const caminho = novoBanco();
+    const db = new DatabaseSync(caminho);
+    db.exec('CREATE TABLE inscritos (email TEXT PRIMARY KEY, consentimento_em TEXT, removido_em TEXT, criado_em TEXT)');
+    const inserir = db.prepare('INSERT INTO inscritos (email, consentimento_em, removido_em) VALUES (?, ?, ?)');
+    for (let i = 0; i < 300; i++) inserir.run(`apagado${i}@exemplo.com`, diasAtras(5).toISOString(), null);
+    inserir.run('saiu@exemplo.com', null, diasAtras(3).toISOString());
+    db.exec("DELETE FROM inscritos WHERE email LIKE 'apagado%'");
+    db.close();
+    return caminho;
+  }
+
+  it('VACUUM que falha não derruba a abertura, avisa no log e é tentado de novo na próxima abertura', async () => {
+    const caminho = bancoAntigoSujo();
+    expect(noDisco(caminho, 'apagado1@exemplo.com')).toBe(true);
+    const exec = DatabaseSync.prototype.exec;
+    const falha = vi.spyOn(DatabaseSync.prototype, 'exec').mockImplementation(function (this: DatabaseSync, sql: string) {
+      if (sql === 'VACUUM') throw Object.assign(new Error('database is locked'), { code: 'ERR_SQLITE_ERROR', errcode: 5 });
+      return exec.call(this, sql);
+    });
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(await criarInscritosSqlite(caminho, SEGREDO).listar()).toEqual([]);
+    expect(aviso).toHaveBeenCalledWith(expect.stringContaining('VACUUM'), expect.anything());
+    expect(aviso.mock.calls.flat().join(' ')).not.toMatch(/@exemplo\.com/);
+    expect(pragma(caminho, 'user_version')).toBe(1); // limpeza pendente
+    expect(noDisco(caminho, 'apagado1@exemplo.com')).toBe(true);
+
+    falha.mockRestore();
+    aviso.mockClear();
+    expect(await criarInscritosSqlite(caminho, SEGREDO).listar()).toEqual([]);
+    expect(aviso).not.toHaveBeenCalled();
+    expect(pragma(caminho, 'user_version')).toBe(0);
+    expect(pragma(caminho, 'freelist_count')).toBe(0);
+    expect(noDisco(caminho, 'apagado1@exemplo.com')).toBe(false);
+    expect(noDisco(caminho, 'saiu@exemplo.com')).toBe(false);
+  });
+
+  it('banco já migrado com páginas livres (VACUUM de uma versão anterior que falhou) é compactado ao abrir', async () => {
+    const caminho = bancoAntigoSujo();
+    const db = new DatabaseSync(caminho);
+    db.exec('ALTER TABLE inscritos DROP COLUMN removido_em'); // como se migrado sem VACUUM, sem marca
+    db.exec('CREATE TABLE descadastros (codigo TEXT PRIMARY KEY, removido_em TEXT NOT NULL)');
+    db.close();
+    expect(pragma(caminho, 'freelist_count')).toBeGreaterThan(0);
+    await criarInscritosSqlite(caminho, SEGREDO).listar();
+    expect(pragma(caminho, 'freelist_count')).toBe(0);
+    expect(noDisco(caminho, 'apagado1@exemplo.com')).toBe(false);
   });
 });
