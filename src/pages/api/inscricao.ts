@@ -1,6 +1,6 @@
 // POST /api/inscricao — pede a inscrição e envia o e-mail de confirmação (confirmação dupla).
 import type { APIRoute } from 'astro';
-import { errosPorCampo } from '../../lib/contato.schema';
+import { errosPorCampo } from '../../lib/formulario';
 import { inscricaoSchema, inscritos, emailConfirmacao, podeEnviarConfirmacao, devolverConfirmacao, InscricaoIndisponivel } from '../../lib/inscricao';
 import { enviar, EnvioIndisponivel } from '../../lib/mailer';
 import { criarLimite, chaveIp, isentoLocal } from '../../lib/rate-limit';

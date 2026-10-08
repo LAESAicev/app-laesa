@@ -155,7 +155,18 @@ const f = (name: string) => `${id}-${name}`;
 </div>
 
 <script>
-  import { validarContato, formParaObjeto, rotuloAssunto, type Assunto, type Erros } from '../lib/contato.schema';
+  import type { Assunto } from '../lib/contato.schema';
+  import { formParaObjeto, type Erros } from '../lib/formulario';
+
+  // O schema traz o zod (~24 KB gzip): só baixa quando a pessoa começa a preencher ou envia.
+  type Schema = typeof import('../lib/contato.schema');
+  let schema: Promise<Schema> | undefined;
+  const carregarSchema = () =>
+    (schema ??= import('../lib/contato.schema').catch((e) => {
+      schema = undefined; // falhou (rede): a próxima tentativa baixa de novo
+      throw e;
+    }));
+  const SEM_CONEXAO = 'Sem conexão com o servidor. Confira sua internet e tente de novo.';
 
   const ALERT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>';
   const SPIN = '<svg class="spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" stroke-width="2.5"/><path d="M21 12a9 9 0 0 0-9-9" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>';
@@ -234,7 +245,7 @@ const f = (name: string) => `${id}-${name}`;
     }
   }
 
-  function sucesso(form: HTMLFormElement, dados: { assunto: Assunto; email?: string; anonimo?: boolean }) {
+  function sucesso(form: HTMLFormElement, dados: { assunto: Assunto; email?: string; anonimo?: boolean }, rotulo: string) {
     const box = form.closest<HTMLElement>('[data-contact-box]')!;
     const ok = box.querySelector<HTMLElement>('[data-success]')!;
     const texto = ok.querySelector<HTMLElement>('[data-success-text]')!;
@@ -249,7 +260,7 @@ const f = (name: string) => `${id}-${name}`;
       b.textContent = dados.email;
       texto.append(b, '.');
     }
-    ok.querySelector('[data-success-meta]')!.textContent = `assunto: ${rotuloAssunto[dados.assunto].toLowerCase()}`;
+    ok.querySelector('[data-success-meta]')!.textContent = `assunto: ${rotulo.toLowerCase()}`;
     form.hidden = true;
     ok.hidden = false;
     ok.focus();
@@ -258,7 +269,13 @@ const f = (name: string) => `${id}-${name}`;
   async function enviarFormulario(form: HTMLFormElement) {
     const obj = formParaObjeto(new FormData(form));
     const { nao_preencher: _hp, ...paraValidar } = obj;
-    const r = validarContato(paraValidar);
+    let s: Schema;
+    try {
+      s = await carregarSchema();
+    } catch {
+      return mostrarErros(form, {}, SEM_CONEXAO);
+    }
+    const r = s.validarContato(paraValidar);
     if (!r.ok) return mostrarErros(form, r.erros);
     limparErros(form);
     enviando(form, true);
@@ -272,8 +289,8 @@ const f = (name: string) => `${id}-${name}`;
     } finally {
       enviando(form, false); // destrava antes de mostrar o resultado: elemento inert não recebe foco
     }
-    if (!res) return mostrarErros(form, {}, 'Sem conexão com o servidor. Confira sua internet e tente de novo.');
-    if (res.status === 201) return sucesso(form, r.data);
+    if (!res) return mostrarErros(form, {}, SEM_CONEXAO);
+    if (res.status === 201) return sucesso(form, r.data, s.rotuloAssunto[r.data.assunto]);
     if (res.status === 422 && body.erros) return mostrarErros(form, body.erros);
     mostrarErros(form, {}, body.erro ?? 'Não foi possível enviar agora. Tente de novo em instantes.');
   }
@@ -349,6 +366,7 @@ const f = (name: string) => `${id}-${name}`;
     apply(select.value);
     window.addEventListener('pageshow', () => apply(select.value));
 
+    form.addEventListener('focusin', () => void carregarSchema().catch(() => {}), { once: true });
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       void enviarFormulario(form);

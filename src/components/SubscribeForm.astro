@@ -21,8 +21,17 @@ import Icon from './Icon.astro';
 </form>
 
 <script>
-  import { inscricaoSchemaCliente } from '../lib/inscricao.schema';
-  import { errosPorCampo, formParaObjeto } from '../lib/contato.schema';
+  import { errosPorCampo, formParaObjeto } from '../lib/formulario';
+
+  // O schema traz o zod (~24 KB gzip): só baixa quando a pessoa começa a preencher ou envia.
+  type Schema = typeof import('../lib/inscricao.schema');
+  let schema: Promise<Schema> | undefined;
+  const carregarSchema = () =>
+    (schema ??= import('../lib/inscricao.schema').catch((e) => {
+      schema = undefined; // falhou (rede): a próxima tentativa baixa de novo
+      throw e;
+    }));
+  const SEM_CONEXAO = 'Sem conexão com o servidor. Confira sua internet e tente de novo.';
 
   const SPIN = '<svg class="spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="rgba(4,63,99,0.25)" stroke-width="2.5"/><path d="M21 12a9 9 0 0 0-9-9" stroke="#043F63" stroke-width="2.5" stroke-linecap="round"/></svg>';
 
@@ -53,11 +62,18 @@ import Icon from './Icon.astro';
       } else if (btn.dataset.html) btn.innerHTML = btn.dataset.html;
     };
     form.addEventListener('input', (e) => (e.target as HTMLElement).removeAttribute('aria-invalid'));
+    form.addEventListener('focusin', () => void carregarSchema().catch(() => {}), { once: true });
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const obj = formParaObjeto(new FormData(form));
       const { nao_preencher: _hp, ...paraValidar } = obj;
-      const r = inscricaoSchemaCliente.safeParse(paraValidar);
+      let s: Schema;
+      try {
+        s = await carregarSchema();
+      } catch {
+        return say(SEM_CONEXAO, 'erro');
+      }
+      const r = s.inscricaoSchemaCliente.safeParse(paraValidar);
       if (!r.success) {
         const erros = errosPorCampo(r.error);
         const campo = erros.email ? 'email' : 'consentimento';
@@ -76,7 +92,7 @@ import Icon from './Icon.astro';
       } finally {
         carregando(false); // destrava antes de focar: elemento inert não recebe foco
       }
-      if (!res) return say('Sem conexão com o servidor. Confira sua internet e tente de novo.', 'erro');
+      if (!res) return say(SEM_CONEXAO, 'erro');
       if (res.status === 202) {
         form.reset();
         return say(`Quase lá: enviamos um link de confirmação para ${r.data.email}. Confira a caixa de entrada e o spam.`, 'ok');
