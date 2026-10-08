@@ -1,11 +1,21 @@
 // Envio de e-mail pela conta Google Workspace da LAESA (SMTP). Credenciais só em variáveis de ambiente.
 import nodemailer, { type Transporter } from 'nodemailer';
-import { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } from 'astro:env/server';
+import { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ENVIO_REAL } from 'astro:env/server';
 import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
 
 export class EnvioIndisponivel extends Error {
-  constructor() {
-    super('SMTP não configurado: defina SMTP_USER e SMTP_PASS (ver .env.example).');
+  constructor(mensagem = 'SMTP não configurado: defina SMTP_USER e SMTP_PASS (ver .env.example).') {
+    super(mensagem);
+  }
+}
+
+const SMTP_LOCAL = new Set(['localhost', '127.0.0.1', '::1', 'mailpit']);
+
+/** Em dev e testes, só SMTP local (Mailpit): um .env de produção copiado não manda e-mail de verdade sem querer. */
+function bloqueiaEnvioReal() {
+  const devOuTeste = import.meta.env.DEV || import.meta.env.MODE === 'test';
+  if (devOuTeste && !SMTP_LOCAL.has(SMTP_HOST.toLowerCase()) && !ENVIO_REAL) {
+    throw new EnvioIndisponivel(`Envio real bloqueado em ${import.meta.env.MODE}: SMTP_HOST=${SMTP_HOST} não é local. Use o Mailpit ou ENVIO_REAL=true.`);
   }
 }
 
@@ -13,6 +23,7 @@ let transporter: Transporter | undefined;
 
 function transporte(): Transporter {
   if (!SMTP_USER || !SMTP_PASS) throw new EnvioIndisponivel();
+  bloqueiaEnvioReal();
   transporter ??= nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,

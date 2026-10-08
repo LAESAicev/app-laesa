@@ -76,6 +76,8 @@ export default defineConfig({
       SMTP_USER: envField.string({ context: 'server', access: 'secret', optional: true }),
       SMTP_PASS: envField.string({ context: 'server', access: 'secret', optional: true }),
       MAIL_TO: envField.string({ context: 'server', access: 'secret', optional: true }),
+      // Em dev e testes, o envio só sai para SMTP local (Mailpit). true libera um SMTP real de propósito.
+      ENVIO_REAL: envField.boolean({ context: 'server', access: 'secret', optional: true }),
 
       // Inscrição em avisos: segredo que assina os links de confirmação e descadastro, e onde guardar
       // os inscritos: "sqlite" (produção, arquivo no volume /data do contêiner) ou "memoria" (dev e testes).

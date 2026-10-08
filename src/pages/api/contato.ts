@@ -29,7 +29,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     await enviar(montarEmailContato(resultado.data, MAIL_TO || PUBLIC_CONTACT_EMAIL));
   } catch (e) {
     if (e instanceof EnvioIndisponivel) {
-      console.warn('[contato] envio indisponível: SMTP não configurado');
+      console.warn('[contato] envio indisponível:', e.message);
       return json(503, { erro: `O envio está temporariamente indisponível. Escreva direto para ${PUBLIC_CONTACT_EMAIL}.` });
     }
     console.error('[contato] falha ao enviar', resumoErro(e));

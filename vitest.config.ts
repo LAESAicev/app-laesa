@@ -17,5 +17,7 @@ export default getViteConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     env: variaveisDeTeste,
+    // Rede de segurança: nenhum teste chega ao SMTP de verdade (tests/setup.ts).
+    setupFiles: ['tests/setup.ts'],
   },
 });
