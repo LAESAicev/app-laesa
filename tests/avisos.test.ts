@@ -1,12 +1,12 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { bloqueios, linksDeFora } from '../src/lib/avisos/bloqueios';
 import { criarFila, ErroAviso, type Fila } from '../src/lib/avisos/fila';
 import type { ItemAtividade, ItemEdital, Manifesto } from '../src/lib/avisos/manifesto';
-import { processar } from '../src/lib/avisos/processar';
+import { processadorCaiu, processar } from '../src/lib/avisos/processar';
 import { eventoSugerido, mensagemPara, renderizar, type Mensagem } from '../src/lib/avisos/templates';
 import { criarInscritosSqlite } from '../src/lib/inscritos-sqlite';
 import { lerToken } from '../src/lib/tokens';
@@ -270,6 +270,34 @@ describe('avisos: fila', () => {
     agora += 61_000; // a vez do outro venceu (ele caiu sem soltar)
     expect(await rodar(fila, c.enviar)).toBe('fim');
     expect(c.recebidos).toHaveLength(5);
+  });
+
+  it('vez de um processador que caiu pode ser tomada antes de vencer', async () => {
+    const { fila } = await envioPronto();
+    expect(fila.pegarVez('morto', 17 * 60_000)).toBe(true);
+    expect(fila.pegarVez('novo', 60_000, () => false)).toBe(false); // dono vivo (ou sem como saber): espera vencer
+    expect(fila.pegarVez('novo', 60_000, (dono) => dono === 'morto')).toBe(true);
+    expect(fila.processador()?.dono).toBe('novo');
+  });
+
+  it('processadorCaiu: só diz que caiu quando tem certeza', () => {
+    const proc = mkdtempSync(join(tmpdir(), 'proc-'));
+    const processo = (pid: number, cmdline: string) => {
+      mkdirSync(join(proc, String(pid)));
+      writeFileSync(join(proc, String(pid), 'cmdline'), cmdline);
+    };
+    processo(10, 'node\0/app/scripts/avisar.ts\0processar\0');
+    processo(11, ''); // zumbi: o processo acabou e ninguém recolheu
+    processo(12, 'node\0dist/server/entry.mjs\0'); // PID reaproveitado por outro programa
+    const caiu = (dono: string) => processadorCaiu(dono, { host: 'app1', proc });
+    expect(caiu('app1:10:1')).toBe(false);
+    expect(caiu('app1:11:1')).toBe(true);
+    expect(caiu('app1:12:1')).toBe(true);
+    expect(caiu('app1:13:1')).toBe(true); // não existe mais
+    expect(caiu('outro-conteiner:13:1')).toBe(false); // outra máquina: não dá para conferir
+    expect(caiu('outro')).toBe(false); // formato desconhecido
+    expect(processadorCaiu('app1:13:1', { host: 'app1', proc: join(proc, 'nao-existe') })).toBe(false); // sem /proc (macOS)
+    rmSync(proc, { recursive: true });
   });
 
   it('teto diário pausa o envio; retomar no dia seguinte termina', async () => {

@@ -102,6 +102,8 @@ Situações possíveis de um envio: `enviando`, `pausado` (com o motivo), `concl
 
 O envio pausa sozinho quando o SMTP falha várias vezes seguidas (o comando espera 1, 5 e 15 minutos entre as tentativas) ou quando chega ao teto diário. Resolvido o problema, use `retomar`. Quem já recebeu não recebe de novo, e quem se descadastrou no meio do envio fica de fora.
 
+Se o processo que envia cair (o contêiner reiniciou, por exemplo), o `status` avisa que o processamento parou e indica o `retomar`. Quando não dá para ter certeza, ele mostra até que horas a vez do processador está ocupada e desde quando nenhum e-mail sai. Se nada mudar até esse horário, rode `retomar`. Antes disso, o `retomar` não atrapalha: se o processo ainda estiver vivo, o novo sai sem enviar nada.
+
 O registro do processamento fica em `/data/avisos.log`, no volume do contêiner (`docker compose exec app tail /data/avisos.log`). O registro não guarda e-mails.
 
 ## O que é bloqueado e por quê

@@ -13,7 +13,7 @@ import { TIMEZONE, hojeEm } from '../src/lib/atividades.ts';
 import { bloqueios } from '../src/lib/avisos/bloqueios.ts';
 import { ErroAviso, chaveDoItem, criarFila, type Envio, type Fila, type Rascunho } from '../src/lib/avisos/fila.ts';
 import { lerManifesto, type Item, type Manifesto } from '../src/lib/avisos/manifesto.ts';
-import { processar } from '../src/lib/avisos/processar.ts';
+import { processadorCaiu, processar } from '../src/lib/avisos/processar.ts';
 import { criarRemetente } from '../src/lib/avisos/remetente.ts';
 import { estadoDa, eventoSugerido, eventoValido, mensagemPara, renderizar, rodape, EVENTOS, type Evento } from '../src/lib/avisos/templates.ts';
 import { EnvioIndisponivel } from '../src/lib/smtp.ts';
@@ -73,6 +73,8 @@ function remetente(contato: string) {
 
 const quando = (iso: string) =>
   new Intl.DateTimeFormat('pt-BR', { timeZone: TIMEZONE, dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
+
+const hora = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: TIMEZONE, timeStyle: 'short' }).format(new Date(iso));
 
 const numero = (v: string | undefined, o_que: string) => {
   const n = Number(v);
@@ -223,8 +225,17 @@ async function principal(): Promise<void> {
     if (!lista.length) return console.log(args[0] ? `Envio ${args[0]} não existe.` : 'Nenhum envio ainda.');
     for (const e of lista) console.log(linhaEnvio(e));
     const vez = fila.processador();
-    if (vez) console.log(`\nProcessando agora (ritmo de ~1 e-mail a cada 2,5 s).`);
-    else if (fila.proximoEnvio()) console.log(`\nHá envio "enviando" sem processamento ativo: rode retomar ${fila.proximoEnvio()!.id}.`);
+    const pendente = fila.proximoEnvio();
+    if (vez && processadorCaiu(vez.dono)) {
+      console.log(`\nO processamento parou: o processo que enviava não existe mais.${pendente ? ` Rode retomar ${pendente.id}.` : ''}`);
+    } else if (vez) {
+      console.log(`\nProcessando agora (ritmo de ~1 e-mail a cada 2,5 s; vez ocupada até ${hora(vez.expira_em)}).`);
+      // sem e-mail novo há mais de 1 min: espera depois de falha do SMTP (até 15 min) ou o processo caiu
+      if (pendente && Date.now() - Date.parse(pendente.atualizado_em) > 60_000) {
+        console.log(`Nenhum e-mail saiu desde ${hora(pendente.atualizado_em)}. Pode ser a espera depois de uma falha do SMTP (veja ${LOG}).`);
+        console.log(`Se nada mudar, rode retomar ${pendente.id} depois de ${hora(vez.expira_em)}.`);
+      }
+    } else if (pendente) console.log(`\nHá envio "enviando" sem processamento ativo: rode retomar ${pendente.id}.`);
     return;
   }
 
