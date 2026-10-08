@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const enviar = vi.fn();
 vi.mock('../src/lib/mailer', async (orig) => ({ ...(await orig<typeof import('../src/lib/mailer')>()), enviar }));
@@ -71,5 +71,63 @@ describe('POST /api/inscricao', () => {
 
   it('400 com corpo null (não quebra com 500)', async () => {
     expect((await chamar(null)).status).toBe(400);
+  });
+});
+
+describe('POST /api/inscricao: limite diário por IP', () => {
+  const MIN = 60 * 1000;
+  const rotaNova = async () => {
+    vi.resetModules();
+    const { POST: post } = await import('../src/pages/api/inscricao');
+    let n = 0;
+    return (email = `p${n}@exemplo.com`, endereco = `10.70.${Math.floor(n / 250)}.${n++ % 250}`) =>
+      post({
+        request: new Request('http://localhost/api/inscricao', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, consentimento: true }) }),
+        clientAddress: endereco,
+        url: new URL('http://localhost/api/inscricao'),
+        site: new URL('https://laesa.icev.edu.br'),
+      } as never) as Promise<Response>;
+  };
+  /** Pedidos do mesmo IP, pulando a janela de 10 minutos a cada 5 para só o limite diário contar. */
+  async function espalhados(pedir: (email?: string, ip?: string) => Promise<Response>, ip: string, emails: string[]) {
+    const statuses: number[] = [];
+    for (const [i, email] of emails.entries()) {
+      if (i > 0 && i % 5 === 0) vi.advanceTimersByTime(11 * MIN);
+      statuses.push((await pedir(email, ip)).status);
+    }
+    return statuses;
+  }
+  const emails = (prefixo: string, n: number) => Array.from({ length: n }, (_, i) => `${prefixo}${i}@exemplo.com`);
+  beforeEach(() => {
+    enviar.mockReset();
+    vi.useFakeTimers({ toFake: ['Date'] });
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('429 depois de 20 pedidos do mesmo IP no dia', async () => {
+    const pedir = await rotaNova();
+    const statuses = await espalhados(pedir, '192.168.2.1', emails('a', 21));
+    expect(statuses).toEqual([...Array(20).fill(202), 429]);
+    expect(enviar).toHaveBeenCalledTimes(20);
+  });
+
+  it('IP no limite diário não gasta a cota global e os outros IPs continuam passando', async () => {
+    const pedir = await rotaNova();
+    await espalhados(pedir, '192.168.2.2', emails('b', 100)); // 20 passam, 80 barrados
+    enviar.mockReset();
+    for (let i = 0; i < 280; i++) expect((await pedir()).status).toBe(202);
+    expect(enviar).toHaveBeenCalledTimes(280); // 20 + 280 = teto global de 300
+    expect((await pedir()).status).toBe(202);
+    expect(enviar).toHaveBeenCalledTimes(280); // teto global: responde igual, sem enviar
+  });
+
+  it('pedido que não envia (e-mail repetido ou falha) não gasta a vaga do dia', async () => {
+    const pedir = await rotaNova();
+    enviar.mockRejectedValueOnce(new Error('smtp caiu'));
+    const lista = ['falha@exemplo.com', ...Array(10).fill('repete@exemplo.com'), ...emails('c', 18), 'ultimo@exemplo.com', 'sobra@exemplo.com'];
+    const statuses = await espalhados(pedir, '192.168.2.3', lista);
+    // Só 19 confirmações saíram (o primeiro "repete" e os 18 novos): "ultimo" ainda cabe, "sobra" já não.
+    expect(statuses).toEqual([500, ...Array(29).fill(202), 429]);
+    expect(enviar).toHaveBeenCalledTimes(1 + 1 + 18 + 1);
   });
 });
