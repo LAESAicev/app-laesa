@@ -15,6 +15,7 @@ const email = { to: 'a@b.com', subject: 'oi', text: 'oi' };
 
 describe('mailer: trava de envio real fora de produção', () => {
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.doUnmock('nodemailer');
     vi.doUnmock('astro:env/server');
   });
@@ -39,6 +40,22 @@ describe('mailer: trava de envio real fora de produção', () => {
     const { enviar, createTransport } = await carregar({ SMTP_HOST: 'smtp.gmail.com', ENVIO_REAL: true });
     await enviar(email);
     expect(createTransport).toHaveBeenCalledOnce();
+  });
+
+  it('recusa SMTP real sem NODE_ENV (npm run preview, node dist/server/entry.mjs com .env copiado)', async () => {
+    vi.stubEnv('NODE_ENV', undefined);
+    const { enviar, createTransport } = await carregar({ SMTP_HOST: 'smtp.gmail.com' });
+    await expect(enviar(email)).rejects.toThrow(/bloqueado em development/);
+    vi.stubEnv('NODE_ENV', 'development');
+    await expect(enviar(email)).rejects.toThrow(/bloqueado/);
+    expect(createTransport).not.toHaveBeenCalled();
+  });
+
+  it('NODE_ENV=production em tempo de execução libera SMTP real', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const { enviar, createTransport } = await carregar({ SMTP_HOST: 'smtp.gmail.com' });
+    await enviar(email);
+    expect(createTransport).toHaveBeenCalledWith(expect.objectContaining({ host: 'smtp.gmail.com' }));
   });
 
   it('EnvioIndisponivel sem SMTP_USER ou SMTP_PASS', async () => {

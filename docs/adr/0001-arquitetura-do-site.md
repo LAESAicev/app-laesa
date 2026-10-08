@@ -103,7 +103,7 @@ Registro de 2026-10-08. As decisões acima continuam valendo; isto só acrescent
 
 - Avisos aos inscritos por comando no servidor. O envio é feito pelo `scripts/avisar.ts`, que lê o manifesto dos itens publicados (`/avisos/itens.json`) e exige teste antes de enviar. Uma tela no site para isso fica para depois. Guia: [docs/avisos.md](../avisos.md).
 - LGPD nos inscritos. Quem se descadastra tem o e-mail apagado; fica só um código HMAC dele por 30 dias, para um link de confirmação antigo não reinscrever. As entregas dos avisos também guardam só HMAC. Os backups seguem a mesma retenção de 30 dias.
-- Trava contra envio real. Fora de produção, o app só envia por SMTP local (Mailpit), a não ser que `ENVIO_REAL=true`. Um `.env` de produção copiado para uma máquina de desenvolvimento não manda e-mail de verdade.
+- Trava contra envio real. Fora de produção (sem `NODE_ENV=production` no processo em execução, que a imagem Docker define), o app só envia por SMTP local (Mailpit), a não ser que `ENVIO_REAL=true`. Um `.env` de produção copiado para uma máquina de desenvolvimento não manda e-mail de verdade.
 - Armazenamento em desenvolvimento. `INSCRITOS_STORE=memoria` usa o mesmo SQLite, em memória (`:memory:`), no lugar de uma implementação separada.
 
 ## Consequências

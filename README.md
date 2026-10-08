@@ -60,7 +60,7 @@ docker run -d --name laesa-mailpit -p 8025:8025 -p 1025:1025 \
 
 No `.env`: `SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_USER=dev` e `SMTP_PASS=dev`. Para a inscrição, defina também `INSCRICAO_SECRET` (`openssl rand -hex 32`) e `INSCRITOS_STORE=memoria`. A caixa de entrada fica em http://localhost:8025.
 
-O `.env` local deve apontar para o Mailpit. Fora de produção, o site recusa qualquer SMTP que não seja local, para um `.env` copiado do servidor não mandar e-mail de verdade. Para testar um envio real de propósito, defina `ENVIO_REAL=true` e apague a linha depois.
+O `.env` local deve apontar para o Mailpit. Fora de produção, o site recusa qualquer SMTP que não seja local, para um `.env` copiado do servidor não mandar e-mail de verdade. Produção, aqui, é o processo rodando com `NODE_ENV=production` (a imagem Docker define): `npm run preview` ou `node dist/server/entry.mjs` na sua máquina também recusam. Para testar um envio real de propósito, defina `ENVIO_REAL=true` e apague a linha depois.
 
 Para o envio real, use a conta Google Workspace da LAESA com uma senha de app (`SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`). Redes de faculdade e empresa costumam bloquear as portas 465 e 587; nesse caso, teste em outra rede.
 

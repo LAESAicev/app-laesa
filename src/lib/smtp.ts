@@ -13,8 +13,20 @@ const SMTP_LOCAL = new Set(['localhost', '127.0.0.1', '::1', 'mailpit']);
 export const smtpLocal = (host: string) => SMTP_LOCAL.has(host.toLowerCase());
 
 /**
+ * Envio real liberado: NODE_ENV=production no processo em execução (a imagem Docker define) ou ENVIO_REAL=true.
+ * Lido em tempo de execução, não no build: `npm run preview` ou `node dist/server/entry.mjs` na máquina de alguém,
+ * com o .env de produção copiado, continuam presos ao SMTP local. Mesma regra do comando dos avisos (scripts/avisar.ts).
+ */
+export function envioRealLiberado(envioReal: boolean | undefined, env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.NODE_ENV === 'production' || Boolean(envioReal);
+}
+
+/** Nome do ambiente para a mensagem de bloqueio. */
+export const ambienteAtual = (env: NodeJS.ProcessEnv = process.env) => env.NODE_ENV || 'development';
+
+/**
  * Fora de produção, só SMTP local (Mailpit): um .env de produção copiado não manda e-mail de verdade sem querer.
- * `liberado`: produção ou ENVIO_REAL=true. `ambiente` só entra na mensagem.
+ * `liberado`: ver envioRealLiberado(). `ambiente` só entra na mensagem.
  */
 export function bloqueiaEnvioReal(host: string, liberado: boolean, ambiente: string): void {
   if (!liberado && !smtpLocal(host)) {
