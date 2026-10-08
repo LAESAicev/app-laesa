@@ -127,10 +127,9 @@ function linhaEnvio(e: Envio): string {
   return linhas.join('\n');
 }
 
-async function principal(): Promise<void> {
-  if (!comando || op.ajuda || comando === 'ajuda') return console.log(AJUDA);
-
-  if (comando === 'itens') {
+/** Um handler por comando; cada um lê `args` e `op` (as opções da linha de comando). */
+const COMANDOS: Record<string, () => Promise<void>> = {
+  async itens() {
     const m = manifesto();
     const { fila } = await abrirFila();
     const hoje = hojeEm();
@@ -149,10 +148,9 @@ async function principal(): Promise<void> {
       if (antes.length) console.log(`  já avisado: ${antes.map((a) => `envio ${a.envio_id} em ${quando(a.criado_em)}`).join(', ')}`);
       for (const x of motivos) console.log(`  bloqueado: ${x}`);
     }
-    return;
-  }
+  },
 
-  if (comando === 'preparar') {
+  async preparar() {
     const [ev, chave] = args;
     if (!ev || !eventoValido(ev)) throw new Uso(`Diga o evento: ${EVENTOS.join(', ')}.`);
     const m = manifesto();
@@ -171,10 +169,9 @@ async function principal(): Promise<void> {
     const antes = item ? fila.notificacoes(item.id, ev) : [];
     if (antes.length) console.log(`Atenção: este aviso já foi enviado (envio ${antes.at(-1)!.envio_id}). Só sai de novo com --reenviar.`);
     console.log(`Próximo passo: node scripts/avisar.ts teste ${r.id}`);
-    return;
-  }
+  },
 
-  if (comando === 'teste') {
+  async teste() {
     const { fila } = await abrirFila();
     const r = rascunhoOuErro(fila, args[0]);
     revalidar(r);
@@ -183,10 +180,9 @@ async function principal(): Promise<void> {
     fila.marcarTeste(r.id);
     console.log(`Teste do rascunho ${r.id} enviado para ${para}. Confira assunto, texto e links.`);
     console.log(`Estando tudo certo: node scripts/avisar.ts enviar ${r.id} --por "Seu nome"`);
-    return;
-  }
+  },
 
-  if (comando === 'enviar') {
+  async enviar() {
     const { fila } = await abrirFila();
     const r = rascunhoOuErro(fila, args[0]);
     if (!op.por?.trim()) throw new Uso('Diga quem está enviando: --por "Seu nome".');
@@ -204,19 +200,17 @@ async function principal(): Promise<void> {
     const e = fila.criarEnvio(r.id, op.por, total, { reenviar: op.reenviar });
     console.log(`Envio ${e.id} criado.`);
     iniciarProcessamento();
-    return;
-  }
+  },
 
-  if (comando === 'processar') {
+  async processar() {
     const { fila } = await abrirFila();
     const proximo = fila.proximoEnvio();
     if (!proximo) return console.log(`[avisos] ${new Date().toISOString()} nada a enviar`);
     const enviar = remetente(fila.rascunho(proximo.rascunho_id)!.contato);
     await processar({ fila, segredo: segredo(), enviar });
-    return;
-  }
+  },
 
-  if (comando === 'status') {
+  async status() {
     const { fila } = await abrirFila();
     const lista = args[0] ? [fila.envio(numero(args[0], 'envio'))].filter((e) => e !== undefined) : fila.envios().slice(0, 10);
     if (!lista.length) return console.log(args[0] ? `Envio ${args[0]} não existe.` : 'Nenhum envio ainda.');
@@ -231,31 +225,31 @@ async function principal(): Promise<void> {
         console.log(`Se nada mudar, rode retomar ${pendente.id} depois de ${hora(vez.expira_em)}.`);
       }
     } else if (pendente) console.log(`\nHá envio "enviando" sem processamento ativo: rode retomar ${pendente.id}.`);
-    return;
-  }
+  },
 
-  if (comando === 'retomar') {
+  async retomar() {
     const { fila } = await abrirFila();
     const e = await fila.retomar(numero(args[0], 'envio'));
     console.log(`Envio ${e.id} retomado: faltam ${Math.max(e.total_previsto - e.enviados - e.falhas, 0)} de ${e.total_previsto} (a conta usa a lista de inscritos de agora).`);
     iniciarProcessamento();
-    return;
-  }
+  },
 
-  if (comando === 'cancelar') {
+  async cancelar() {
     const { fila } = await abrirFila();
     const e = fila.cancelar(numero(args[0], 'envio'));
     console.log(`Envio ${e.id} cancelado: ${e.enviados} já tinham recebido. O resto não recebe.`);
-    return;
-  }
+  },
 
-  if (comando === 'limpar') {
+  async limpar() {
     const { limpeza } = await abrirFila();
     console.log(`[avisos] ${new Date().toISOString()} limpeza: ${limpeza.cancelados} envios parados cancelados, ${limpeza.apagadas} entregas apagadas`);
-    return;
-  }
+  },
+};
 
-  throw new Uso(`Comando desconhecido: ${comando}\n\n${AJUDA}`);
+async function principal(): Promise<void> {
+  if (!comando || op.ajuda || comando === 'ajuda') return console.log(AJUDA);
+  if (!Object.hasOwn(COMANDOS, comando)) throw new Uso(`Comando desconhecido: ${comando}\n\n${AJUDA}`);
+  await COMANDOS[comando]();
 }
 
 principal().catch((e: unknown) => {
