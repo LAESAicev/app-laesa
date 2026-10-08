@@ -22,7 +22,7 @@ try {
     {estado === 'pedir' && (
       <>
         <h1 class="d1">Cancelar <em>as novidades?</em></h1>
-        <p class="lead" style="margin: 24px 0 36px">Seu e-mail sai da lista e você não recebe mais as novidades da LAESA.</p>
+        <p class="lead" style="margin: 24px 0 36px">Seu e-mail é apagado da lista e você não recebe mais as novidades da LAESA.</p>
         <form method="post" action={`/avisos/descadastro?t=${encodeURIComponent(token)}`}>
           <Button type="submit" variant="outline" icon={false}>Cancelar inscrição</Button>
         </form>
@@ -31,7 +31,7 @@ try {
     {estado === 'ok' && (
       <>
         <h1 class="d1">Inscrição <em>cancelada.</em></h1>
-        <p class="lead" style="margin: 24px 0 36px">Você não vai mais receber as novidades da LAESA. Seu e-mail foi removido da lista.</p>
+        <p class="lead" style="margin: 24px 0 36px">Você não vai mais receber as novidades da LAESA. Apagamos seu e-mail da lista. Saiba mais na <a href="/privacidade">página de privacidade</a>.</p>
         <Button href="/">Voltar para o início</Button>
       </>
     )}
