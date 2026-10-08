@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gerarToken, lerToken, inscricaoSchema, confirmar, descadastrar, inscritos } from '../src/lib/inscricao';
+import { gerarToken, lerToken, inscricaoSchema, confirmar, descadastrar, inscritos, podeEnviarConfirmacao, devolverConfirmacao } from '../src/lib/inscricao';
 import { criarLimite, chaveIp } from '../src/lib/rate-limit';
 
 describe('links assinados da inscrição', () => {
@@ -30,6 +30,15 @@ describe('confirmar e descadastrar', () => {
     expect(await inscritos().listar()).not.toContain(email);
     expect(await confirmar(linkAntigo)).toBe(false);
     expect(await confirmar(gerarToken(email, 'confirmar', Date.now() + 1))).toBe(true);
+  });
+});
+
+describe('cota de confirmações', () => {
+  it('quando o teto global recusa, o destinatário não fica bloqueado por 24h', () => {
+    for (let i = 0; i < 300; i++) expect(podeEnviarConfirmacao(`p${i}@exemplo.com`)).toBe(true);
+    expect(podeEnviarConfirmacao('atrasado@exemplo.com')).toBe(false); // teto global esgotado
+    devolverConfirmacao('p0@exemplo.com'); // uma vaga global volta (o envio de p0 falhou)
+    expect(podeEnviarConfirmacao('atrasado@exemplo.com')).toBe(true);
   });
 });
 

@@ -89,7 +89,10 @@ const hash = (email: string) => createHash('sha256').update(email).digest('hex')
 /** true se pode mandar confirmação para este e-mail agora. Consome a cota. */
 export function podeEnviarConfirmacao(email: string): boolean {
   // destinatário primeiro: repetir o mesmo e-mail não pode consumir a cota global de todo mundo
-  return porDestinatario(hash(email)) && global('todos');
+  if (!porDestinatario(hash(email))) return false;
+  if (global('todos')) return true;
+  porDestinatario.devolver(hash(email)); // nada foi enviado: sem isso a pessoa ficaria 24h sem poder pedir
+  return false;
 }
 
 /** Devolve a cota de uma confirmação que não chegou a sair (o envio falhou): a nova tentativa envia de novo. */
