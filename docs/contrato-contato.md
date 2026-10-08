@@ -1,6 +1,6 @@
 # Contrato: formulário de contato e inscrição em avisos
 
-Derivado das telas de Contato validadas no Figma (`design/src/contato.html`). Implementado como rota do próprio app Astro (`src/pages/api/contato.ts`), ver ADR 0001. 
+Derivado das telas de Contato validadas no Figma (`design/src/contato.html`). Implementado como rotas do próprio app Astro (`src/pages/api/contato.ts` e `src/pages/api/inscricao.ts`), ver ADR 0001.
 
 ## `POST /api/contato`
 
@@ -44,11 +44,12 @@ Corpo em JSON. Os campos comuns valem para todos os assuntos; os específicos s�
 | --- | --- | --- |
 | `201` | mensagem enviada para a caixa da LAESA | `{ "id": "..." }` |
 | `400` | corpo ilegível, `null` ou array | `{ "erro": "..." }` |
+| `403` | pedido vindo de outro site (cabeçalho `Sec-Fetch-Site` diferente de `same-origin` ou `none`) | `{ "erro": "Pedido recusado." }` |
 | `415` | corpo que não é `application/json` | `{ "erro": "..." }` |
 | `422` | validação falhou | `{ "erros": { "<campo>": "mensagem que diz o problema e como corrigir" } }` |
 | `429` | mais de 5 envios do mesmo IP em 10 minutos, ou mais de 100 mensagens de todo o site em 24h (contador em memória, zera ao reiniciar) | `{ "erro": "..." }`; no teto diário, `"... escreva direto para <e-mail da LAESA>"` |
 | `500` | falha ao enviar | `{ "erro": "... escreva para <e-mail da LAESA>" }` |
-| `503` | SMTP não configurado | `{ "erro": "... escreva para <e-mail da LAESA>" }` |
+| `503` | SMTP não configurado (`SMTP_USER` ou `SMTP_PASS` vazio) ou envio real bloqueado fora de produção (ver `ENVIO_REAL` no `.env.example`) | `{ "erro": "... escreva direto para <e-mail da LAESA>" }` |
 
 Corpo sempre em JSON (pedidos cross-site com JSON exigem preflight, o que protege contra CSRF). O formulário precisa de JavaScript.
 
@@ -68,10 +69,16 @@ Pede a inscrição nos avisos e envia um e-mail de confirmação (confirmação 
 
 | Status | Quando |
 | --- | --- |
-| `202` | e-mail de confirmação enviado (link válido por 7 dias). Também responde 202, sem reenviar, se o mesmo e-mail pediu nas últimas 24h |
+| `202` | e-mail de confirmação enviado (link válido por 7 dias). Também responde 202, sem reenviar, se o mesmo e-mail pediu nas últimas 24h ou se o site já mandou 300 confirmações em 24h (contador em memória), e quando o honeypot vem preenchido (nada é enviado) |
+| `400` | corpo ilegível, `null` ou array |
+| `403` | pedido vindo de outro site (`Sec-Fetch-Site`) |
+| `415` | corpo que não é `application/json` |
 | `422` | validação falhou (`{ "erros": … }`) |
-| `429` | excesso de tentativas |
-| `503` | inscrições ainda não abertas (armazenamento pendente, ADR 0001 P2) ou SMTP não configurado |
+| `429` | mais de 5 tentativas do mesmo IP em 10 minutos |
+| `500` | falha ao enviar o e-mail de confirmação. A cota do e-mail é devolvida, então dá para tentar de novo na hora |
+| `503` | `INSCRICAO_SECRET` ou `INSCRITOS_STORE` não definido, ou SMTP indisponível (mesmos casos do contato). O corpo diz que as inscrições abrem em breve |
+
+Os erros vêm em `{ "erro": "..." }`, exceto o `422`. O `202` responde `{ "ok": true }`.
 
 Links assinados (HMAC com `INSCRICAO_SECRET`):
 - `/avisos/confirmar?t=…`: o GET mostra o botão "Confirmar inscrição"; o POST confirma. Um link emitido antes de um descadastro não reinscreve.
