@@ -1,7 +1,6 @@
 // Processa a fila: um e-mail por vez, no ritmo do Gmail, até não sobrar nada "enviando"; depois sai.
 // Não existe serviço rodando o tempo todo: o comando "enviar" (ou "retomar") inicia este processo em segundo plano.
-import { existsSync, readFileSync } from 'node:fs';
-import { hostname } from 'node:os';
+import { randomUUID } from 'node:crypto';
 import type { Fila } from './fila.ts';
 import { mensagemPara, type Mensagem } from './templates.ts';
 
@@ -36,23 +35,6 @@ function antesDoAceite(e: unknown): boolean {
   return /^(Connection timeout|Greeting never received)/.test(err?.message ?? '');
 }
 
-/**
- * O processador dono da vez (`contêiner:pid:início`) sabidamente morreu? Só responde "sim" com certeza: mesmo
- * contêiner e /proc/<pid> sem este comando (não existe, virou zumbi ou o PID foi reaproveitado por outro programa).
- * Sem /proc (macOS) ou em outro contêiner, responde "não" e vale o vencimento da vez.
- * ponytail: um PID reaproveitado por outro "avisar.ts processar" parece vivo; aí a vez só solta ao vencer (~17 min).
- */
-export function processadorCaiu(dono: string, { host = hostname(), proc = '/proc' } = {}): boolean {
-  const m = /^(.+):(\d+):\d+$/.exec(dono);
-  if (!m || m[1] !== host || !existsSync(proc)) return false;
-  try {
-    const cmd = readFileSync(`${proc}/${m[2]}/cmdline`, 'utf8');
-    return !(cmd.includes('avisar.ts') && cmd.includes('processar'));
-  } catch {
-    return true;
-  }
-}
-
 /** Descrição curta do erro, sem o endereço (o log não guarda e-mails). */
 const resumo = (e: unknown) => {
   const err = e as { code?: string; responseCode?: number; message?: string };
@@ -74,14 +56,14 @@ export type Opcoes = {
 /** "sem-vez": outro processador já está cuidando da fila. "fim": não sobrou nada para enviar agora. */
 export async function processar(o: Opcoes): Promise<'sem-vez' | 'fim'> {
   const { fila, segredo, enviar } = o;
-  const dono = o.dono ?? `${hostname()}:${process.pid}:${Date.now()}`;
+  const dono = o.dono ?? randomUUID();
   const intervalo = o.intervaloMs ?? INTERVALO_MS;
   const esperas = o.esperasMs ?? ESPERAS_MS;
   const teto = o.tetoDiario ?? TETO_DIARIO;
   const dormir = o.dormir ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const log = o.log ?? ((l: string) => console.log(`[avisos] ${new Date().toISOString()} ${l}`));
 
-  if (!fila.pegarVez(dono, VEZ_MS, processadorCaiu)) {
+  if (!fila.pegarVez(dono, VEZ_MS)) {
     log('outro processador já está enviando; nada a fazer aqui');
     return 'sem-vez';
   }

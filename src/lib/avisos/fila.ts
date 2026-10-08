@@ -237,11 +237,11 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
     enviadosUltimas24h: () => (db.prepare('SELECT count(*) AS n FROM avisos_entregas WHERE enviado_em >= ?').get(antes(DIA)) as { n: number }).n,
 
     // ---- vez do processador: um só por vez, senão o ritmo e o teto diário valeriam em dobro
-    /** `caiu(dono)`: o dono atual sabidamente morreu; a vez dele é tomada sem esperar vencer. */
-    pegarVez(dono: string, ms: number, caiu: (dono: string) => boolean = () => false): boolean {
+    /** A vez vence sozinha: um processador que caiu sem soltar segura a fila só até `expira_em`. */
+    pegarVez(dono: string, ms: number): boolean {
       return transacao(() => {
         const atual = db.prepare('SELECT dono, expira_em FROM avisos_processador WHERE id = 1').get() as { dono: string; expira_em: string } | undefined;
-        if (atual && atual.dono !== dono && atual.expira_em > agora() && !caiu(atual.dono)) return false;
+        if (atual && atual.dono !== dono && atual.expira_em > agora()) return false;
         db.prepare('INSERT INTO avisos_processador (id, dono, expira_em) VALUES (1, ?, ?) ON CONFLICT(id) DO UPDATE SET dono = excluded.dono, expira_em = excluded.expira_em').run(
           dono,
           new Date(relogio().getTime() + ms).toISOString(),

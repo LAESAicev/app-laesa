@@ -13,7 +13,7 @@ import { TIMEZONE, hojeEm } from '../src/lib/atividades.ts';
 import { bloqueios } from '../src/lib/avisos/bloqueios.ts';
 import { ErroAviso, chaveDoItem, criarFila, type Envio, type Fila, type Rascunho } from '../src/lib/avisos/fila.ts';
 import { lerManifesto, type Item, type Manifesto } from '../src/lib/avisos/manifesto.ts';
-import { processadorCaiu, processar } from '../src/lib/avisos/processar.ts';
+import { processar } from '../src/lib/avisos/processar.ts';
 import { criarRemetente } from '../src/lib/avisos/remetente.ts';
 import { estadoDa, eventoSugerido, eventoValido, mensagemPara, renderizar, rodape, EVENTOS, type Evento } from '../src/lib/avisos/templates.ts';
 import { EnvioIndisponivel } from '../src/lib/smtp.ts';
@@ -226,9 +226,7 @@ async function principal(): Promise<void> {
     for (const e of lista) console.log(linhaEnvio(e));
     const vez = fila.processador();
     const pendente = fila.proximoEnvio();
-    if (vez && processadorCaiu(vez.dono)) {
-      console.log(`\nO processamento parou: o processo que enviava não existe mais.${pendente ? ` Rode retomar ${pendente.id}.` : ''}`);
-    } else if (vez) {
+    if (vez) {
       console.log(`\nProcessando agora (ritmo de ~1 e-mail a cada 2,5 s; vez ocupada até ${hora(vez.expira_em)}).`);
       // sem e-mail novo há mais de 1 min: espera depois de falha do SMTP (até 15 min) ou o processo caiu
       if (pendente && Date.now() - Date.parse(pendente.atualizado_em) > 60_000) {
