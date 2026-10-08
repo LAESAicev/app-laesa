@@ -102,4 +102,4 @@ jobs:
           cache-to: type=gha,mode=max
 
   # deploy: pendente da hospedagem do iCEV (ADR 0001). Com a VM liberando saída para o GHCR, o servidor
-  # roda `docker compose pull && docker compose up -d` (manual, cron ou Watchtower). Ver docs/operacao.md.
+  # roda `docker compose pull && docker compose up -d` (cron só com o painel desligado). Ver docs/operacao.md.

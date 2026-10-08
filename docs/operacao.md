@@ -29,9 +29,24 @@ docker compose ps       # app "healthy" e proxy "running"
 
 O `.env` do servidor é o único lugar com segredos: a senha de app do Gmail e o `INSCRICAO_SECRET`. Ele não vai para o git nem para a imagem. Guarde uma cópia com a Mesa Diretora.
 
+Depois de mudar qualquer valor no `.env`, rode `docker compose up -d`: ele recria o contêiner com o ambiente novo. `docker compose restart` **não** relê o `env_file` e o app continua com os valores antigos.
+
 Se o iCEV já tiver um proxy próprio com HTTPS, remova o serviço `proxy` e publique o app só para a máquina local (`ports: ["127.0.0.1:4321:4321"]`). Esse proxy precisa:
 - **sobrescrever** `X-Forwarded-For` com o IP real (no Nginx: `proxy_set_header X-Forwarded-For $remote_addr;`);
 - limitar o corpo a 64 KB (`client_max_body_size 64k;`).
+
+## Checklist para pedir ao iCEV
+
+Perguntas para o setor de tecnologia antes da instalação:
+- **Máquina:** uma VM dedicada ao site ou um host de contêineres compartilhado? Docker e Docker Compose são permitidos?
+- **Acesso:** SSH só por chave, e para quais pessoas? Quem entrar no grupo `docker` tem, na prática, root na máquina (e lê o `.env`). Prefira o mínimo de pessoas, de preferência um(a) professor(a) e alguém do iCEV.
+- **Firewall:** entrada só nas portas 80 e 443 (TCP, e 443/UDP para HTTP/3) e no SSH; saída para `ghcr.io` (imagens) e `smtp.gmail.com:465` (e-mails).
+- **Atualizações de segurança automáticas** do sistema operacional (ex.: `unattended-upgrades`), e quem reinicia a máquina quando precisar.
+- **Recursos:** quanta RAM e CPU sobram. O site usa cerca de 150 MB em repouso; o `compose.yaml` limita o app a 384 MB e 0,5 CPU, e o proxy a 128 MB. Com 1 GB de RAM livre há folga.
+- **Backup:** o iCEV inclui o volume Docker `dados` no backup do servidor? Se sim, com retenção de no máximo 30 dias (são dados pessoais, ver [Backup](#backup)).
+- **DNS:** o domínio do site (ex.: `laesa.icev.edu.br`) apontando para o servidor, e o registro CAA, se existir, liberando o Let's Encrypt.
+- **E-mail (`somosicev.com`):** SPF, DKIM e DMARC configurados no domínio. O Gmail exige os três de quem envia em volume, e os avisos das novidades vão para muitos inscritos de uma vez; sem eles, os avisos caem no spam ou são recusados.
+- **Proxy ou NAT na frente do servidor:** se houver, o IP dele (para `trusted_proxies` no `deploy/Caddyfile`).
 
 ## Atualizar o site
 
@@ -50,15 +65,27 @@ Enquanto o domínio não estiver definido, o CI publica com o fallback do `ci.ym
 1. crie `SITE_URL` e `PUBLIC_CONTACT_EMAIL` nas Variables do repositório (precisa de admin);
 2. para tornar obrigatório, no passo "Confere variáveis do GitHub" do `ci.yml` troque cada linha pelo formato `[ -n "$VAR_SITE_URL" ] || { echo "::error::defina SITE_URL"; exit 1; }`. Assim o CI não publica mais imagem sem elas.
 
-Para atualizar sozinho, um cron com o primeiro comando, ou o [Watchtower](https://containrrr.dev/watchtower/), resolve. A escolha depende do que o iCEV permitir.
+### Atualizar sozinho ou à mão
+
+A regra depende do painel (Keystatic) em produção, porque o token de um editor também consegue mudar o código (ver [Quem pode editar](#3-quem-pode-editar)):
+- **Painel desligado em produção** (a imagem sai sem `PUBLIC_KEYSTATIC_GITHUB_REPO`, o caso atual): só quem tem escrita no repositório muda a `main`, então um cron no host que baixa a imagem nova é aceitável. Exemplo, com `crontab -e` do usuário do deploy, a cada 30 minutos:
+  ```sh
+  */30 * * * * cd /opt/app-laesa && (docker compose pull -q && docker compose up -d) 2>&1 | logger -t atualiza-laesa
+  ```
+- **Painel ligado em produção:** tire o cron e atualize à mão, depois de revisar o diff dos commits novos na `main` e ver o CI verde. Assim um token roubado não coloca código no ar sozinho.
+
+Não use Watchtower nem outro serviço que atualize contêineres: ele precisa do socket do Docker (equivale a root) e ainda puxaria qualquer imagem nova sem revisão.
 
 ## Desfazer uma mudança
 
-O conteúdo vive no git. Para voltar uma edição, reverta o commit no GitHub (`git revert <commit>`) e atualize o servidor. Para voltar uma versão inteira do site:
+O conteúdo vive no git. Para voltar uma edição, reverta o commit no GitHub (`git revert <commit>`) e atualize o servidor. Para voltar uma versão inteira do site, fixe no `.env` do servidor a imagem de um commit bom, pelo SHA completo (40 caracteres, aparece no commit do GitHub e no CI):
 
 ```sh
-IMAGE=ghcr.io/laesaicev/app-laesa:<sha-do-commit> docker compose up -d
+# no .env:  IMAGE=ghcr.io/laesaicev/app-laesa:<sha-completo-do-commit>
+docker compose pull app && docker compose up -d
 ```
+
+Deixe o `IMAGE` no `.env` até a `main` estar corrigida. Só com `IMAGE=... docker compose up -d` na linha de comando, o próximo `pull` (manual ou do cron) volta para a `latest` quebrada. Com a `main` corrigida e o CI verde, apague a linha `IMAGE` do `.env` e rode `docker compose pull && docker compose up -d`.
 
 ## Backup
 
@@ -127,7 +154,7 @@ docker compose down
 Com o modo GitHub, o painel também fica no site publicado (`https://laesa.icev.edu.br/keystatic`):
 - **Login:** é feito com a conta do GitHub, com a senha e a verificação em duas etapas da própria pessoa. O site não guarda senha nenhuma.
 - **Quem salva:** cada edição vira um commit com o nome de quem editou, e só salva quem tem escrita no repositório `LAESAicev/app-laesa`. Um curioso consegue entrar, mas não consegue salvar nada.
-- **Quando aparece no site:** o commit passa pelo CI, que gera uma imagem nova. A mudança aparece quando o servidor atualiza (`docker compose pull && docker compose up -d`, manual ou por cron).
+- **Quando aparece no site:** o commit passa pelo CI, que gera uma imagem nova. A mudança aparece quando alguém atualiza o servidor à mão (`docker compose pull && docker compose up -d`): com o painel ligado, sem cron (ver [Atualizar sozinho ou à mão](#atualizar-sozinho-ou-à-mão)).
 
 Sem `PUBLIC_KEYSTATIC_GITHUB_REPO` no build, a imagem sai sem painel, e o painel continua só em `npm run dev`, no modo local.
 
@@ -180,11 +207,11 @@ Faça com uma conta que seja **dona (Owner)** da organização LAESAicev, de pre
 
   Não exija PR na `main`, senão o painel não consegue salvar.
 - **O token vale para o repositório inteiro, não só para o conteúdo.** Quem tem o token de um editor consegue mudar o código também. Por isso:
-  - atualize o servidor só depois do CI verde, sem `pull` automático de qualquer commit;
+  - atualize o servidor à mão, depois de revisar o diff e ver o CI verde, e tire o cron de atualização (ver [Atualizar sozinho ou à mão](#atualizar-sozinho-ou-à-mão));
   - não ligue a permissão `workflows` no App.
 - **Vazamento ou suspeita:**
   - nas configurações do App, use **Advanced → Revoke all user tokens**. Um token já roubado vale no máximo 8 horas;
-  - troque `KEYSTATIC_SECRET` e reinicie; quem estava logado só entra de novo;
+  - troque `KEYSTATIC_SECRET` no `.env` e rode `docker compose up -d`; quem estava logado só entra de novo;
   - se o `KEYSTATIC_GITHUB_CLIENT_SECRET` vazar, gere outro nas configurações do App e atualize o `.env` do servidor.
 - **Proteções no site:**
   - as páginas públicas têm uma CSP que só roda scripts do próprio site, porque o token do editor fica legível no navegador, no mesmo domínio;
