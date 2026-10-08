@@ -47,6 +47,11 @@ ENV NODE_ENV=production \
     INSCRITOS_DB=/data/laesa.db
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+# Comando dos avisos (docker compose exec app node scripts/avisar.ts; docs/avisos.md): TypeScript rodado direto
+# pelo Node, só com os módulos puros que ele importa. Escreve apenas em /data (banco e avisos.log).
+COPY --from=build /app/scripts/avisar.ts ./scripts/
+COPY --from=build /app/src/lib/avisos ./src/lib/avisos
+COPY --from=build /app/src/lib/atividades.ts /app/src/lib/inscritos-sqlite.ts /app/src/lib/smtp.ts /app/src/lib/tokens.ts ./src/lib/
 COPY package.json ./
 RUN mkdir -p /data && chown node:node /data
 USER node
