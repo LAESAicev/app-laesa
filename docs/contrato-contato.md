@@ -47,7 +47,7 @@ Corpo em JSON. Os campos comuns valem para todos os assuntos; os específicos s�
 | `403` | pedido vindo de outro site (cabeçalho `Sec-Fetch-Site` diferente de `same-origin` ou `none`) | `{ "erro": "Pedido recusado." }` |
 | `415` | corpo que não é `application/json` | `{ "erro": "..." }` |
 | `422` | validação falhou | `{ "erros": { "<campo>": "mensagem que diz o problema e como corrigir" } }` |
-| `429` | mais de 5 envios do mesmo IP em 10 minutos, ou mais de 100 mensagens de todo o site em 24h (contador em memória, zera ao reiniciar) | `{ "erro": "..." }`; no teto diário, `"... escreva direto para <e-mail da LAESA>"` |
+| `429` | mais de 5 envios do mesmo IP em 10 minutos, mais de 10 mensagens do mesmo IP em 24h, ou mais de 100 mensagens de todo o site em 24h (contadores em memória, zeram ao reiniciar). IPv6 conta por prefixo /64. Mensagem que não chegou a sair (`500`/`503`) não gasta a vaga diária do IP | `{ "erro": "..." }`; nos tetos diários, `"... escreva direto para <e-mail da LAESA>"` |
 | `500` | falha ao enviar | `{ "erro": "... escreva para <e-mail da LAESA>" }` |
 | `503` | SMTP não configurado (`SMTP_USER` ou `SMTP_PASS` vazio) ou envio real bloqueado fora de produção (ver `ENVIO_REAL` no `.env.example`) | `{ "erro": "... escreva direto para <e-mail da LAESA>" }` |
 
@@ -74,7 +74,7 @@ Pede a inscrição nos avisos e envia um e-mail de confirmação (confirmação 
 | `403` | pedido vindo de outro site (`Sec-Fetch-Site`) |
 | `415` | corpo que não é `application/json` |
 | `422` | validação falhou (`{ "erros": … }`) |
-| `429` | mais de 5 tentativas do mesmo IP em 10 minutos |
+| `429` | mais de 5 tentativas do mesmo IP em 10 minutos, ou mais de 20 confirmações pedidas pelo mesmo IP em 24h (IPv6 por prefixo /64; pedido que não envia nada não conta). O limite do IP vem antes do teto de 300, então um IP barrado não gasta a cota do site |
 | `500` | falha ao enviar o e-mail de confirmação. A cota do e-mail é devolvida, então dá para tentar de novo na hora |
 | `503` | `INSCRICAO_SECRET` ou `INSCRITOS_STORE` não definido, ou SMTP indisponível (mesmos casos do contato). O corpo diz que as inscrições abrem em breve |
 
