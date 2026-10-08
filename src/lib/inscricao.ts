@@ -3,45 +3,29 @@
 // descadastro de um clique do Gmail, RFC 8058): scanners de link fazem GET e não podem confirmar nada.
 // Inscritos: SQLite no volume /data do contêiner (INSCRITOS_STORE=sqlite, arquivo em INSCRITOS_DB) ou SQLite
 // em memória (INSCRITOS_STORE=memoria, só dev e testes).
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { INSCRICAO_SECRET, INSCRITOS_DB, INSCRITOS_STORE } from 'astro:env/server';
 import { criarInscritosSqlite } from './inscritos-sqlite';
 import { criarLimite } from './rate-limit';
+import * as tokens from './tokens';
+import type { Acao, Token } from './tokens';
 
 export { inscricaoSchemaCliente as inscricaoSchema } from './inscricao.schema';
 
-// ---- links assinados
-type Acao = 'confirmar' | 'sair';
-type Token = { email: string; emitidoEm: number };
-const SETE_DIAS = 7 * 24 * 60 * 60 * 1000;
-const b64 = (s: string) => Buffer.from(s).toString('base64url');
-
+// ---- links assinados (src/lib/tokens.ts; aqui com o segredo do ambiente)
 export class InscricaoIndisponivel extends Error {}
 
-function assinatura(payload: string): string {
+function segredo(): string {
   if (!INSCRICAO_SECRET) throw new InscricaoIndisponivel('INSCRICAO_SECRET não definido.');
-  return createHmac('sha256', INSCRICAO_SECRET).update(payload).digest('base64url');
+  return INSCRICAO_SECRET;
 }
 
 export function gerarToken(email: string, acao: Acao, agora = Date.now()): string {
-  const payload = b64(JSON.stringify({ e: email, a: acao, i: agora }));
-  return `${payload}.${assinatura(payload)}`;
+  return tokens.gerarToken(segredo(), email, acao, agora);
 }
 
 export function lerToken(token: string, acao: Acao, agora = Date.now()): Token | null {
-  const [payload, sig] = token.split('.');
-  if (!payload || !sig) return null;
-  const esperado = Buffer.from(assinatura(payload));
-  const recebido = Buffer.from(sig);
-  if (esperado.length !== recebido.length || !timingSafeEqual(esperado, recebido)) return null;
-  try {
-    const { e, a, i } = JSON.parse(Buffer.from(payload, 'base64url').toString()) as { e: string; a: Acao; i: number };
-    if (a !== acao || typeof e !== 'string' || typeof i !== 'number') return null;
-    if (acao === 'confirmar' && agora - i > SETE_DIAS) return null;
-    return { email: e, emitidoEm: i };
-  } catch {
-    return null;
-  }
+  return tokens.lerToken(segredo(), token, acao, agora);
 }
 
 // ---- armazenamento
@@ -120,6 +104,5 @@ export function emailConfirmacao(email: string, site: URL) {
 
 /** Para os avisos enviados pela Mesa: link de descadastro e cabeçalhos de um clique (RFC 8058). */
 export function descadastro(email: string, site: URL) {
-  const link = new URL(`/avisos/descadastro?t=${gerarToken(email, 'sair')}`, site).toString();
-  return { link, headers: { 'List-Unsubscribe': `<${link}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } };
+  return tokens.linkDescadastro(segredo(), email, site);
 }
