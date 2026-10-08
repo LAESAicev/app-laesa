@@ -151,27 +151,32 @@ export const atividadesHome: Atividade[] = candidatasHome(atividades.filter((a) 
 
 // ---- editais (mais recente primeiro, pelo endereço: 2026-2 > 2026-1 > 2025-2 …)
 export const editais: Edital[] = colecao('editais')
-  .map(({ slug, entry }) => ({
-    slug,
-    titulo: entry.titulo,
-    inscricoesAte: dataIso(entry.inscricoesAte) ? dataCurta(dataIso(entry.inscricoesAte)!) : undefined,
-    inscricoes: periodo(dataIso(entry.inscricoesInicio), dataIso(entry.inscricoesAte)),
-    inscricoesProrrogadas:
-      dataIso(entry.inscricoesProrrogadasAte) && dataIso(entry.inscricoesProrrogadasAte)! > (dataIso(entry.inscricoesAte) ?? '')
-        ? periodo(dataIso(entry.inscricoesInicio), dataIso(entry.inscricoesProrrogadasAte))
-        : undefined,
-    analise: entry.analise || undefined,
-    integracao: dataIso(entry.integracao) ? dataCurta(dataIso(entry.integracao)!) : undefined,
-    cronograma: (entry.cronograma ?? [])
-      .filter((l: Yaml) => l?.etapa && l?.quando)
-      .map((l: Yaml) => ({ etapa: String(l.etapa), quando: String(l.quando), ref: l.ref || undefined, prorrogadoPara: l.prorrogadoPara || undefined })),
-    vagas: entry.vagas ?? undefined,
-    linkInscricao: linkSeguro(entry.linkInscricao),
-    pdfEdital: linkSeguro(entry.pdfEdital),
-    modeloCarta: linkSeguro(entry.modeloCarta),
-    resultado: linkSeguro(entry.resultado),
-    exemplo: Boolean(entry.exemplo),
-  }))
+  .map(({ slug, entry }) => {
+    const inicio = dataIso(entry.inscricoesInicio);
+    const ate = dataIso(entry.inscricoesAte);
+    const prorrogada = dataIso(entry.inscricoesProrrogadasAte);
+    // a prorrogação só vale se for depois do fim original
+    const prorrogadasAte = prorrogada && prorrogada > (ate ?? '') ? prorrogada : undefined;
+    return {
+      slug,
+      titulo: entry.titulo,
+      inscricoesAte: ate ? dataCurta(ate) : undefined,
+      inscricoes: periodo(inicio, ate),
+      inscricoesProrrogadas: prorrogadasAte ? periodo(inicio, prorrogadasAte) : undefined,
+      datas: { inscricoesInicio: inicio, inscricoesAte: ate, prorrogadasAte },
+      analise: entry.analise || undefined,
+      integracao: dataIso(entry.integracao) ? dataCurta(dataIso(entry.integracao)!) : undefined,
+      cronograma: (entry.cronograma ?? [])
+        .filter((l: Yaml) => l?.etapa && l?.quando)
+        .map((l: Yaml) => ({ etapa: String(l.etapa), quando: String(l.quando), ref: l.ref || undefined, prorrogadoPara: l.prorrogadoPara || undefined })),
+      vagas: entry.vagas ?? undefined,
+      linkInscricao: linkSeguro(entry.linkInscricao),
+      pdfEdital: linkSeguro(entry.pdfEdital),
+      modeloCarta: linkSeguro(entry.modeloCarta),
+      resultado: linkSeguro(entry.resultado),
+      exemplo: Boolean(entry.exemplo),
+    };
+  })
   .sort((a, b) => b.slug.localeCompare(a.slug, 'pt-BR', { numeric: true }));
 
 const atual = editais.find((e) => e.slug === selecao.editalAtual);
