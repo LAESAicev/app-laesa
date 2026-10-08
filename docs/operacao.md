@@ -42,6 +42,14 @@ docker compose pull && docker compose up -d   # usa a imagem publicada pelo CI
 # ou, sem o registry: git pull && docker compose up -d --build
 ```
 
+### De onde vêm `SITE_URL` e as variáveis `PUBLIC_*` da imagem
+
+Esses valores entram no HTML **no build**. A imagem publicada pelo CI usa as Variables do repositório (Settings → Secrets and variables → Actions → **Variables**): `SITE_URL`, `PUBLIC_CONTACT_EMAIL` e as `PUBLIC_*` das redes. O `.env` do servidor **não muda** uma imagem baixada com `docker compose pull`: ele só vale para os segredos em tempo de execução, ou para um build local com `docker compose up -d --build`.
+
+Enquanto o domínio não estiver definido, o CI publica com o fallback do `ci.yml` (`https://laesa.icev.edu.br`) e deixa um aviso amarelo no run ("SITE_URL não definido"). Quando o domínio sair:
+1. crie `SITE_URL` e `PUBLIC_CONTACT_EMAIL` nas Variables do repositório (precisa de admin);
+2. para tornar obrigatório, no passo "Confere variáveis do GitHub" do `ci.yml` troque cada linha pelo formato `[ -n "$VAR_SITE_URL" ] || { echo "::error::defina SITE_URL"; exit 1; }`. Assim o CI não publica mais imagem sem elas.
+
 Para atualizar sozinho, um cron com o primeiro comando, ou o [Watchtower](https://containrrr.dev/watchtower/), resolve. A escolha depende do que o iCEV permitir.
 
 ## Desfazer uma mudança

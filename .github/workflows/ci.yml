@@ -1,6 +1,7 @@
 # Testa e gera o site a cada push/PR; na main, publica a imagem Docker no GitHub Container Registry.
 # Variáveis públicas vêm de "Settings → Secrets and variables → Actions → Variables" (com fallback para
-# os valores do .env.example). O deploy no servidor do iCEV entra quando a hospedagem for definida.
+# os valores do .env.example, e um aviso no run enquanto SITE_URL e PUBLIC_CONTACT_EMAIL não estiverem lá).
+# O deploy no servidor do iCEV entra quando a hospedagem for definida.
 name: CI
 
 on:
@@ -61,6 +62,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      # Domínio ainda indefinido: publica com o fallback, mas deixa um aviso visível no run.
+      # Para tornar obrigatório: ::error no lugar de ::warning, seguido de "exit 1" (docs/operacao.md).
+      - name: Confere variáveis do GitHub
+        env:
+          VAR_SITE_URL: ${{ vars.SITE_URL }}
+          VAR_CONTACT_EMAIL: ${{ vars.PUBLIC_CONTACT_EMAIL }}
+        run: |
+          [ -n "$VAR_SITE_URL" ] || echo "::warning title=SITE_URL não definido::Imagem gerada com o fallback $SITE_URL. Defina SITE_URL em Settings → Secrets and variables → Actions → Variables."
+          [ -n "$VAR_CONTACT_EMAIL" ] || echo "::warning title=PUBLIC_CONTACT_EMAIL não definido::Imagem gerada com o fallback $PUBLIC_CONTACT_EMAIL. Defina PUBLIC_CONTACT_EMAIL nas Variables do repositório."
       - id: nome
         run: echo "imagem=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@v3
