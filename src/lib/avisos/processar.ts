@@ -53,7 +53,7 @@ export type Opcoes = {
   log?: (linha: string) => void;
 };
 
-/** "sem-vez": outro processador já está cuidando da fila. "fim": não sobrou nada para enviar agora. */
+/** "sem-vez": outro processador está cuidando da fila (já estava, ou assumiu no meio). "fim": não sobrou nada para enviar agora. */
 export async function processar(o: Opcoes): Promise<'sem-vez' | 'fim'> {
   const { fila, segredo, enviar } = o;
   const dono = o.dono ?? randomUUID();
@@ -71,7 +71,10 @@ export async function processar(o: Opcoes): Promise<'sem-vez' | 'fim'> {
   let recusas = 0;
   try {
     for (;;) {
-      fila.renovarVez(dono, VEZ_MS);
+      if (!fila.renovarVez(dono, VEZ_MS)) {
+        log('a vez venceu e outro processador assumiu; este para aqui');
+        return 'sem-vez';
+      }
       const envio = fila.proximoEnvio();
       if (!envio) {
         if (fila.liberarSeVazio(dono)) break;
@@ -91,6 +94,7 @@ export async function processar(o: Opcoes): Promise<'sem-vez' | 'fim'> {
       }
       const rascunho = fila.rascunho(envio.rascunho_id)!;
       const c = fila.reservar(envio.id, email);
+      if (!c) continue; // outro processador reservou essa pessoa: a próxima volta confere a vez de novo
       try {
         await enviar(mensagemPara(rascunho, email, segredo));
         fila.registrar(envio.id, c, true);
@@ -111,7 +115,7 @@ export async function processar(o: Opcoes): Promise<'sem-vez' | 'fim'> {
           if (tentativa < esperas.length) {
             const espera = esperas[tentativa++];
             log(`envio ${envio.id}: falha passageira (${resumo(e)}); nova tentativa em ${Math.round(espera / 1000)} s`);
-            fila.renovarVez(dono, espera + VEZ_MS);
+            if (!fila.renovarVez(dono, espera + VEZ_MS)) continue; // perdeu a vez: o começo da volta sai
             await dormir(espera);
             continue;
           }

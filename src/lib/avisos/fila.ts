@@ -214,11 +214,14 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
       return (await inscritos.listar()).find((email) => !feitos.has(codigo(envioId, email)));
     },
 
-    /** Registra a entrega ANTES de enviar: se o processo cair no meio, ninguém recebe de novo. */
-    reservar(envioId: number, email: string): string {
+    /**
+     * Registra a entrega ANTES de enviar: se o processo cair no meio, ninguém recebe de novo. Devolve undefined
+     * se a entrega já existe (outro processador reservou antes): quem chamou pula essa pessoa.
+     */
+    reservar(envioId: number, email: string): string | undefined {
       const c = codigo(envioId, email);
-      db.prepare("INSERT INTO avisos_entregas (envio_id, codigo, resultado, enviado_em) VALUES (?, ?, 'enviando', ?)").run(envioId, c, agora());
-      return c;
+      const r = db.prepare("INSERT INTO avisos_entregas (envio_id, codigo, resultado, enviado_em) VALUES (?, ?, 'enviando', ?) ON CONFLICT DO NOTHING").run(envioId, c, agora());
+      return r.changes === 1 ? c : undefined;
     },
 
     registrar(envioId: number, c: string, ok: boolean): void {
@@ -256,8 +259,9 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
       });
     },
 
-    renovarVez(dono: string, ms: number): void {
-      db.prepare('UPDATE avisos_processador SET expira_em = ? WHERE id = 1 AND dono = ?').run(new Date(relogio().getTime() + ms).toISOString(), dono);
+    /** Estende a vez. false: a vez venceu e outro processador assumiu, quem chamou precisa parar. */
+    renovarVez(dono: string, ms: number): boolean {
+      return db.prepare('UPDATE avisos_processador SET expira_em = ? WHERE id = 1 AND dono = ?').run(new Date(relogio().getTime() + ms).toISOString(), dono).changes === 1;
     },
 
     /** Solta a vez só se não sobrou envio "enviando" (um envio criado agora não fica sem ninguém processando). */

@@ -308,6 +308,43 @@ describe('avisos: fila', () => {
     expect(c.recebidos).toHaveLength(5);
   });
 
+  it('processador que perde a vez para de enviar', async () => {
+    const { fila } = await envioPronto();
+    const c = caixa();
+    const enviar = async (m: Mensagem) => {
+      await c.enviar(m);
+      if (c.recebidos.length === 2) {
+        agora += 3 * 60_000; // ficou parado além do prazo da vez e outro processador assumiu
+        expect(fila.pegarVez('outro', 60_000)).toBe(true);
+      }
+    };
+    expect(await rodar(fila, enviar)).toBe('sem-vez');
+    expect(c.recebidos).toHaveLength(2);
+    expect(fila.processador()?.dono).toBe('outro'); // não soltou a vez de quem assumiu
+    expect(fila.renovarVez('outro', 60_000)).toBe(true);
+    expect(fila.renovarVez('quem-perdeu', 60_000)).toBe(false);
+  });
+
+  it('destinatário já reservado por outro processador é pulado, sem erro', async () => {
+    const { fila, envio } = await envioPronto();
+    let primeiro = true;
+    const corrida: Fila = {
+      ...fila,
+      async proximoDestinatario(id) {
+        const email = await fila.proximoDestinatario(id);
+        if (email && primeiro) {
+          primeiro = false;
+          fila.reservar(id, email); // o outro reservou entre a busca e a reserva deste
+        }
+        return email;
+      },
+    };
+    const c = caixa();
+    expect(await rodar(corrida, c.enviar)).toBe('fim');
+    expect(c.para()).toEqual(PESSOAS.slice(1));
+    expect(fila.envio(envio.id)).toMatchObject({ status: 'concluido', enviados: 4 });
+  });
+
   it('teto diário pausa o envio; retomar no dia seguinte termina', async () => {
     const { fila, envio } = await envioPronto();
     const c = caixa();
