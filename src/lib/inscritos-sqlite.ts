@@ -56,16 +56,15 @@ function migrar(db: DatabaseSync, registrarSaida: StatementSync, codigo: (email:
 }
 
 /**
- * Reescreve o arquivo (VACUUM) para os restos do esquema antigo em páginas livres sumirem do disco também.
+ * Reescreve o arquivo (VACUUM) depois da migração, para os restos do esquema antigo sumirem do disco também.
  * O que é garantido: enquanto o VACUUM não concluir, a marca de limpeza pendente fica no banco e cada abertura
- * tenta de novo, com aviso no log. Também roda em banco com páginas livres (ex.: migrado por uma versão anterior
- * cujo VACUUM falhou e que não deixava marca). Não é garantido que o disco fique limpo na mesma abertura da
- * migração: com o banco ocupado (SQLITE_BUSY), a limpeza espera a próxima.
+ * tenta de novo, com aviso no log. Não é garantido que o disco fique limpo na mesma abertura da migração: com o
+ * banco ocupado (SQLITE_BUSY), a limpeza espera a próxima. Sem a marca não roda: com secure_delete ligado, o que
+ * se apaga depois já é zerado, e página livre não guarda e-mail.
  */
 function limparArquivo(db: DatabaseSync): void {
   const pendente = (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version === LIMPEZA_PENDENTE;
-  const livres = (db.prepare('PRAGMA freelist_count').get() as { freelist_count: number }).freelist_count;
-  if (!pendente && livres === 0) return;
+  if (!pendente) return;
   try {
     db.exec('VACUUM');
     db.exec('PRAGMA user_version = 0');
