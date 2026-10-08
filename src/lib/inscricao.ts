@@ -101,8 +101,3 @@ export function emailConfirmacao(email: string, site: URL) {
     ].join('\n'),
   };
 }
-
-/** Para os avisos enviados pela Mesa: link de descadastro e cabeçalhos de um clique (RFC 8058). */
-export function descadastro(email: string, site: URL) {
-  return tokens.linkDescadastro(segredo(), email, site);
-}
