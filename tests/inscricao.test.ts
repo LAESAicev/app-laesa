@@ -44,4 +44,16 @@ describe('limite por IP', () => {
     expect(chaveIp('2804:14c:1:2:aaaa::1')).toBe(chaveIp('2804:14c:1:2:bbbb::9'));
     expect(chaveIp('200.1.2.3')).toBe('200.1.2.3');
   });
+  it('IPv6 comprimido cai no mesmo /64 que a forma expandida', () => {
+    const chave = chaveIp('2001:db8:0:0:5:6:7:8');
+    expect(chaveIp('2001:db8::1:2:3:4')).toBe(chave);
+    expect(chaveIp('2001:DB8:0000::9')).toBe(chave);
+    expect(chaveIp('2001:db8::1%eth0')).toBe(chave);
+    expect(chaveIp('2001:db8:0:1::1')).not.toBe(chave);
+    expect(chaveIp('::1')).toBe(chaveIp('0:0:0:0:0:0:0:1'));
+  });
+  it('IPv4 mapeado em IPv6 vira o próprio IPv4', () => {
+    expect(chaveIp('::ffff:1.2.3.4')).toBe('1.2.3.4');
+    expect(chaveIp('::FFFF:102:304')).toBe('1.2.3.4');
+  });
 });
