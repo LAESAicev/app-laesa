@@ -23,8 +23,8 @@ import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
 
       <h2>Inscrição para receber as novidades</h2>
       <p>Se você se inscrever e confirmar pelo link que mandamos por e-mail, guardamos seu e-mail e a data da confirmação. Usamos esses dados só para enviar as novidades da liga: editais, eventos, oficinas e projetos. A base legal é o seu consentimento, dado ao marcar a caixa e confirmar a inscrição. Se você pedir a inscrição e não confirmar, nada é gravado.</p>
-      <p>Todo aviso tem um link para cancelar. Ao cancelar, apagamos seu e-mail da lista. Fica guardado apenas um código gerado a partir dele, do qual não dá para recuperar o endereço, junto com a data do cancelamento. Ele serve para que um link de confirmação antigo não inscreva você de novo sem querer, e é apagado em até 30 dias.</p>
-      <p>Para ninguém receber o mesmo aviso duas vezes, cada envio registra um código gerado a partir do seu e-mail, do qual também não dá para recuperar o endereço. Esse registro é apagado 30 dias depois do fim do envio, e fica só o total de e-mails enviados.</p>
+      <p>Todo aviso tem um link para cancelar. Ao cancelar, apagamos seu e-mail da lista e deixamos de guardar o endereço. Fica só um código derivado dele, com a data do cancelamento, para que um link de confirmação antigo não inscreva você de novo sem querer. O código não mostra o endereço, mas quem tem a chave secreta do site consegue conferir se ele veio de um e-mail específico. Uma limpeza diária apaga o código quando ele completa 30 dias.</p>
+      <p>Para ninguém receber o mesmo aviso duas vezes, cada envio registra um código derivado do seu e-mail, do mesmo tipo do código do cancelamento. A limpeza diária apaga esse registro quando o envio completa 30 dias de encerrado, e fica só o total de e-mails enviados.</p>
 
       <h2>Proteção contra abuso</h2>
       <p>Para limitar envios repetidos, o servidor usa o endereço IP de quem envia os formulários. Ele fica só na memória do servidor, não é gravado em arquivo e some quando o servidor reinicia.</p>
@@ -36,7 +36,7 @@ import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
       <ul>
         <li>Mensagens de contato ficam na caixa de e-mail da LAESA. Prazo de retenção: <Sample text="pendente: definir com a Mesa Diretora" />.</li>
         <li>Inscrições nas novidades ficam ativas até você cancelar.</li>
-        <li>O código guardado depois de um cancelamento é apagado em até 30 dias.</li>
+        <li>O código guardado depois de um cancelamento é apagado quando completa 30 dias.</li>
         <li>O banco de inscritos tem cópias de segurança, mantidas por até 30 dias. Por isso, um e-mail apagado da lista pode continuar numa cópia antiga até ela ser descartada.</li>
       </ul>
 
