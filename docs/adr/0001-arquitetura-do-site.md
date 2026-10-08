@@ -46,7 +46,7 @@ Restrições:
    - O build roda no GitHub Actions.
    - O artefato é uma imagem Docker (app Astro com adapter Node) ou, no plano B, a pasta `dist/`.
    - Nenhuma configuração manual no servidor depende da memória de alguém.
-   - Um checklist de passagem de mandato fica em `docs/`.
+   - O checklist de passagem de mandato está em [docs/passagem-de-mandato.md](../passagem-de-mandato.md).
 
 6. **Configuração por ambiente.** Contatos, redes e domínio vêm de variáveis de ambiente validadas pelo `astro:env` (`.env.example`), sem valores no código. Credenciais (SMTP etc., Fase 4) seguirão o mesmo caminho como segredos.
 
