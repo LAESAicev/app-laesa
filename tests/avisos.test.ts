@@ -297,6 +297,18 @@ describe('avisos: fila', () => {
     expect(() => fila.criarEnvio(rascunho.id, '  ', 5, { reenviar: true })).toThrow(/--por/);
   });
 
+  it('aviso livre conta como repetido pelo conteúdo', async () => {
+    const { fila } = await cenario();
+    const livre = (texto: string) => {
+      const r = fila.salvarRascunho({ item: null, evento: 'livre', assunto: 'Reunião', texto, site: SITE, contato: 'laesa@example.test' });
+      fila.marcarTeste(r.id);
+      return r;
+    };
+    fila.criarEnvio(livre('Quinta, 18h.').id, 'Ana', 5);
+    expect(() => fila.criarEnvio(livre('Quinta, 18h.').id, 'Ana', 5)).toThrow(/já foi enviado/);
+    expect(fila.criarEnvio(livre('Sexta, 18h.').id, 'Ana', 5).status).toBe('enviando');
+  });
+
   it('um processador por vez', async () => {
     const { fila } = await envioPronto();
     expect(fila.pegarVez('outro', 60_000)).toBe(true);

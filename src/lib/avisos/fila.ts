@@ -47,7 +47,7 @@ export type Envio = {
 export const hashDo = (r: Pick<Rascunho, 'item' | 'evento' | 'assunto' | 'texto' | 'site' | 'contato'>) =>
   createHash('sha256').update(JSON.stringify([r.item, r.evento, r.assunto, r.texto, r.site, r.contato])).digest('hex');
 
-/** Chave da proteção contra repetição: item + evento; aviso livre conta pelo conteúdo. */
+/** Chave da proteção contra repetição: item + evento; aviso livre conta pelo conteúdo (o SQL de notificacoes repete a regra). */
 export const chaveDoItem = (r: Pick<Rascunho, 'item' | 'hash'>) => r.item ?? `livre:${r.hash.slice(0, 16)}`;
 
 export type Fila = ReturnType<typeof criarFila>;
@@ -93,12 +93,6 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
       PRIMARY KEY (envio_id, codigo)
     );
     CREATE INDEX IF NOT EXISTS avisos_entregas_em ON avisos_entregas (enviado_em);
-    CREATE TABLE IF NOT EXISTS avisos_itens_notificados (
-      item TEXT NOT NULL,
-      evento TEXT NOT NULL,
-      envio_id INTEGER NOT NULL REFERENCES avisos_envios(id),
-      PRIMARY KEY (item, evento, envio_id)
-    );
     -- uma linha só: quem está processando a fila agora e até quando a vez dele vale
     CREATE TABLE IF NOT EXISTS avisos_processador (
       id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -162,8 +156,8 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
     notificacoes(item: string, evento: Evento): { envio_id: number; criado_em: string; por: string }[] {
       return db
         .prepare(
-          `SELECT n.envio_id, e.criado_em, e.por FROM avisos_itens_notificados n JOIN avisos_envios e ON e.id = n.envio_id
-           WHERE n.item = ? AND n.evento = ? ORDER BY e.criado_em`,
+          `SELECT e.id AS envio_id, e.criado_em, e.por FROM avisos_envios e JOIN avisos_rascunhos r ON r.id = e.rascunho_id
+           WHERE coalesce(r.item, 'livre:' || substr(r.hash, 1, 16)) = ? AND r.evento = ? ORDER BY e.criado_em`,
         )
         .all(item, evento) as { envio_id: number; criado_em: string; por: string }[];
     },
@@ -182,14 +176,10 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
         throw new ErroAviso(`Este aviso já foi enviado (envio ${ultimo.envio_id}, por ${ultimo.por}, em ${ultimo.criado_em}). Para mandar de novo, use --reenviar.`);
       }
       if (totalPrevisto < 1) throw new ErroAviso('Ninguém inscrito: não há para quem enviar.');
-      return transacao(() => {
-        const { lastInsertRowid } = db
-          .prepare("INSERT INTO avisos_envios (rascunho_id, por, criado_em, total_previsto, status, atualizado_em) VALUES (?, ?, ?, ?, 'enviando', ?)")
-          .run(r.id, quem, agora(), totalPrevisto, agora());
-        const id = Number(lastInsertRowid);
-        db.prepare('INSERT INTO avisos_itens_notificados (item, evento, envio_id) VALUES (?, ?, ?)').run(chave, r.evento, id);
-        return envio(id)!;
-      });
+      const { lastInsertRowid } = db
+        .prepare("INSERT INTO avisos_envios (rascunho_id, por, criado_em, total_previsto, status, atualizado_em) VALUES (?, ?, ?, ?, 'enviando', ?)")
+        .run(r.id, quem, agora(), totalPrevisto, agora());
+      return envio(Number(lastInsertRowid))!;
     },
 
     envio,
