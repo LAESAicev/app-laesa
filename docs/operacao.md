@@ -139,6 +139,17 @@ Os acessos são da LAESA, nunca de um aluno. A cada nova Mesa Diretora:
   - deixe o pacote `app-laesa` **público** (ele não contém segredos), para a VM baixar sem login;
   - se precisar ser privado, use um token de uma conta institucional, nunca de aluno.
 
+## Quando algo der errado
+
+Um sintoma por linha, com o primeiro comando a rodar na pasta do site no servidor.
+
+- Site fora do ar: `docker compose ps` (o app precisa estar `healthy`; o proxy só sobe depois disso), `docker compose logs --tail=100 app` e o resultado do healthcheck com `docker inspect --format '{{json .State.Health}}' $(docker compose ps -q app)`. Se `docker inspect --format '{{.State.OOMKilled}}' $(docker compose ps -q app)` der `true`, suba o `mem_limit` do app para `512m` no `compose.yaml`.
+- Formulário responde 503: falta variável no `.env` (`SMTP_USER` e `SMTP_PASS`; na inscrição, também `INSCRICAO_SECRET`). Confira com `docker compose logs app | grep -i indispon`, corrija o `.env` e rode `docker compose up -d`.
+- Formulário responde 500: a senha de app está errada ou a porta 465 está bloqueada (nesse caso a resposta demora uns 10 segundos). `docker compose logs app | grep "falha ao enviar"` mostra o código do erro, e `nc -vz smtp.gmail.com 465` testa a saída do servidor.
+- Certificado HTTPS não sai: `docker compose logs proxy`. Confira se `dig +short laesa.icev.edu.br` devolve o IP do servidor, se `dig +short CAA icev.edu.br` vem vazio ou inclui `letsencrypt.org` e se as portas 80 e 443 estão abertas para a internet.
+- Aviso pausado: `docker compose exec app node scripts/avisar.ts status` mostra o motivo. Resolvido o problema, `docker compose exec app node scripts/avisar.ts retomar <envio>` ([avisos.md](avisos.md#acompanhar-pausar-e-cancelar)).
+- O `.env` vazou: troque todos os segredos dele, seguindo [Troca de mandato](#troca-de-mandato-rotatividade) (inclusive o `INSCRICAO_SECRET`, com os efeitos descritos lá) e, se o painel estiver ligado, [Vazamento ou suspeita](#3-quem-pode-editar). Depois rode `docker compose up -d`.
+
 ## Testar localmente com Docker
 
 ```sh

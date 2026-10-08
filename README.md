@@ -104,7 +104,7 @@ Mandar avisos por e-mail para os inscritos (comando no servidor): [docs/avisos.m
 ├── docs/
 │   ├── adr/                              0001: arquitetura e pendências com o iCEV · 0002: atividades pela data
 │   ├── plano-implementacao.md            o que falta
-│   ├── operacao.md                       deploy, backup, troca de mandato
+│   ├── operacao.md                       deploy, backup, troca de mandato, incidentes
 │   ├── avisos.md                         e-mails para os inscritos
 │   ├── passagem-de-mandato.md            checklist anual da Mesa
 │   ├── contrato-contato.md               campos e respostas das rotas de API
