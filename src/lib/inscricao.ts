@@ -107,6 +107,12 @@ export function podeEnviarConfirmacao(email: string): boolean {
   return porDestinatario(hash(email)) && global('todos');
 }
 
+/** Devolve a cota de uma confirmação que não chegou a sair (o envio falhou): a nova tentativa envia de novo. */
+export function devolverConfirmacao(email: string): void {
+  porDestinatario.devolver(hash(email));
+  global.devolver('todos');
+}
+
 export function emailConfirmacao(email: string, site: URL) {
   const link = new URL(`/avisos/confirmar?t=${gerarToken(email, 'confirmar')}`, site);
   return {

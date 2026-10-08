@@ -40,6 +40,12 @@ describe('limite por IP', () => {
     expect(ok('outro', 20)).toBe(true);
     expect(ok('ip', 1500)).toBe(true);
   });
+  it('devolver libera de novo a última vaga, mesmo com tentativas barradas no meio', () => {
+    const ok = criarLimite(1, 1000);
+    expect([ok('a', 0), ok('a', 1), ok('a', 2)]).toEqual([true, false, false]);
+    ok.devolver('a');
+    expect([ok('a', 3), ok('a', 4)]).toEqual([true, false]);
+  });
   it('IPv6 agrupado por /64', () => {
     expect(chaveIp('2804:14c:1:2:aaaa::1')).toBe(chaveIp('2804:14c:1:2:bbbb::9'));
     expect(chaveIp('200.1.2.3')).toBe('200.1.2.3');

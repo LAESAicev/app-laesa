@@ -7,7 +7,7 @@ const TETO = 10_000;
 
 export function criarLimite(max: number, janelaMs: number) {
   const janelas = new Map<string, Janela>();
-  return function permitido(chave: string, agora = Date.now()): boolean {
+  function permitido(chave: string, agora = Date.now()): boolean {
     const j = janelas.get(chave);
     if (!j || agora - j.inicio > janelaMs) {
       janelas.delete(chave);
@@ -15,9 +15,16 @@ export function criarLimite(max: number, janelaMs: number) {
       while (janelas.size > TETO) janelas.delete(janelas.keys().next().value!);
       return true;
     }
+    if (j.total >= max) return false; // tentativa barrada não conta: devolver() libera exatamente uma vaga
     j.total += 1;
-    return j.total <= max;
-  };
+    return true;
+  }
+  /** Devolve a vaga consumida por um permitido() que acabou não sendo usado (ex.: o envio falhou). */
+  function devolver(chave: string): void {
+    const j = janelas.get(chave);
+    if (j && j.total > 0) j.total -= 1;
+  }
+  return Object.assign(permitido, { devolver });
 }
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost']);

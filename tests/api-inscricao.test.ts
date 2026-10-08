@@ -32,11 +32,28 @@ describe('POST /api/inscricao', () => {
     expect(enviar).toHaveBeenCalledOnce();
   });
 
-  it('repetir o mesmo e-mail não consome a cota global', async () => {
-    for (let i = 0; i < 20; i++) await chamar({ email: 'insistente@exemplo.com', consentimento: true }, `10.2.${i}.1`);
+  it('repetir o mesmo e-mail não consome a cota global (teto de 300/24h)', async () => {
+    // Módulo novo: a cota global é estado do módulo e não pode vazar para os outros testes.
+    vi.resetModules();
+    const { POST: post } = await import('../src/pages/api/inscricao');
+    const pedir = (email: string, n: number) =>
+      post({
+        request: new Request('http://localhost/api/inscricao', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, consentimento: true }) }),
+        clientAddress: `10.2.${Math.floor(n / 250)}.${n % 250}`,
+        url: new URL('http://localhost/api/inscricao'),
+        site: new URL('https://laesa.icev.edu.br'),
+      } as never) as Promise<Response>;
+    for (let i = 0; i < 301; i++) await pedir('insistente@exemplo.com', i);
     enviar.mockReset();
-    expect((await chamar({ email: 'outra.pessoa@exemplo.com', consentimento: true })).status).toBe(202);
+    expect((await pedir('outra.pessoa@exemplo.com', 400)).status).toBe(202);
     expect(enviar).toHaveBeenCalledOnce();
+  });
+
+  it('falha no envio devolve a cota: 500 e a nova tentativa envia de novo', async () => {
+    enviar.mockRejectedValueOnce(new Error('smtp caiu'));
+    expect((await chamar({ email: 'tenta.de.novo@exemplo.com', consentimento: true })).status).toBe(500);
+    expect((await chamar({ email: 'tenta.de.novo@exemplo.com', consentimento: true })).status).toBe(202);
+    expect(enviar).toHaveBeenCalledTimes(2);
   });
 
   it('422 sem consentimento ou com e-mail inválido', async () => {
