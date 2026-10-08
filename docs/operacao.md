@@ -65,21 +65,33 @@ IMAGE=ghcr.io/laesaicev/app-laesa:<sha-do-commit> docker compose up -d
 Os únicos dados que não estão no git são os inscritos das novidades, no volume `dados` (`/data/laesa.db`). Eles são dados pessoais (LGPD): o backup **nunca** vai para dentro do repositório. O `.gitignore` bloqueia `*.db` e `backup-*`, mas salve fora da pasta do projeto mesmo assim.
 
 ```sh
-deploy/backup.sh                 # salva em ~/backups-laesa/laesa-AAAA-MM-DD-HHMM.db (pasta só sua)
-gpg --symmetric --cipher-algo AES256 ~/backups-laesa/laesa-*.db   # recomendado antes de guardar em outro lugar
+deploy/backup.sh   # salva em ~/backups-laesa/laesa-AAAA-MM-DD-HHMM.db (pasta e arquivo só seus) e imprime o caminho
+gpg --symmetric --cipher-algo AES256 ~/backups-laesa/laesa-AAAA-MM-DD-HHMM.db && rm ~/backups-laesa/laesa-AAAA-MM-DD-HHMM.db
 ```
 
-O script faz uma cópia consistente com o site no ar: o `VACUUM INTO` lê um retrato do banco sem bloquear quem escreve.
+Use no `gpg` o caminho exato que o script imprimiu: ele já mostra o comando pronto. Guarde a senha do `gpg` no cofre da LAESA, junto com o `.env`.
 
-Faça isso pelo menos uma vez por mês, ou peça ao iCEV para incluir o volume no backup do servidor. Os certificados HTTPS (volume `caddy_data`) se recriam sozinhos.
+O script faz uma cópia consistente com o site no ar: o `VACUUM INTO` lê um retrato do banco sem bloquear quem escreve. Se falhar no meio, ele apaga o arquivo parcial e a cópia temporária dentro do contêiner.
+
+**Retenção de 30 dias (LGPD):** a cada backup bem-sucedido, o script apaga da pasta de destino os `laesa-*.db` e `laesa-*.db.gpg` com mais de 30 dias. Cópias levadas para outro lugar (Drive, HD externo, backup do iCEV) precisam seguir a mesma regra, apagadas à mão ou combinadas com quem cuida delas.
+
+**Agendar no servidor (cron do host):** rode `crontab -e` com o usuário do deploy e acrescente uma linha como esta (todo dia às 3h15; troque `/opt/app-laesa` pela pasta do projeto):
+
+```sh
+15 3 * * * cd /opt/app-laesa && deploy/backup.sh 2>&1 | logger -t backup-laesa
+```
+
+O resultado aparece em `journalctl -t backup-laesa` (ou em `/var/log/syslog`). O cron não criptografa, porque o `gpg` pediria a senha: os `.db` ficam na pasta `~/backups-laesa` (permissão 700) e devem ser criptografados antes de sair do servidor. Sem cron, faça o backup pelo menos uma vez por mês, ou peça ao iCEV para incluir o volume no backup do servidor. Os certificados HTTPS (volume `caddy_data`) se recriam sozinhos.
 
 **Restaurar:**
 
 ```sh
+gpg -d -o ~/backups-laesa/laesa-AAAA-MM-DD-HHMM.db ~/backups-laesa/laesa-AAAA-MM-DD-HHMM.db.gpg   # se estiver criptografado
 docker compose stop app
-docker run --rm -v app-laesa_dados:/data -v ~/backups-laesa:/b alpine cp /b/laesa-AAAA-MM-DD.db /data/laesa.db
+docker run --rm -v app-laesa_dados:/data -v ~/backups-laesa:/b alpine cp /b/laesa-AAAA-MM-DD-HHMM.db /data/laesa.db
 docker run --rm -v app-laesa_dados:/data alpine sh -c 'rm -f /data/laesa.db-wal /data/laesa.db-shm; chown 1000:1000 /data/laesa.db'
 docker compose start app
+rm ~/backups-laesa/laesa-AAAA-MM-DD-HHMM.db   # se você decriptou só para restaurar
 ```
 
 O nome do volume segue o padrão `<pasta-do-projeto>_dados`; confira com `docker volume ls`. Use sempre o volume nomeado: com uma pasta montada (`./dados:/data`), ela nasce com dono root e o SQLite não consegue escrever.
