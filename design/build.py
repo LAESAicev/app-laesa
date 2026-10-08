@@ -21,6 +21,8 @@ FONTS = '<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=
 
 BRAND = ROOT.parent / "brand" / "logo"
 LOGO_FILES = {"h": BRAND / "horizontal" / "laesa-horizontal-navy.svg", "icon": BRAND / "icone" / "laesa-icone-navy.svg"}
+# mesmos ícones do site (src/icons), sem cópia aqui
+ICONS = ROOT.parent / "src" / "icons"
 
 
 def svg(path: Path) -> str:
@@ -57,7 +59,7 @@ def render(text: str, active: str, mode: str) -> str:
     # role/aria-label name the layer in Figma ("icon/arrow"), so screens can be swapped to component instances
     text = re.sub(
         r"\{\{icon:([\w-]+)\}\}",
-        lambda m: svg(SRC / "icons" / f"{m.group(1)}.svg").replace("<svg ", f'<svg role="img" aria-label="icon/{m.group(1)}" ', 1),
+        lambda m: svg(ICONS / f"{m.group(1)}.svg").replace("<svg ", f'<svg role="img" aria-label="icon/{m.group(1)}" ', 1),
         text,
     )
     for key in NAV_KEYS:
