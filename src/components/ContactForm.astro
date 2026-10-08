@@ -5,9 +5,12 @@ import Icon from './Icon.astro';
 interface Props {
   /** id único quando houver mais de um formulário na página */
   id?: string;
+  /** Nível do título de sucesso: 2 quando o formulário fica logo abaixo do h1 (/contato), 3 dentro de uma seção. */
+  nivel?: 2 | 3;
 }
 
-const { id = 'contato-form' } = Astro.props;
+const { id = 'contato-form', nivel = 3 } = Astro.props;
+const Titulo = `h${nivel}` as const;
 const f = (name: string) => `${id}-${name}`;
 ---
 <div class="contact-box" data-contact-box>
@@ -146,7 +149,7 @@ const f = (name: string) => `${id}-${name}`;
   </div>
   <div class="ok-body">
     <span class="headref">nova mensagem</span>
-    <h3 class="d3" id={`${id}-ok`}>Mensagem enviada.</h3>
+    <Titulo class="d3" id={`${id}-ok`}>Mensagem enviada.</Titulo>
     <p class="body" data-success-text></p>
     <span class="meta" data-success-meta></span>
     <button class="btn btn-outline" type="button" data-again>Enviar outra mensagem</button>
