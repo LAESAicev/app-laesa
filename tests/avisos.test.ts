@@ -357,16 +357,67 @@ describe('avisos: fila', () => {
     const { fila, envio } = await envioPronto();
     const esperas: number[] = [];
     const falha = async () => {
-      throw Object.assign(new Error('conexão recusada'), { code: 'ECONNECTION' });
+      throw Object.assign(new Error('connect ECONNREFUSED 1.2.3.4:465'), { code: 'ESOCKET', syscall: 'connect', command: 'CONN' });
     };
     await rodar(fila, falha, { esperasMs: [60_000, 300_000, 900_000], dormir: async (ms: number) => void esperas.push(ms) });
     expect(esperas).toEqual([60_000, 300_000, 900_000]);
     expect(fila.envio(envio.id)).toMatchObject({ status: 'pausado', enviados: 0, falhas: 0 });
-    expect(fila.envio(envio.id)!.motivo).toMatch(/SMTP falhou 4 vezes seguidas \(ECONNECTION\)/);
+    expect(fila.envio(envio.id)!.motivo).toMatch(/SMTP falhou 4 vezes seguidas \(ESOCKET\)/);
     fila.retomar(envio.id);
     const c = caixa();
     await rodar(fila, c.enviar);
     expect(c.para()).toEqual(PESSOAS);
+  });
+
+  // campos como o nodemailer 10 monta (dist/esm/smtp-connection): command 'CONN' aparece em qualquer fase
+  const erroSmtp = (message: string, campos: object) => Object.assign(new Error(message), campos);
+  it.each([
+    ['conexão recusada', erroSmtp('connect ECONNREFUSED', { code: 'ESOCKET', syscall: 'connect', command: 'CONN' })],
+    ['DNS', erroSmtp('getaddrinfo ENOTFOUND', { code: 'EDNS', command: 'CONN' })],
+    ['tempo de conexão', erroSmtp('Connection timeout', { code: 'ETIMEDOUT', command: 'CONN' })],
+    ['sem saudação', erroSmtp('Greeting never received', { code: 'ETIMEDOUT', command: 'CONN' })],
+    ['login', erroSmtp('Invalid login: 535', { code: 'EAUTH', response: '535 5.7.8 bad', responseCode: 535, command: 'AUTH PLAIN' })],
+    ['recusa temporária com resposta', erroSmtp('421', { code: 'EENVELOPE', response: '421 4.7.0 try later', responseCode: 421, command: 'DATA' })],
+  ])('falha antes do aceite (%s): tenta a mesma pessoa de novo', async (_, erro) => {
+    const { fila, envio } = await envioPronto(['ana@example.test']);
+    const c = caixa();
+    let primeira = true;
+    const enviar = async (m: Mensagem) => {
+      if (primeira) {
+        primeira = false;
+        throw erro;
+      }
+      await c.enviar(m);
+    };
+    await rodar(fila, enviar, { esperasMs: [1] });
+    expect(c.para()).toEqual(['ana@example.test']);
+    expect(fila.envio(envio.id)).toMatchObject({ status: 'concluido', enviados: 1, falhas: 0 });
+  });
+
+  it.each([
+    ['tempo esgotado no meio da sessão', erroSmtp('Timeout', { code: 'ETIMEDOUT', command: 'CONN' })],
+    ['conexão caiu no meio', erroSmtp('Connection closed unexpectedly', { code: 'ECONNECTION', command: 'CONN' })],
+    ['socket quebrou depois do DATA', erroSmtp('read ECONNRESET', { code: 'ESOCKET', syscall: 'read', command: 'CONN' })],
+    ['erro sem campos', new Error('???')],
+  ])('falha ambígua (%s): conta como falha e não reenvia', async (_, erro) => {
+    const { fila, envio } = await envioPronto(['ana@example.test', 'bia@example.test']);
+    const tentativas: string[] = [];
+    const enviar = async (m: Mensagem) => {
+      tentativas.push(m.to);
+      if (m.to === 'ana@example.test') throw erro;
+    };
+    await rodar(fila, enviar, { esperasMs: [1] });
+    expect(tentativas).toEqual(['ana@example.test', 'bia@example.test']);
+    expect(fila.envio(envio.id)).toMatchObject({ status: 'concluido', enviados: 1, falhas: 1 });
+  });
+
+  it('falhas ambíguas seguidas pausam o envio', async () => {
+    const { fila, envio } = await envioPronto();
+    const enviar = async () => {
+      throw erroSmtp('Timeout', { code: 'ETIMEDOUT', command: 'CONN' });
+    };
+    await rodar(fila, enviar);
+    expect(fila.envio(envio.id)).toMatchObject({ status: 'pausado', enviados: 0, falhas: 3 });
   });
 
   it('endereço recusado pelo servidor conta como falha e o envio segue', async () => {

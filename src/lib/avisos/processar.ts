@@ -11,17 +11,29 @@ export const TETO_DIARIO = 1500;
 export const INTERVALO_MS = 2500;
 /** Esperas depois de uma falha passageira do SMTP (1, 5 e 15 min). Esgotou: pausa o envio. */
 export const ESPERAS_MS = [60_000, 5 * 60_000, 15 * 60_000];
-/** Recusas seguidas de destinatário: mais que isso é problema da conta, não de endereços. Pausa. */
+/** Falhas definitivas seguidas (recusa ou falha ambígua): mais que isso é problema da conta, não de endereços. Pausa. */
 const RECUSAS_SEGUIDAS = 3;
 const VEZ_MS = 2 * 60_000;
 
-/**
- * Recusa do próprio destinatário (endereço que não existe), que não adianta tentar de novo. Todo o resto
- * (rede, autenticação, cota do Gmail "5.4.5") é tratado como passageiro: espera e, se continuar, pausa.
- */
-export function recusaDoDestinatario(e: unknown): boolean {
-  const err = e as { code?: string; responseCode?: number; response?: string };
+type ErroSmtp = { code?: string; responseCode?: number; response?: string; syscall?: string; message?: string };
+
+/** Recusa do próprio destinatário (endereço que não existe), que não adianta tentar de novo. */
+function recusaDoDestinatario(e: unknown): boolean {
+  const err = e as ErroSmtp;
   return err?.code === 'EENVELOPE' && [550, 551, 553].includes(err.responseCode ?? 0) && !/5\.4\.5|quota|limit/i.test(err.response ?? '');
+}
+
+/**
+ * A mensagem com certeza não foi aceita, então dá para tentar de novo: o servidor respondeu com erro, ou a falha
+ * foi antes da sessão (DNS, conexão recusada, TLS, login). No nodemailer 10, timeout e queda de conexão no meio
+ * da sessão também vêm com command "CONN": sem resposta do servidor, só as mensagens de antes da saudação contam.
+ */
+function antesDoAceite(e: unknown): boolean {
+  const err = e as ErroSmtp;
+  if (err?.responseCode) return true;
+  if (['EDNS', 'ETLS', 'EAUTH', 'ENOAUTH', 'EENVELOPE', 'EMESSAGE'].includes(err?.code ?? '')) return true;
+  if (err?.syscall === 'connect' || err?.syscall === 'getaddrinfo') return true;
+  return /^(Connection timeout|Greeting never received)/.test(err?.message ?? '');
 }
 
 /**
@@ -103,11 +115,13 @@ export async function processar(o: Opcoes): Promise<'sem-vez' | 'fim'> {
         tentativa = 0;
         recusas = 0;
       } catch (e) {
-        if (recusaDoDestinatario(e)) {
+        // recusa do destinatário, ou falha que pode ter acontecido depois do aceite (timeout depois do DATA):
+        // conta como falha e segue. Reenviar arriscaria e-mail duplicado; ninguém recebe duas vezes vale mais.
+        if (recusaDoDestinatario(e) || !antesDoAceite(e)) {
           fila.registrar(envio.id, c, false);
-          log(`envio ${envio.id}: destinatário recusado (${resumo(e)})`);
+          log(`envio ${envio.id}: ${recusaDoDestinatario(e) ? 'destinatário recusado' : 'falha sem saber se saiu, não reenvia'} (${resumo(e)})`);
           if (++recusas >= RECUSAS_SEGUIDAS) {
-            fila.pausar(envio.id, `${recusas} destinatários recusados seguidos (${resumo(e)}); confira a conta antes de retomar`);
+            fila.pausar(envio.id, `${recusas} falhas seguidas (${resumo(e)}); confira a conta e o SMTP antes de retomar`);
             recusas = 0;
           }
         } else {
