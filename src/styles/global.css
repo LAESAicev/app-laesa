@@ -161,6 +161,7 @@ svg { display: block; }
 .logo { display: block; color: var(--navy); width: 128px; flex: none; }
 /* logo artwork sits on a 1080 canvas; .lg crops it to the ink box (see build.py) */
 .lg { display: block; overflow: hidden; }
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; } /* <symbol> do logo (Logo.astro) */
 .lg svg { display: block; height: auto; }
 .lg-h { aspect-ratio: 918 / 372; }
 .lg-h svg { width: 117.647%; margin: -11.874% 0 0 -8.824%; aspect-ratio: 1080 / 591; }
