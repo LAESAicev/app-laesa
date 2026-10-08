@@ -30,7 +30,7 @@ import { canais, estatutoUrl } from '../lib/content';
           <a href="/contato?assunto=projeto">Propor um projeto</a>
           <a href="/contato?assunto=colaborar">Colaborar</a>
           <a href="/novidades">Receber novidades</a>
-          <a href={estatutoUrl}>Estatuto 2026</a>
+          {estatutoUrl && <a href={estatutoUrl}>Estatuto 2026</a>}
           <a href="/privacidade">Privacidade</a>
         </nav>
       </div>

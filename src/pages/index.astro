@@ -92,7 +92,7 @@ const join = {
       <div class="rules">
         <h3>Regras públicas <span class="meta">estatuto 2026</span></h3>
         <RulesList regras={regrasPublicas} />
-        <a class="link" href={estatutoUrl}>Ler o estatuto completo <Icon name="arrow" /></a>
+        {estatutoUrl && <a class="link" href={estatutoUrl}>Ler o estatuto completo <Icon name="arrow" /></a>}
       </div>
     </div>
   </Section>
