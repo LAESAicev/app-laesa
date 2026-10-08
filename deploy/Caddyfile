@@ -32,6 +32,15 @@
 	@uploads path /uploads/* *.svg
 	header @uploads Content-Security-Policy "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'"
 
+	# Assets do build (/_astro/*) têm hash no nome: mudou o conteúdo, mudou a URL. Podem ficar em cache por um ano.
+	# O ">" aplica o cabeçalho depois da resposta do app, que manda "max-age=0" e senão prevaleceria.
+	# Só em 200: um 404 em /_astro não fica guardado. HTML e demais caminhos seguem com o cabeçalho do app.
+	@assets path /_astro/*
+	header @assets {
+		>Cache-Control "public, max-age=31536000, immutable"
+		match status 200
+	}
+
 	# HSTS só no domínio real (sem preload: o domínio é do iCEV)
 	@publico not host localhost
 	header @publico Strict-Transport-Security "max-age=31536000"
