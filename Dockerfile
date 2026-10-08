@@ -3,7 +3,8 @@
 # Variáveis PUBLIC_* e SITE_URL entram no build (ficam no HTML); segredos (SMTP_*, INSCRICAO_SECRET, KEYSTATIC_*)
 # só em tempo de execução, pelo ambiente do contêiner. Nada de .env dentro da imagem (.dockerignore).
 
-FROM node:24-slim AS base
+# Imagem base fixada por digest (tag node:24-slim); o Dependabot abre PR quando sair uma nova.
+FROM node:24-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS base
 WORKDIR /app
 ENV ASTRO_TELEMETRY_DISABLED=1
 
@@ -38,7 +39,7 @@ FROM base AS prod-deps
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
 
-FROM node:24-slim AS runtime
+FROM node:24-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
