@@ -53,6 +53,44 @@ describe('POST /api/contato', () => {
   });
 });
 
+describe('POST /api/contato: teto diário global', () => {
+  // Módulo novo: a cota global é estado do módulo e não pode vazar para os outros testes.
+  const rotaNova = async () => {
+    vi.resetModules();
+    const { POST: post } = await import('../src/pages/api/contato');
+    let n = 0;
+    return (endereco = `10.50.${Math.floor(n / 250)}.${n++ % 250}`, body: unknown = valido) =>
+      post({
+        request: new Request('http://localhost/api/contato', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+        clientAddress: endereco,
+      } as never) as Promise<Response>;
+  };
+  beforeEach(() => enviar.mockReset());
+
+  it('429 com o e-mail da LAESA depois de 100 mensagens em 24h, de IPs diferentes', async () => {
+    const enviarPara = await rotaNova();
+    for (let i = 0; i < 100; i++) expect((await enviarPara()).status).toBe(201);
+    const res = await enviarPara();
+    expect(res.status).toBe(429);
+    expect((await res.json()).erro).toContain('laesa@somosicev.com');
+    expect(enviar).toHaveBeenCalledTimes(100);
+  });
+
+  it('IP barrado pelo limite próprio não gasta a cota global', async () => {
+    const enviarPara = await rotaNova();
+    for (let i = 0; i < 150; i++) await enviarPara('192.168.7.7');
+    for (let i = 0; i < 95; i++) expect((await enviarPara()).status).toBe(201);
+  });
+
+  it('pedido inválido não gasta a cota global', async () => {
+    const enviarPara = await rotaNova();
+    for (let i = 0; i < 150; i++) await enviarPara(undefined, { assunto: 'duvida' });
+    expect((await enviarPara()).status).toBe(201);
+    for (let i = 0; i < 99; i++) await enviarPara();
+    expect((await enviarPara()).status).toBe(429);
+  });
+});
+
 describe('POST /api/contato: formato do pedido', () => {
   const cru = (body: string, tipo: string) =>
     POST({ request: new Request('http://localhost/api/contato', { method: 'POST', headers: { 'content-type': tipo }, body }), clientAddress: `10.9.0.${++ip}` } as never) as Promise<Response>;

@@ -11,6 +11,9 @@ import { json, lerJson, resumoErro } from '../../lib/http';
 export const prerender = false;
 
 const permitido = criarLimite(5, 10 * 60 * 1000); // 5 mensagens a cada 10 minutos por IP
+// Teto diário de todo o formulário: IPs trocados não esgotam a cota do Workspace (~2.000/dia).
+// ponytail: em memória por processo, o reinício zera; trocar por contador persistente se houver mais de uma instância.
+const global = criarLimite(100, 24 * 60 * 60 * 1000);
 
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   if (!isentoLocal(clientAddress) && !permitido(chaveIp(clientAddress))) {
@@ -24,6 +27,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   const resultado = validarContato(dados);
   if (!resultado.ok) return json(422, { erros: resultado.erros });
+  // Depois do limite por IP e da validação: IP barrado ou pedido inválido não gasta a cota de todo mundo.
+  if (!global('todos')) {
+    return json(429, { erro: `Recebemos muitas mensagens hoje. Escreva direto para ${PUBLIC_CONTACT_EMAIL}.` });
+  }
 
   try {
     await enviar(montarEmailContato(resultado.data, MAIL_TO || PUBLIC_CONTACT_EMAIL));

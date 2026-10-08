@@ -46,7 +46,7 @@ Corpo em JSON. Os campos comuns valem para todos os assuntos; os específicos s�
 | `400` | corpo ilegível, `null` ou array | `{ "erro": "..." }` |
 | `415` | corpo que não é `application/json` | `{ "erro": "..." }` |
 | `422` | validação falhou | `{ "erros": { "<campo>": "mensagem que diz o problema e como corrigir" } }` |
-| `429` | mais de 5 envios do mesmo IP em 10 minutos | `{ "erro": "..." }` |
+| `429` | mais de 5 envios do mesmo IP em 10 minutos, ou mais de 100 mensagens de todo o site em 24h (contador em memória, zera ao reiniciar) | `{ "erro": "..." }`; no teto diário, `"... escreva direto para <e-mail da LAESA>"` |
 | `500` | falha ao enviar | `{ "erro": "... escreva para <e-mail da LAESA>" }` |
 | `503` | SMTP não configurado | `{ "erro": "... escreva para <e-mail da LAESA>" }` |
 
