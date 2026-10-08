@@ -196,7 +196,23 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
     envios: () => db.prepare(`${SELECT_ENVIO} ORDER BY e.id DESC`).all() as Envio[],
     proximoEnvio: () => db.prepare(`${SELECT_ENVIO} WHERE e.status = 'enviando' ORDER BY e.id LIMIT 1`).get() as Envio | undefined,
 
-    retomar: (id: number) => mudarStatus(id, 'enviando', null, ['pausado', 'enviando']),
+    /**
+     * Recusa se o INSCRICAO_SECRET mudou desde o começo do envio: os códigos das entregas deixariam de bater e
+     * todo mundo pareceria pendente (quem já recebeu receberia de novo).
+     */
+    async retomar(id: number): Promise<Envio> {
+      const feitos = db.prepare('SELECT codigo FROM avisos_entregas WHERE envio_id = ?').all(id) as { codigo: string }[];
+      const emails = await inscritos.listar();
+      if (feitos.length && emails.length) {
+        const codigos = new Set(feitos.map((l) => l.codigo));
+        if (!emails.some((email) => codigos.has(codigo(id, email)))) {
+          throw new ErroAviso(
+            `O envio ${id} não reconhece nenhum inscrito como já atendido: o INSCRICAO_SECRET mudou desde o começo dele? Retomar reenviaria para quem já recebeu. Volte o segredo antigo para terminar, ou cancele o envio.`,
+          );
+        }
+      }
+      return mudarStatus(id, 'enviando', null, ['pausado', 'enviando']);
+    },
     cancelar: (id: number) => mudarStatus(id, 'cancelado', 'cancelado pela Mesa', ['enviando', 'pausado']),
     // usados pelo processador: só mexem em envio ainda "enviando" (a Mesa pode ter cancelado no meio)
     pausar(id: number, motivo: string): void {

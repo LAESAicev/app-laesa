@@ -108,6 +108,10 @@ Se o processo que envia cair (o contêiner reiniciou, por exemplo), a vez dele n
 
 O registro do processamento fica em `/data/avisos.log`, no volume do contêiner (`docker compose exec app tail /data/avisos.log`). O registro não guarda e-mails.
 
+### Trocar o INSCRICAO_SECRET
+
+Conclua ou cancele os envios antes de trocar o segredo. Cada envio reconhece quem já recebeu por um código feito com ele; com outro segredo, todo mundo pareceria pendente. Por isso o `retomar` recusa um envio começado com o segredo antigo. Para terminá-lo, volte o segredo antigo, ou cancele o envio. A mesma recusa aparece, por engano, no caso raro de todos que já receberam terem se descadastrado; aí também é só cancelar.
+
 ## O que é bloqueado e por quê
 
 | Bloqueio | Motivo |

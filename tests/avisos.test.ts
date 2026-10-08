@@ -352,14 +352,24 @@ describe('avisos: fila', () => {
     expect(fila.envio(envio.id)).toMatchObject({ status: 'pausado', enviados: 2 });
     expect(fila.envio(envio.id)!.motivo).toMatch(/teto de 2 avisos em 24 horas/);
     agora += DIA;
-    fila.retomar(envio.id);
+    await fila.retomar(envio.id);
     await rodar(fila, c.enviar, { tetoDiario: 2 });
     expect(fila.envio(envio.id)).toMatchObject({ status: 'pausado', enviados: 4 });
     agora += DIA;
-    fila.retomar(envio.id);
+    await fila.retomar(envio.id);
     await rodar(fila, c.enviar, { tetoDiario: 2 });
     expect(fila.envio(envio.id)).toMatchObject({ status: 'concluido', enviados: 5 });
     expect(new Set(c.para()).size).toBe(5);
+  });
+
+  it('retomar recusa envio começado com outro INSCRICAO_SECRET (todos pareceriam pendentes)', async () => {
+    const { caminho, fila, envio } = await envioPronto();
+    await rodar(fila, caixa().enviar, { tetoDiario: 2 });
+    agora += DIA;
+    const trocado = criarFila(caminho, 'outro-segredo-com-mais-de-32-caracteres!!', relogio);
+    await expect(trocado.retomar(envio.id)).rejects.toThrow(/segredo/);
+    expect(trocado.envio(envio.id)!.status).toBe('pausado');
+    expect((await fila.retomar(envio.id)).status).toBe('enviando'); // com o segredo do começo, segue
   });
 
   it('falha passageira do SMTP: espera crescente e depois pausa, sem perder ninguém', async () => {
@@ -372,7 +382,7 @@ describe('avisos: fila', () => {
     expect(esperas).toEqual([60_000, 300_000, 900_000]);
     expect(fila.envio(envio.id)).toMatchObject({ status: 'pausado', enviados: 0, falhas: 0 });
     expect(fila.envio(envio.id)!.motivo).toMatch(/SMTP falhou 4 vezes seguidas \(ESOCKET\)/);
-    fila.retomar(envio.id);
+    await fila.retomar(envio.id);
     const c = caixa();
     await rodar(fila, c.enviar);
     expect(c.para()).toEqual(PESSOAS);
@@ -459,7 +469,7 @@ describe('avisos: fila', () => {
     await rodar(fila, enviar);
     expect(c.recebidos).toHaveLength(2);
     expect(fila.envio(envio.id)).toMatchObject({ status: 'cancelado', enviados: 2 });
-    expect(() => fila.retomar(envio.id)).toThrow(/cancelado/);
+    await expect(fila.retomar(envio.id)).rejects.toThrow(/cancelado/);
   });
 
   it('apaga as entregas 30 dias depois do fim e mantém os totais', async () => {

@@ -239,7 +239,7 @@ async function principal(): Promise<void> {
 
   if (comando === 'retomar') {
     const fila = criarFila(DB, segredo());
-    const e = fila.retomar(numero(args[0], 'envio'));
+    const e = await fila.retomar(numero(args[0], 'envio'));
     console.log(`Envio ${e.id} retomado: faltam ${Math.max(e.total_previsto - e.enviados - e.falhas, 0)} de ${e.total_previsto} (a conta usa a lista de inscritos de agora).`);
     iniciarProcessamento();
     return;
