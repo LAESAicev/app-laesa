@@ -49,6 +49,9 @@ jobs:
           INSCRICAO_SECRET: segredo-de-teste-com-mais-de-32-caracteres
       - name: Build
         run: npx astro build
+      # Sobe o servidor gerado (sem SMTP), confere rotas e procura script inline e links quebrados no HTML
+      - name: Smoke test
+        run: node scripts/smoke.mjs
 
   imagem:
     name: Imagem Docker
