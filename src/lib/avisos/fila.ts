@@ -197,8 +197,10 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
      * Cria o envio para todos os inscritos, com as mesmas recusas de conferirEnvio. Recusa também se o mesmo
      * rascunho já tem envio aberto (enviando ou pausado), mesmo com `reenviar`: duplo clique não vira dois envios.
      * Conferência e INSERT na mesma transação, sem await no meio: vale também entre processos (CLI e site).
+     * `codigo` (tela de avisos; já normalizado): o do último teste deste conteúdo, apagado na mesma transação do
+     * INSERT. Vale para um envio só; recusado por outro motivo, continua valendo.
      */
-    criarEnvio(rascunhoId: number, por: string, totalPrevisto: number, { reenviar = false } = {}): Envio {
+    criarEnvio(rascunhoId: number, por: string, totalPrevisto: number, { reenviar = false, codigo: c }: { reenviar?: boolean; codigo?: string } = {}): Envio {
       const r = rascunho(rascunhoId);
       if (!r) throw new ErroAviso(`Rascunho ${rascunhoId} não existe.`);
       const quem = por.trim();
@@ -208,6 +210,12 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
         const aberto = db.prepare("SELECT id FROM avisos_envios WHERE rascunho_id = ? AND status IN ('enviando', 'pausado')").get(r.id) as { id: number } | undefined;
         if (aberto) throw new ErroAviso(`O rascunho ${r.id} já tem o envio ${aberto.id} em andamento. Acompanhe com "status ${aberto.id}".`);
         if (totalPrevisto < 1) throw new ErroAviso('Ninguém inscrito: não há para quem enviar.');
+        if (c !== undefined) {
+          const usado = db
+            .prepare('DELETE FROM avisos_codigos_teste WHERE rascunho_hash = ? AND codigo = ? AND expira_em > ?')
+            .run(r.hash, codigoTeste(r, c).toString('base64url'), agora());
+          if (usado.changes !== 1) throw new ErroAviso('O código não confere com o do último teste deste aviso, já foi usado num envio ou venceu. Mande um teste novo e use o código dele.');
+        }
         const { lastInsertRowid } = db
           .prepare("INSERT INTO avisos_envios (rascunho_id, por, criado_em, total_previsto, status, atualizado_em) VALUES (?, ?, ?, ?, 'enviando', ?)")
           .run(r.id, quem, agora(), totalPrevisto, agora());

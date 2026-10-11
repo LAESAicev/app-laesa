@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { acharItem, conferirAntesDeEnviar, conferirCodigo, preparar, resumoItens, testar } from '../src/lib/avisos/acoes';
+import { acharItem, conferirAntesDeEnviar, conferirCodigo, normalizarCodigo, preparar, resumoItens, testar } from '../src/lib/avisos/acoes';
 import { bloqueios, linksDeFora } from '../src/lib/avisos/bloqueios';
 import { criarFila, ErroAviso, type Fila } from '../src/lib/avisos/fila';
 import type { ItemAtividade, ItemEdital, Manifesto } from '../src/lib/avisos/manifesto';
@@ -666,6 +666,26 @@ describe('avisos: ações (comando e tela usam as mesmas)', () => {
     expect(() => conferirCodigo(fila, r.id, novo)).not.toThrow();
     agora += 2000;
     expect(() => conferirCodigo(fila, r.id, novo)).toThrow(/venceu/);
+  });
+
+  it('criarEnvio com o código do teste: vale para um envio só, consumido junto com a criação', async () => {
+    const { fila } = await cenario();
+    const r = livre(fila);
+    const { codigo } = await testarAgora(fila, r);
+    const c = normalizarCodigo(codigo);
+    expect(() => fila.criarEnvio(r.id, 'Ana', 5, { codigo: 'AAAAAAAA' })).toThrow(/não confere/);
+    expect(fila.envios()).toEqual([]);
+    const e = fila.criarEnvio(r.id, 'Ana', 5, { codigo: c });
+    expect(() => conferirCodigo(fila, r.id, codigo)).toThrow(ErroAviso); // já usado
+    fila.cancelar(e.id);
+    expect(() => fila.criarEnvio(r.id, 'Ana', 5, { reenviar: true, codigo: c })).toThrow(/não confere/);
+    expect(fila.envios()).toHaveLength(1);
+    // recusa por outro motivo (envio aberto) não gasta o código
+    const outro = livre(fila, `Sexta, 18h. Detalhes em ${SITE}/contato.`);
+    const c2 = normalizarCodigo((await testarAgora(fila, outro)).codigo);
+    fila.criarEnvio(outro.id, 'Ana', 5);
+    expect(() => fila.criarEnvio(outro.id, 'Ana', 5, { reenviar: true, codigo: c2 })).toThrow(/em andamento/);
+    expect(fila.codigoTesteValido(outro, c2)).toBe(true);
   });
 
   it('o banco guarda só o HMAC do código, e o limpar apaga os vencidos', async () => {

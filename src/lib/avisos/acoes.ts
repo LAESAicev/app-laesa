@@ -65,7 +65,8 @@ export async function preparar(fila: Fila, m: Manifesto, evento: Evento, item: I
 
 // Sem 0/O e 1/I: o código é lido no e-mail e digitado na tela.
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const normalizarCodigo = (c: string) => c.toUpperCase().replace(/[^A-Z0-9]/g, '');
+/** Código como foi digitado → como é guardado: maiúsculas, sem hífen nem espaço. */
+export const normalizarCodigo = (c: string) => c.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
 /** Bloco que só a cópia de teste leva, acima do texto. */
 const blocoTeste = (codigo: string) =>
@@ -93,13 +94,13 @@ export async function testar(opcoes: { fila: Fila; manifesto: Manifesto; rascunh
   return { para, codigo };
 }
 
-/** Recusa (ErroAviso) código que não é o do último teste deste conteúdo ou que venceu. Aceita minúsculas e sem hífen. */
+/** Recusa (ErroAviso) código que não é o do último teste deste conteúdo, já usado ou vencido. Aceita minúsculas e sem hífen. */
 export function conferirCodigo(fila: Fila, rascunhoId: number, codigo: string): void {
   const r = fila.rascunho(rascunhoId);
   if (!r) throw new ErroAviso(`Rascunho ${rascunhoId} não existe.`);
   const c = normalizarCodigo(codigo);
   if (c.length !== 8 || !fila.codigoTesteValido(r, c)) {
-    throw new ErroAviso('O código não confere com o do último teste deste aviso, ou já venceu (vale 24 horas). Mande um teste novo e use o código dele.');
+    throw new ErroAviso('O código não confere com o do último teste deste aviso, já foi usado num envio ou venceu (vale 24 horas). Mande um teste novo e use o código dele.');
   }
 }
 

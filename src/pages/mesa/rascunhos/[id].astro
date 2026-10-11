@@ -1,0 +1,133 @@
+---
+// Rascunho de aviso: prévia como os inscritos recebem (o link de descadastro de cada pessoa entra no marcador),
+// teste para a caixa da LAESA e envio. Enviar confere, nesta ordem: SMTP configurado, o código do e-mail de teste,
+// site publicado sem bloqueio e teste deste conteúdo, o número de destinatários digitado contra o contado no
+// servidor e, para repetir um aviso, a caixa "Enviar de novo". Qualquer recusa: 422 e nada criado.
+import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
+import MesaLayout from '../../../layouts/MesaLayout.astro';
+import Button from '../../../components/Button.astro';
+import MesaErro from '../../../components/MesaErro.astro';
+import { conferirAntesDeEnviar, conferirCodigo, normalizarCodigo, testar } from '../../../lib/avisos/acoes';
+import { ErroAviso, quando } from '../../../lib/avisos/fila';
+import { rodape } from '../../../lib/avisos/templates';
+import { filaDaMesa, iniciarProcessamento, manifesto, mensagemDoErro, registrar, remetente, segredo, statusDoErro } from '../../../lib/mesa';
+
+export const prerender = false;
+
+const mesa = Astro.locals.mesa;
+if (!mesa) return Astro.redirect('/mesa/entrar', 303);
+
+const fila = filaDaMesa();
+const id = Number(Astro.params.id);
+const r = Number.isSafeInteger(id) && id > 0 ? fila.rascunho(id) : undefined;
+let erro: string | undefined;
+
+if (!r) {
+  Astro.response.status = 404;
+} else if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData().catch(() => new FormData());
+  const acao = String(form.get('acao') ?? '');
+  try {
+    // v1 da tela: só avisos com modelo. Rascunho livre (preparado pelo comando) segue pelo comando.
+    if (r.evento === 'livre') throw new ErroAviso('Aviso livre só sai pelo comando (docs/avisos.md), não por esta tela.');
+    if (acao === 'teste') {
+      // remetente criado só na hora de enviar: bloqueio do rascunho aparece antes de erro de SMTP
+      await testar({ fila, manifesto: manifesto(), rascunho: r, para: PUBLIC_CONTACT_EMAIL, segredo: segredo(), enviar: (m) => remetente()(m) });
+      registrar(`teste do rascunho ${r.id} enviado pela tela de avisos`);
+      return Astro.redirect(`/mesa/rascunhos/${r.id}?teste=1`, 303);
+    }
+    if (acao !== 'enviar') throw new ErroAviso('Ação desconhecida. Recarregue a página e tente de novo.');
+    const reenviar = form.get('reenviar') === 'sim';
+    const codigo = String(form.get('codigo') ?? '');
+    remetente(); // SMTP mal configurado falha aqui, antes de criar o envio
+    conferirCodigo(fila, r.id, codigo);
+    const { total } = await conferirAntesDeEnviar(fila, manifesto(), r, reenviar);
+    if (String(form.get('confirmacao') ?? '').trim() !== String(total)) {
+      throw new ErroAviso('Número diferente do de inscritos agora: nada foi enviado. Digite o número que aparece em "Inscritos agora".');
+    }
+    const envio = fila.criarEnvio(r.id, mesa.nome, total, { reenviar, codigo: normalizarCodigo(codigo) });
+    registrar(`envio ${envio.id} criado pela tela de avisos (rascunho ${r.id}, ${total} destinatários)`);
+    iniciarProcessamento();
+    return Astro.redirect(`/mesa/envios/${envio.id}`, 303);
+  } catch (e) {
+    erro = mensagemDoErro(e, acao === 'teste' ? 'teste' : 'enviar');
+    Astro.response.status = statusDoErro(e);
+  }
+}
+
+const testeEnviado = Astro.request.method === 'GET' && Astro.url.searchParams.get('teste') === '1';
+const inscritos = r ? (await fila.inscritos()).length : 0;
+const antes = r?.item ? fila.notificacoes(r.item, r.evento) : [];
+---
+<MesaLayout title={r ? `Rascunho ${r.id}` : 'Rascunho não encontrado'} nome={mesa.nome}>
+  {!r ? (
+    <>
+      <h1 class="d1">Rascunho <em>não encontrado.</em></h1>
+      <p class="body"><a class="link" href="/mesa/avisos">Voltar para os avisos</a></p>
+    </>
+  ) : (
+    <>
+      <h1 class="d1">Rascunho <em>#{r.id}.</em></h1>
+      {testeEnviado && <p class="lead" role="status">Teste enviado para a caixa da LAESA. O código para liberar o envio está no e-mail.</p>}
+      {erro && <MesaErro mensagem={erro} />}
+
+      <section aria-labelledby="previa">
+        <h2 class="d3" id="previa">Prévia</h2>
+        <p class="body"><strong>Assunto:</strong> {r.assunto}</p>
+        <pre class="mesa-previa">{`${r.texto}\n\n${rodape(r.site, '<link de descadastro de cada pessoa>')}`}</pre>
+      </section>
+
+      <section aria-labelledby="situacao">
+        <h2 class="d3" id="situacao">Situação</h2>
+        {r.evento === 'livre' && <p class="body mesa-atencao">Aviso livre: teste e envio só pelo comando (docs/avisos.md).</p>}
+        <p class="body">{r.teste_enviado_em ? `Teste enviado em ${quando(r.teste_enviado_em)}.` : 'Ainda sem teste: mande um teste antes de enviar.'}</p>
+        <p class="body">Inscritos agora: <strong>{inscritos}</strong>.</p>
+        {antes.length > 0 && (
+          <p class="body mesa-atencao">
+            Atenção: este aviso já foi enviado ({antes.map((a) => `envio #${a.envio_id} em ${quando(a.criado_em)} por ${a.por}`).join('; ')}). Só sai de novo marcando "Enviar de novo".
+          </p>
+        )}
+      </section>
+
+      <section aria-labelledby="teste">
+        <h2 class="d3" id="teste">1. Teste</h2>
+        <p class="body">O teste vai só para a caixa da LAESA ({PUBLIC_CONTACT_EMAIL}), com um código no topo. Confira assunto, texto e links no e-mail.</p>
+        <form method="post" action={`/mesa/rascunhos/${r.id}`}>
+          <input type="hidden" name="acao" value="teste" />
+          <Button type="submit" variant="outline" icon="mail">Mandar teste para a caixa da LAESA</Button>
+        </form>
+      </section>
+
+      <section aria-labelledby="enviar">
+        <h2 class="d3" id="enviar">2. Enviar para os inscritos</h2>
+        <form class="form" method="post" action={`/mesa/rascunhos/${r.id}`}>
+          <input type="hidden" name="acao" value="enviar" />
+          <div class="field">
+            <label for="codigo">Código do e-mail de teste</label>
+            <input class="input" id="codigo" name="codigo" type="text" required autocomplete="off" spellcheck="false" maxlength="20" aria-describedby="codigo-dica" />
+            <p class="hint" id="codigo-dica">Está no topo da cópia de teste. Vale 24 horas e para um envio só.</p>
+          </div>
+          <div class="field">
+            <label for="confirmacao">Número de destinatários</label>
+            <input class="input" id="confirmacao" name="confirmacao" type="text" inputmode="numeric" required autocomplete="off" aria-describedby="confirmacao-dica" />
+            <p class="hint" id="confirmacao-dica">Digite o número de "Inscritos agora" para confirmar. Cada pessoa recebe um e-mail.</p>
+          </div>
+          {antes.length > 0 && (
+            <label class="check">
+              <input type="checkbox" name="reenviar" value="sim" />
+              <span class="box" aria-hidden="true"></span>
+              <span>Enviar de novo<small>Este aviso já saiu antes: quem continua inscrito vai receber outra vez.</small></span>
+            </label>
+          )}
+          <Button type="submit" icon="arrow">Enviar aviso</Button>
+        </form>
+      </section>
+    </>
+  )}
+</MesaLayout>
+
+<style>
+  section { margin-top: 40px; }
+  .mesa-previa { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; border: 1px solid var(--rule); border-radius: 4px; font-family: inherit; font-size: 15px; line-height: 1.5; }
+  .mesa-atencao { color: #A32222; font-weight: 600; }
+</style>
