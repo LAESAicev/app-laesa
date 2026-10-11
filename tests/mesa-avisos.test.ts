@@ -407,7 +407,8 @@ describe('/mesa/envios/[id]', () => {
     const id = await envioParado(EXTRAS[10]);
     const { res, html } = await noEnvio(id);
     expect(res.status).toBe(200);
-    expect(html).toMatch(/<head>[\s\S]*<meta http-equiv="refresh" content="15"[\s\S]*<\/head>/);
+    // a recarga vai para ?auto=1: o middleware não conta como uso (a sessão vence por ociosidade com a aba aberta)
+    expect(html).toMatch(new RegExp(`<head>[\\s\\S]*<meta http-equiv="refresh" content="15; url=/mesa/envios/${id}\\?auto=1"[\\s\\S]*</head>`));
     const t = texto(html);
     expect(t).toContain('Situação enviando');
     expect(t).toMatch(/Enviados 0 de \d+/);

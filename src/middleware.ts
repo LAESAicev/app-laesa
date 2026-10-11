@@ -1,7 +1,8 @@
 // Portão da tela de avisos (/mesa/*). As outras rotas passam direto.
 // - PAINEL_AVISOS desligado (ou INSCRITOS_STORE diferente de sqlite): 404, como se a tela não existisse.
 // - Todo POST (e qualquer método que não seja GET/HEAD) confere a origem: checkOrigin está desligado no site.
-// - Fora de /mesa/entrar, sem sessão válida: 303 para /mesa/entrar, sem dado nenhum da tela.
+// - Fora de /mesa/entrar, sem sessão válida: 303 para /mesa/entrar, sem dado nenhum da tela. GET com ?auto=1 (a
+//   recarga automática do MesaLayout) confere a sessão sem renovar: só uso de verdade adia a ociosidade.
 // - Toda resposta de /mesa sai com no-store e noindex (o Caddy também põe).
 // As páginas /mesa não devem responder com Response.redirect(): os cabeçalhos dela são imutáveis e o set abaixo falharia.
 import type { MiddlewareHandler } from 'astro';
@@ -54,7 +55,8 @@ export const onRequest: MiddlewareHandler = async (context, next) => {
   if (!leitura && !mesmaOrigem(context.request, origem)) return resposta(403, 'Pedido recusado.');
 
   if (caminho !== '/mesa/entrar') {
-    const sessao = painelEm(INSCRITOS_DB).sessao(context.cookies.get(COOKIE_SESSAO)?.value);
+    const automatico = context.request.method === 'GET' && context.url.searchParams.get('auto') === '1';
+    const sessao = painelEm(INSCRITOS_DB).sessao(context.cookies.get(COOKIE_SESSAO)?.value, { renovar: !automatico });
     if (!sessao) return resposta(303, '', { location: '/mesa/entrar' });
     context.locals.mesa = { nome: sessao.nome };
   }

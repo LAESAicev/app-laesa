@@ -134,6 +134,29 @@ describe('middleware da tela de avisos (/mesa)', () => {
     expect((await pedir('/m%65sa/entrar')).next).toHaveBeenCalledOnce();
   });
 
+  it('recarga automática (GET ?auto=1) não conta como uso: com a aba aberta a sessão vence em 30 min; navegação normal renova', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const pedir = await carregar();
+      const passar = (ms: number) => vi.setSystemTime(new Date(Date.now() + ms));
+      const aba = sessaoValida();
+      for (let i = 0; i < 29; i++) {
+        passar(60_000);
+        expect((await pedir('/mesa/envios/1?auto=1', { sessao: aba })).next).toHaveBeenCalledOnce();
+      }
+      passar(61_000);
+      expect((await pedir('/mesa/envios/1?auto=1', { sessao: aba })).res.status).toBe(303);
+
+      const navegando = sessaoValida();
+      for (let i = 0; i < 3; i++) {
+        passar(20 * 60_000);
+        expect((await pedir('/mesa/envios/1', { sessao: navegando })).next).toHaveBeenCalledOnce();
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('/mesa/entrar abre sem sessão; com sessão válida, a tela recebe o nome e sai com no-store e noindex', async () => {
     const pedir = await carregar();
     expect((await pedir('/mesa/entrar')).next).toHaveBeenCalledOnce();

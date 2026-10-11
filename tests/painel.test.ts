@@ -108,6 +108,15 @@ describe('painel: sessão', () => {
     expect(painel.sessao(id)).toBeUndefined();
   });
 
+  it('consulta sem renovar (recarga automática) não adia a ociosidade', () => {
+    const { painel, nonce, token } = cenario();
+    const id = painel.entrar(token, nonce, 'Ana')!;
+    agora += OCIOSA_MS - 1000;
+    expect(painel.sessao(id, { renovar: false })).toBeDefined();
+    agora += 1000;
+    expect(painel.sessao(id, { renovar: false })).toBeUndefined();
+  });
+
   it('vence com 2 h no total, mesmo em uso', () => {
     const { painel, nonce, token } = cenario();
     const id = painel.entrar(token, nonce, 'Ana')!;

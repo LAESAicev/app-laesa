@@ -108,8 +108,11 @@ export function criarPainel(caminho: string, relogio: () => Date = () => new Dat
       });
     },
 
-    /** Sessão válida (30 min sem uso, 2 h no total) e renovada; vencida é apagada. */
-    sessao(id: string | undefined): Sessao | undefined {
+    /**
+     * Sessão válida (30 min sem uso, 2 h no total) e renovada; vencida é apagada. `renovar: false` (recarga
+     * automática da página de um envio): confere sem contar como uso, senão a aba aberta nunca venceria.
+     */
+    sessao(id: string | undefined, { renovar = true } = {}): Sessao | undefined {
       if (!id) return undefined;
       const h = hash(id);
       const s = db.prepare('SELECT nome, criada_em, ultimo_uso FROM painel_sessoes WHERE hash = ?').get(h) as (Sessao & { ultimo_uso: string }) | undefined;
@@ -118,7 +121,7 @@ export function criarPainel(caminho: string, relogio: () => Date = () => new Dat
         db.prepare('DELETE FROM painel_sessoes WHERE hash = ?').run(h);
         return undefined;
       }
-      db.prepare('UPDATE painel_sessoes SET ultimo_uso = ? WHERE hash = ?').run(agora(), h);
+      if (renovar) db.prepare('UPDATE painel_sessoes SET ultimo_uso = ? WHERE hash = ?').run(agora(), h);
       return { nome: s.nome, criada_em: s.criada_em };
     },
 

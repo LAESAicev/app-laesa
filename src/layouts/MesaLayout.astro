@@ -8,14 +8,14 @@ interface Props {
   title: string;
   /** Quem entrou (Astro.locals.mesa); sem nome, a página é a de entrada e não mostra o topo. */
   nome?: string;
-  /** Recarrega a página a cada 15 s (envio em andamento). */
+  /** Recarrega a página a cada 15 s (envio em andamento), com ?auto=1: o middleware não conta a recarga como uso. */
   atualizar?: boolean;
 }
 
 const { title, nome, atualizar = false } = Astro.props;
 ---
 <BaseLayout title={title} description="Tela de avisos da Mesa da LAESA." noindex referrer="strict-origin">
-  {atualizar && <meta slot="head" http-equiv="refresh" content="15" />}
+  {atualizar && <meta slot="head" http-equiv="refresh" content={`15; url=${Astro.url.pathname}?auto=1`} />}
   <Section class="page-head mesa" node={false} label="Tela de avisos">
     {nome && (
       <header class="mesa-topo">
