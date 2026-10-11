@@ -14,7 +14,7 @@ interface Props {
 
 const { title, nome, atualizar = false } = Astro.props;
 ---
-<BaseLayout title={title} description="Tela de avisos da Mesa da LAESA." noindex>
+<BaseLayout title={title} description="Tela de avisos da Mesa da LAESA." noindex referrer="strict-origin">
   {atualizar && <meta slot="head" http-equiv="refresh" content="15" />}
   <Section class="page-head mesa" node={false} label="Tela de avisos">
     {nome && (

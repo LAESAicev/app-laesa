@@ -74,6 +74,12 @@ describe('/mesa/entrar: pedir o link', () => {
     expect(enviar).not.toHaveBeenCalled();
   });
 
+  it('Referer só com a origem: com "no-referrer" o navegador manda "Origin: null" nos POST e a tela inteira daria 403', async () => {
+    const { html } = await chamar(Entrar, '/mesa/entrar?t=abc');
+    expect(html).toContain('<meta name="referrer" content="strict-origin">');
+    expect(html).not.toContain('no-referrer');
+  });
+
   it('POST pedir: 303 neutro, cookie de pré-sessão e e-mail texto puro para a caixa da LAESA', async () => {
     const { res, setCookies, token } = await pedirLink();
     expect(res.status).toBe(303);
