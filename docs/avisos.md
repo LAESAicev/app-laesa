@@ -43,15 +43,15 @@ Se o link não chegar: a resposta da tela é sempre a mesma, chegue o e-mail ou 
 
 Na página `/mesa/avisos` (a primeira depois de entrar) aparecem o número de inscritos, os últimos envios e, para cada edital e atividade publicados, o aviso sugerido, se ele já foi enviado e o que está bloqueando.
 
-Escolha o aviso na lista do item e clique em **Preparar aviso**. A tela monta o e-mail com o conteúdo do site publicado e abre o rascunho. Se houver bloqueio, nada é criado e a tela mostra os motivos ([o que é bloqueado](#o-que-é-bloqueado-e-por-quê)).
+Em **Tipo de aviso**, escolha o aviso do item e clique em **Preparar aviso**. A tela monta o e-mail com o conteúdo do site publicado e abre o rascunho. Se houver bloqueio, nada é criado e a tela mostra os motivos ([o que é bloqueado](#o-que-é-bloqueado-e-por-quê)).
 
 Na tela não dá para trocar o assunto nem o texto, e não há aviso livre. Para isso, use [o comando](#pelo-comando-no-servidor).
 
 ### Testar
 
-No rascunho, confira a prévia e mande o teste para a caixa da LAESA. Abra o e-mail de teste na caixa da LAESA e confira assunto, datas e links.
+No rascunho, confira a prévia e clique em **Mandar teste para a caixa da LAESA**. Abra o e-mail de teste na caixa da LAESA e confira assunto, datas e links.
 
-No topo do e-mail de teste há um código no formato `XXXX-XXXX`. Ele libera o envio deste rascunho: vale 24 horas e serve para um envio só. Mandar outro teste gera um código novo, e o anterior para de valer.
+No topo do e-mail de teste há um código no formato `XXXX-XXXX`. Ele libera o envio deste rascunho: vale 24 horas e serve para um envio só. Depois do primeiro teste, o botão passa a se chamar **Mandar outro teste**. Cada teste gera um código novo, e o anterior deixa de valer.
 
 ### Enviar
 
@@ -60,7 +60,7 @@ Ainda no rascunho, na parte de envio:
 1. digite o código do e-mail de teste;
 2. digite o número que aparece em "Inscritos agora";
 3. se este aviso já foi enviado antes, marque **Enviar de novo** (sem marcar, ele não sai);
-4. clique no botão de enviar.
+4. clique em **Enviar para N inscritos** (N é o total de inscritos agora).
 
 O envio é recusado, sem criar nada, quando:
 
@@ -76,7 +76,7 @@ Depois de enviar, a tela abre a página do envio (`/mesa/envios/<número>`). Ela
 
 - **Pausar** para o envio onde está.
 - **Retomar** continua um envio pausado, ou um "enviando" sem processamento ativo. Quem já recebeu não recebe de novo.
-- **Cancelar envio** para de vez. Quem já recebeu, recebeu.
+- **Cancelar envio** para de vez e fica numa área separada, no fim da página. Antes do botão, marque "Entendo que quem ainda não recebeu não vai receber este aviso." Quem já recebeu, recebeu. Enquanto o envio está em andamento, a página recarrega a cada 15 segundos e desmarca a caixa: marque e cancele logo em seguida.
 
 **Depois de um reinício do servidor** (atualização do site, queda do contêiner), o envio fica "enviando" mas parado. A vez do processador continua ocupada até vencer: normalmente em até 2 minutos, ou até uns 17 se ele estava esperando depois de uma falha do SMTP. Quando vencer, a página do envio mostra "Sem processamento ativo" e o botão **Retomar**. Clique nele.
 
