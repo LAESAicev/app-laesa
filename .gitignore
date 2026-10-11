@@ -29,3 +29,6 @@ backup-*
 
 # banco local de dev da tela de avisos (INSCRITOS_DB=./data/laesa.db)
 data/
+
+# pasta local de ferramentas do Playwright (MCP): nunca commitar
+.playwright-mcp/
