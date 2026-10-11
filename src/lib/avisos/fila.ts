@@ -266,8 +266,9 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
     },
     cancelar: (id: number) => mudarStatus(id, 'cancelado', 'cancelado pela Mesa', ['enviando', 'pausado']),
     // usados pelo processador: só mexem em envio ainda "enviando" (a Mesa pode ter cancelado no meio)
-    pausar(id: number, motivo: string): void {
-      db.prepare("UPDATE avisos_envios SET status = 'pausado', motivo = ?, atualizado_em = ? WHERE id = ? AND status = 'enviando'").run(motivo, agora(), id);
+    /** false: o envio não estava "enviando" e nada mudou (a tela de avisos recusa; o processador só segue). */
+    pausar(id: number, motivo: string): boolean {
+      return db.prepare("UPDATE avisos_envios SET status = 'pausado', motivo = ?, atualizado_em = ? WHERE id = ? AND status = 'enviando'").run(motivo, agora(), id).changes === 1;
     },
     concluir(id: number): void {
       db.prepare("UPDATE avisos_envios SET status = 'concluido', atualizado_em = ?, finalizado_em = ? WHERE id = ? AND status = 'enviando'").run(agora(), agora(), id);

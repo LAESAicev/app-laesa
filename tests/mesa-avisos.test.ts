@@ -442,6 +442,28 @@ describe('/mesa/envios/[id]', () => {
     expect(fila().envio(id)!.status).toBe('concluido');
   });
 
+  it('pausar quando o envio terminou no meio do pedido: 422 com o motivo, e nenhuma pausa registrada', async () => {
+    const id = await envioParado(EXTRAS[13]);
+    // o envio termina enquanto o corpo do POST é lido (o processador concluiu entre a leitura e a pausa)
+    const body = new ReadableStream<Uint8Array>(
+      { pull(c) { fila().concluir(id); c.enqueue(new TextEncoder().encode('acao=pausar')); c.close(); } },
+      { highWaterMark: 0 },
+    );
+    const request = new Request(`http://localhost/mesa/envios/${id}`, {
+      method: 'POST',
+      headers: { origin: 'http://localhost', 'content-type': 'application/x-www-form-urlencoded' },
+      body,
+      duplex: 'half',
+    } as RequestInit);
+    const res = await container.renderToResponse(EnvioPagina, { request, locals: { mesa: { nome: 'Ana' } }, params: { id: String(id) }, partial: false });
+    const html = await res.text();
+    htmls.push(html);
+    expect(res.status).toBe(422);
+    expect(texto(html)).toContain('só dá para pausar');
+    expect(fila().envio(id)!.status).toBe('concluido');
+    expect(readFileSync(h.log, 'utf8')).not.toContain(`envio ${id} pausado pela tela`);
+  });
+
   it('cancelar sem a caixa de confirmação → 422 e nada muda; com a caixa → 303 e cancelado', async () => {
     const id = await envioParado(EXTRAS[10]);
     const { html } = await noEnvio(id);

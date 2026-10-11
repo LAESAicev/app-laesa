@@ -27,8 +27,10 @@ if (!envio) {
   const podeMudar = envio.status === 'enviando' || envio.status === 'pausado';
   try {
     if (acao === 'pausar') {
-      if (envio.status !== 'enviando') throw new ErroAviso(`O envio ${id} está "${ROTULO_STATUS[envio.status]}": só dá para pausar um envio que está enviando.`);
-      fila.pausar(id, `pausado pela Mesa por ${mesa.nome}`);
+      // atômico: o processador pode ter concluído ou pausado o envio depois da leitura lá em cima
+      if (!fila.pausar(id, `pausado pela Mesa por ${mesa.nome}`)) {
+        throw new ErroAviso(`O envio ${id} está "${ROTULO_STATUS[fila.envio(id)!.status]}": só dá para pausar um envio que está enviando.`);
+      }
       registrar(`envio ${id} pausado pela tela de avisos`);
     } else if (acao === 'retomar') {
       if (!podeMudar) throw new ErroAviso(`O envio ${id} está "${ROTULO_STATUS[envio.status]}": só dá para retomar um envio pausado ou parado.`);
