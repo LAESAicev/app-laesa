@@ -3,7 +3,7 @@
 //   acao=sair        → encerra a sessão deste navegador
 //   acao=sair-todos  → encerra todas as sessões e invalida os links pendentes
 // GET não faz nada: volta para a tela.
-import { COOKIE_SESSAO } from '../../lib/painel';
+import { ATRIBUTOS_COOKIE, COOKIE_SESSAO } from '../../lib/painel';
 import { painel } from '../../lib/mesa';
 
 export const prerender = false;
@@ -17,6 +17,6 @@ if (acao === 'sair-todos') {
 } else {
   painel().sair(Astro.cookies.get(COOKIE_SESSAO)?.value);
 }
-Astro.cookies.delete(COOKIE_SESSAO, { path: '/', secure: true, httpOnly: true, sameSite: 'lax' });
+Astro.cookies.delete(COOKIE_SESSAO, ATRIBUTOS_COOKIE);
 return Astro.redirect('/mesa/entrar', 303);
 ---

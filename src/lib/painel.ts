@@ -7,6 +7,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { transacao as emTransacao } from './inscritos-sqlite.ts';
 
 const MIN = 60_000;
 export const LINK_MS = 15 * MIN;
@@ -18,8 +19,9 @@ const MAX_LINKS = 5;
 /** Nonce do navegador que pediu o link: o link só entra no mesmo navegador. */
 export const COOKIE_PRE = '__Host-laesa_pre';
 export const COOKIE_SESSAO = '__Host-laesa_mesa';
-/** Atributos dos dois cookies (formato do cookies.set do Astro). __Host- exige Secure, Path=/ e nenhum Domain. */
-export const opcoesCookie = (validadeMs: number) => ({ httpOnly: true, secure: true, sameSite: 'lax' as const, path: '/', maxAge: validadeMs / 1000 });
+/** Atributos dos dois cookies (formato do Astro), sem a validade: também servem para apagá-los. __Host- exige Secure, Path=/ e nenhum Domain. */
+export const ATRIBUTOS_COOKIE = { httpOnly: true, secure: true, sameSite: 'lax' as const, path: '/' };
+export const opcoesCookie = (validadeMs: number) => ({ ...ATRIBUTOS_COOKIE, maxAge: validadeMs / 1000 });
 export const COOKIE_PRE_OPCOES = opcoesCookie(LINK_MS);
 export const COOKIE_SESSAO_OPCOES = opcoesCookie(ABSOLUTA_MS);
 
@@ -61,17 +63,7 @@ export function criarPainel(caminho: string, relogio: () => Date = () => new Dat
   const agora = () => relogio().toISOString();
   const em = (ms: number) => new Date(relogio().getTime() + ms).toISOString();
 
-  function transacao<T>(fn: () => T): T {
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      const r = fn();
-      db.exec('COMMIT');
-      return r;
-    } catch (e) {
-      db.exec('ROLLBACK');
-      throw e;
-    }
-  }
+  const transacao = <T>(fn: () => T): T => emTransacao(db, fn);
 
   const api = {
     /**

@@ -9,7 +9,7 @@ import MesaLayout from '../../layouts/MesaLayout.astro';
 import Button from '../../components/Button.astro';
 import Icon from '../../components/Icon.astro';
 import MesaErro from '../../components/MesaErro.astro';
-import { COOKIE_PRE, COOKIE_PRE_OPCOES, COOKIE_SESSAO, COOKIE_SESSAO_OPCOES, aleatorio, nomeValido } from '../../lib/painel';
+import { ATRIBUTOS_COOKIE, COOKIE_PRE, COOKIE_PRE_OPCOES, COOKIE_SESSAO, COOKIE_SESSAO_OPCOES, aleatorio, nomeValido } from '../../lib/painel';
 import { ipDe, limites, painel, pedirLinkDeEntrada } from '../../lib/mesa';
 
 export const prerender = false;
@@ -42,7 +42,7 @@ if (Astro.request.method === 'POST') {
     const id = painel().entrar(token, Astro.cookies.get(COOKIE_PRE)?.value ?? '', nome, Astro.cookies.get(COOKIE_SESSAO)?.value);
     if (id) {
       Astro.cookies.set(COOKIE_SESSAO, id, COOKIE_SESSAO_OPCOES);
-      Astro.cookies.delete(COOKIE_PRE, { path: '/', secure: true, httpOnly: true, sameSite: 'lax' });
+      Astro.cookies.delete(COOKIE_PRE, ATRIBUTOS_COOKIE);
       return Astro.redirect('/mesa/avisos', 303);
     }
     erro = FALHOU;

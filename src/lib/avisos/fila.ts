@@ -9,7 +9,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { TIMEZONE } from '../atividades.ts';
-import { criarInscritosSqlite } from '../inscritos-sqlite.ts';
+import { criarInscritosSqlite, transacao as emTransacao } from '../inscritos-sqlite.ts';
 import type { Evento, Rascunho as Conteudo } from './templates.ts';
 
 const DIA = 24 * 60 * 60 * 1000;
@@ -123,17 +123,7 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
   const codigo = (envioId: number, email: string) => createHmac('sha256', segredo).update(`aviso:${envioId}:${email}`).digest('base64url');
   const codigoTeste = (r: Rascunho, c: string) => createHmac('sha256', segredo).update(`teste:${r.hash}:${c}`).digest();
 
-  function transacao<T>(fn: () => T): T {
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      const r = fn();
-      db.exec('COMMIT');
-      return r;
-    } catch (e) {
-      db.exec('ROLLBACK');
-      throw e;
-    }
-  }
+  const transacao = <T>(fn: () => T): T => emTransacao(db, fn);
 
   const SELECT_ENVIO = `SELECT e.*, r.item, r.evento, r.assunto FROM avisos_envios e JOIN avisos_rascunhos r ON r.id = e.rascunho_id`;
   const envio = (id: number) => db.prepare(`${SELECT_ENVIO} WHERE e.id = ?`).get(id) as Envio | undefined;

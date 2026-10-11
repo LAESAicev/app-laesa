@@ -21,11 +21,13 @@ type Conexao = {
   listar: StatementSync;
 };
 
-function transacao(db: DatabaseSync, fn: () => void): void {
+/** fn numa transação BEGIN IMMEDIATE (ROLLBACK se lançar). Serve também à fila dos avisos e ao painel (mesmo banco). */
+export function transacao<T>(db: DatabaseSync, fn: () => T): T {
   db.exec('BEGIN IMMEDIATE');
   try {
-    fn();
+    const r = fn();
     db.exec('COMMIT');
+    return r;
   } catch (e) {
     db.exec('ROLLBACK');
     throw e;
