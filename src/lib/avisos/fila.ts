@@ -4,7 +4,7 @@
 // no meio fica de fora sozinho.
 // LGPD: as entregas guardam só um código do e-mail (HMAC com INSCRICAO_SECRET, diferente para cada envio),
 // nunca o endereço, e são apagadas 30 dias depois do fim do envio. Ficam os totais (enviados, falhas).
-import { createHash, createHmac } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -102,11 +102,19 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
       dono TEXT NOT NULL,
       expira_em TEXT NOT NULL
     );
+    -- código do último teste de cada conteúdo, que a tela de avisos pede para enviar. Só o HMAC: o código em si
+    -- existe apenas na cópia de teste (caixa da LAESA). Vale 24 h; o limpar apaga os vencidos.
+    CREATE TABLE IF NOT EXISTS avisos_codigos_teste (
+      rascunho_hash TEXT PRIMARY KEY,
+      codigo TEXT NOT NULL,
+      expira_em TEXT NOT NULL
+    );
   `);
 
   const agora = () => relogio().toISOString();
   const antes = (ms: number) => new Date(relogio().getTime() - ms).toISOString();
   const codigo = (envioId: number, email: string) => createHmac('sha256', segredo).update(`aviso:${envioId}:${email}`).digest('base64url');
+  const codigoTeste = (r: Rascunho, c: string) => createHmac('sha256', segredo).update(`teste:${r.hash}:${c}`).digest();
 
   function transacao<T>(fn: () => T): T {
     db.exec('BEGIN IMMEDIATE');
@@ -151,6 +159,19 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
 
     marcarTeste(id: number): void {
       db.prepare('UPDATE avisos_rascunhos SET teste_enviado_em = ? WHERE id = ?').run(agora(), id);
+    },
+
+    /** Guarda (só o HMAC) o código do teste deste conteúdo, válido por 24 h. Um teste novo substitui o anterior. */
+    guardarCodigoTeste(r: Rascunho, c: string): void {
+      db.prepare(
+        'INSERT INTO avisos_codigos_teste (rascunho_hash, codigo, expira_em) VALUES (?, ?, ?) ON CONFLICT(rascunho_hash) DO UPDATE SET codigo = excluded.codigo, expira_em = excluded.expira_em',
+      ).run(r.hash, codigoTeste(r, c).toString('base64url'), new Date(relogio().getTime() + DIA).toISOString());
+    },
+
+    /** O código é o do último teste deste conteúdo e ainda vale? */
+    codigoTesteValido(r: Rascunho, c: string): boolean {
+      const linha = db.prepare('SELECT codigo FROM avisos_codigos_teste WHERE rascunho_hash = ? AND expira_em > ?').get(r.hash, agora()) as { codigo: string } | undefined;
+      return Boolean(linha) && timingSafeEqual(Buffer.from(linha!.codigo, 'base64url'), codigoTeste(r, c));
     },
 
     /** Envios anteriores deste item com este evento (proteção contra repetir aviso). */
@@ -301,7 +322,8 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
     /**
      * Retenção: apaga as entregas de envios terminados há mais de 30 dias. Envio parado por 30 dias (pausado e
      * esquecido, ou "enviando" sem processador) é cancelado com fim na última atividade, então sai na mesma hora:
-     * nenhum código fica guardado sem prazo. Ficam os totais. O comando roda isto a cada execução e no cron diário.
+     * nenhum código fica guardado sem prazo. Ficam os totais. Apaga também os códigos de teste vencidos (24 h).
+     * O comando roda isto a cada execução e no cron diário.
      * Também abre o store de inscritos, que expira ao ser acessado os códigos de descadastro de mais de 30 dias.
      */
     async limpar(): Promise<{ cancelados: number; apagadas: number }> {
@@ -314,6 +336,7 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
           )
           .run(limite).changes;
         const apagadas = db.prepare('DELETE FROM avisos_entregas WHERE envio_id IN (SELECT id FROM avisos_envios WHERE finalizado_em < ?)').run(limite).changes;
+        db.prepare('DELETE FROM avisos_codigos_teste WHERE expira_em <= ?').run(agora());
         return { cancelados: Number(cancelados), apagadas: Number(apagadas) };
       });
     },
