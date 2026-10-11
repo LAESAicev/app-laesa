@@ -290,11 +290,21 @@ describe('avisos: fila', () => {
   });
 
   it('não repete o aviso do mesmo item e evento, a não ser com --reenviar', async () => {
-    const { fila, rascunho } = await envioPronto();
+    const { fila, rascunho, envio } = await envioPronto();
     expect(() => fila.criarEnvio(rascunho.id, 'Bia', 5)).toThrow(/já foi enviado .*--reenviar/);
+    fila.cancelar(envio.id); // envio aberto do mesmo rascunho também recusaria
     expect(fila.criarEnvio(rascunho.id, 'Bia', 5, { reenviar: true }).status).toBe('enviando');
     expect(fila.notificacoes(edital.id, 'edital-aberto')).toHaveLength(2);
     expect(() => fila.criarEnvio(rascunho.id, '  ', 5, { reenviar: true })).toThrow(/--por/);
+  });
+
+  it('duplo clique com reenviar: o mesmo rascunho não ganha segundo envio enquanto o primeiro está aberto', async () => {
+    const { fila, rascunho, envio } = await envioPronto();
+    expect(() => fila.criarEnvio(rascunho.id, 'Bia', 5, { reenviar: true })).toThrow(/já tem o envio \d+ em andamento/);
+    fila.pausar(envio.id, 'teste');
+    expect(() => fila.criarEnvio(rascunho.id, 'Bia', 5, { reenviar: true })).toThrow(ErroAviso);
+    fila.cancelar(envio.id);
+    expect(fila.criarEnvio(rascunho.id, 'Bia', 5, { reenviar: true }).status).toBe('enviando'); // terminado, reenviar vale
   });
 
   it('aviso livre conta como repetido pelo conteúdo', async () => {

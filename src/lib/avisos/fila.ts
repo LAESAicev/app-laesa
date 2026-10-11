@@ -172,18 +172,27 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
       }
     },
 
-    /** Cria o envio para todos os inscritos, com as mesmas recusas de conferirEnvio. */
+    /**
+     * Cria o envio para todos os inscritos, com as mesmas recusas de conferirEnvio. Recusa também se o mesmo
+     * rascunho já tem envio aberto (enviando ou pausado), mesmo com `reenviar`: duplo clique não vira dois envios.
+     * Conferência e INSERT na mesma transação, sem await no meio: vale também entre processos (CLI e site).
+     */
     criarEnvio(rascunhoId: number, por: string, totalPrevisto: number, { reenviar = false } = {}): Envio {
       const r = rascunho(rascunhoId);
       if (!r) throw new ErroAviso(`Rascunho ${rascunhoId} não existe.`);
       const quem = por.trim();
       if (!quem) throw new ErroAviso('Diga quem está enviando: --por "Seu nome".');
-      api.conferirEnvio(r, reenviar);
-      if (totalPrevisto < 1) throw new ErroAviso('Ninguém inscrito: não há para quem enviar.');
-      const { lastInsertRowid } = db
-        .prepare("INSERT INTO avisos_envios (rascunho_id, por, criado_em, total_previsto, status, atualizado_em) VALUES (?, ?, ?, ?, 'enviando', ?)")
-        .run(r.id, quem, agora(), totalPrevisto, agora());
-      return envio(Number(lastInsertRowid))!;
+      const id = transacao(() => {
+        api.conferirEnvio(r, reenviar);
+        const aberto = db.prepare("SELECT id FROM avisos_envios WHERE rascunho_id = ? AND status IN ('enviando', 'pausado')").get(r.id) as { id: number } | undefined;
+        if (aberto) throw new ErroAviso(`O rascunho ${r.id} já tem o envio ${aberto.id} em andamento. Acompanhe com "status ${aberto.id}".`);
+        if (totalPrevisto < 1) throw new ErroAviso('Ninguém inscrito: não há para quem enviar.');
+        const { lastInsertRowid } = db
+          .prepare("INSERT INTO avisos_envios (rascunho_id, por, criado_em, total_previsto, status, atualizado_em) VALUES (?, ?, ?, ?, 'enviando', ?)")
+          .run(r.id, quem, agora(), totalPrevisto, agora());
+        return Number(lastInsertRowid);
+      });
+      return envio(id)!;
     },
 
     envio,
