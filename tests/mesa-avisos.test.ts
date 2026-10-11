@@ -266,7 +266,8 @@ describe('/mesa/rascunhos/[id]', () => {
     const semTeste = await prepararPelaTela(EXTRAS[2]);
     let r = await enviarPelaTela(semTeste, { codigo: 'AAAA-AAAA', confirmacao: total });
     expect(r.res.status).toBe(422);
-    expect(texto(r.html)).toContain('Mande o teste'); // texto da tela, sem os comandos da CLI
+    expect(texto(r.html)).toContain('ainda não teve teste deste conteúdo. Mande o teste'); // texto da tela, sem os comandos da CLI
+    expect(texto(r.html)).not.toContain('não confere'); // o motivo de verdade vem antes do código
     expect(texto(r.html)).not.toContain('Rode "teste');
 
     const id = await prepararPelaTela(EXTRAS[3]);
@@ -329,6 +330,10 @@ describe('/mesa/rascunhos/[id]', () => {
     await Promise.all(m.execucoes);
     const de_novo = await prepararPelaTela(EXTRAS[7]);
     const codigo = await testarPelaTela(de_novo);
+    const comCodigoErrado = await enviarPelaTela(de_novo, { codigo: 'AAAA-AAAA', confirmacao: total });
+    expect(comCodigoErrado.res.status).toBe(422);
+    expect(texto(comCodigoErrado.html)).toContain('Este aviso já foi enviado');
+    expect(texto(comCodigoErrado.html)).not.toContain('não confere');
     const r = await enviarPelaTela(de_novo, { codigo, confirmacao: total });
     expect(r.res.status).toBe(422);
     expect(texto(r.html)).toContain('Este aviso já foi enviado');

@@ -1,8 +1,9 @@
 ---
 // Rascunho de aviso: prévia como os inscritos recebem (o link de descadastro de cada pessoa entra no marcador),
-// teste para a caixa da LAESA e envio. Enviar confere, nesta ordem: SMTP configurado, o código do e-mail de teste,
-// site publicado sem bloqueio e teste deste conteúdo, o número de destinatários digitado contra o contado no
-// servidor e, para repetir um aviso, a caixa "Enviar de novo". Qualquer recusa: 422 e nada criado.
+// teste para a caixa da LAESA e envio. Enviar confere, nesta ordem: SMTP configurado, site publicado sem bloqueio,
+// teste deste conteúdo e, para repetir um aviso, a caixa "Enviar de novo"; o número de destinatários digitado
+// contra o contado no servidor; o código do e-mail de teste (o criarEnvio confere tudo de novo, atômico).
+// Qualquer recusa: 422 e nada criado.
 import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
 import MesaLayout from '../../../layouts/MesaLayout.astro';
 import Button from '../../../components/Button.astro';
@@ -42,11 +43,11 @@ if (!r) {
     const reenviar = form.get('reenviar') === 'sim';
     const codigo = String(form.get('codigo') ?? '');
     remetente(); // SMTP mal configurado falha aqui, antes de criar o envio
-    conferirCodigo(fila, r.id, codigo);
     const { total } = await conferirAntesDeEnviar(fila, manifesto(), r, reenviar);
     if (String(form.get('confirmacao') ?? '').trim() !== String(total)) {
       throw new ErroAviso('Número diferente do de inscritos agora: nada foi enviado. Digite o número que aparece em "Inscritos agora".');
     }
+    conferirCodigo(fila, r.id, codigo);
     const envio = fila.criarEnvio(r.id, mesa.nome, total, { reenviar, codigo: normalizarCodigo(codigo) });
     registrar(`envio ${envio.id} criado pela tela de avisos (rascunho ${r.id}, ${total} destinatários)`);
     iniciarProcessamento();
