@@ -78,7 +78,7 @@ SITE_URL=https://localhost SITE_DOMAIN=localhost docker compose up -d --build   
 
 Instalação no servidor, atualização, como desfazer uma mudança, backup (`deploy/backup.sh`), troca de mandato e painel em produção: [docs/operacao.md](docs/operacao.md). Checklist anual da nova Mesa: [docs/passagem-de-mandato.md](docs/passagem-de-mandato.md).
 
-Mandar avisos por e-mail para os inscritos (comando no servidor): [docs/avisos.md](docs/avisos.md).
+Mandar avisos por e-mail para os inscritos, pela tela de avisos (`/mesa`, desligada por padrão) ou por comando no servidor: [docs/avisos.md](docs/avisos.md). Como ligar e testar a tela na sua máquina: [docs/operacao.md](docs/operacao.md#tela-de-avisos).
 
 ## Estrutura
 
@@ -87,7 +87,8 @@ Mandar avisos por e-mail para os inscritos (comando no servidor): [docs/avisos.m
 ├── src/
 │   ├── pages/            /, /atividades, /processos-seletivos(/[slug]), /contato, /novidades, /privacidade, 404
 │   │   ├── api/          contato.ts e inscricao.ts (rodam no servidor)
-│   │   └── avisos/       confirmar e descadastrar inscrição (rodam no servidor)
+│   │   ├── avisos/       confirmar e descadastrar inscrição (rodam no servidor)
+│   │   └── mesa/         tela de avisos da Mesa (roda no servidor; 404 sem PAINEL_AVISOS=true)
 │   ├── components/       Nav, GitLog, Section (espinha do grafo), EditalPage, ContactForm, SubscribeForm…
 │   ├── lib/              conteúdo, validação compartilhada, e-mail, inscrição, SQLite, limite de envios
 │   ├── scripts/          spine.ts (animação da linha de commit) e atividades.ts (ordem do dia e busca)
@@ -102,7 +103,7 @@ Mandar avisos por e-mail para os inscritos (comando no servidor): [docs/avisos.m
 ├── Dockerfile · compose.yaml · deploy/   imagem, Caddy e script de backup
 ├── .github/workflows/ci.yml              testes, build e imagem
 ├── docs/
-│   ├── adr/                              0001: arquitetura e pendências com o iCEV · 0002: atividades pela data
+│   ├── adr/                              0001: arquitetura e pendências com o iCEV · 0002: atividades pela data · 0003: tela de avisos
 │   ├── plano-implementacao.md            o que falta
 │   ├── operacao.md                       deploy, backup, troca de mandato, incidentes
 │   ├── avisos.md                         e-mails para os inscritos
