@@ -8,7 +8,7 @@ import Icon from '../../components/Icon.astro';
 import MesaErro from '../../components/MesaErro.astro';
 import MesaPassos from '../../components/MesaPassos.astro';
 import { acharItem, preparar, resumoItens, type ResumoItem } from '../../lib/avisos/acoes';
-import { ErroAviso, quando } from '../../lib/avisos/fila';
+import { ErroAviso, quando, type Fila } from '../../lib/avisos/fila';
 import { eventoValido, type Evento } from '../../lib/avisos/templates';
 import { ROTULO_STATUS, filaDaMesa, manifesto, mensagemDoErro, statusDoErro } from '../../lib/mesa';
 
@@ -30,10 +30,16 @@ const ROTULO_EVENTO: Record<Evento, string> = {
   livre: 'Aviso livre',
 };
 
-const fila = filaDaMesa();
+let fila: Fila | undefined;
 let erro: string | undefined;
+try {
+  fila = filaDaMesa();
+} catch (e) {
+  erro = mensagemDoErro(e, 'abrir a fila'); // ex.: INSCRICAO_SECRET não definido
+  Astro.response.status = 503;
+}
 
-if (Astro.request.method === 'POST') {
+if (fila && Astro.request.method === 'POST') {
   const form = await Astro.request.formData().catch(() => new FormData());
   try {
     const m = manifesto();
@@ -52,17 +58,19 @@ if (Astro.request.method === 'POST') {
 let itens: ResumoItem[] = [];
 let publicadoEm: string | undefined;
 let erroItens: string | undefined;
-try {
-  const m = manifesto();
-  itens = resumoItens(fila, m);
-  publicadoEm = m.geradoEm;
-} catch (e) {
-  erroItens = mensagemDoErro(e, 'itens');
+if (fila) {
+  try {
+    const m = manifesto();
+    itens = resumoItens(fila, m);
+    publicadoEm = m.geradoEm;
+  } catch (e) {
+    erroItens = mensagemDoErro(e, 'itens');
+  }
 }
-const envios = fila.envios().slice(0, 10);
-const vez = fila.processador();
-const pendente = fila.proximoEnvio();
-const inscritos = (await fila.inscritos()).length;
+const envios = fila?.envios().slice(0, 10) ?? [];
+const vez = fila?.processador();
+const pendente = fila?.proximoEnvio();
+const inscritos = fila ? (await fila.inscritos()).length : 0;
 ---
 <MesaLayout title="Avisos" nome={mesa.nome}>
   <h1 class="d2 mesa-h1">Avisos <em>da Mesa.</em></h1>
@@ -70,6 +78,7 @@ const inscritos = (await fila.inscritos()).length;
   <MesaPassos atual={1} />
   {erro && <MesaErro mensagem={erro} />}
 
+  {fila && <>
   <section class="mesa-bloco mesa-agora" aria-labelledby="agora">
     <h2 class="d3" id="agora">Agora</h2>
     <dl class="mesa-numeros">
@@ -178,6 +187,7 @@ const inscritos = (await fila.inscritos()).length;
       </div>
     )}
   </section>
+  </>}
 </MesaLayout>
 
 <style>

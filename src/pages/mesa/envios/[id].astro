@@ -6,7 +6,7 @@ import MesaLayout from '../../../layouts/MesaLayout.astro';
 import Button from '../../../components/Button.astro';
 import Icon from '../../../components/Icon.astro';
 import MesaErro from '../../../components/MesaErro.astro';
-import { ErroAviso, quando } from '../../../lib/avisos/fila';
+import { ErroAviso, quando, type Fila } from '../../../lib/avisos/fila';
 import { ROTULO_STATUS, filaDaMesa, iniciarProcessamento, mensagemDoErro, registrar, remetente, statusDoErro } from '../../../lib/mesa';
 
 export const prerender = false;
@@ -14,13 +14,20 @@ export const prerender = false;
 const mesa = Astro.locals.mesa;
 if (!mesa) return Astro.redirect('/mesa/entrar', 303);
 
-const fila = filaDaMesa();
+let fila: Fila | undefined;
+let indisponivel: string | undefined;
+try {
+  fila = filaDaMesa();
+} catch (e) {
+  indisponivel = mensagemDoErro(e, 'abrir a fila'); // ex.: INSCRICAO_SECRET não definido
+  Astro.response.status = 503;
+}
 const id = Number(Astro.params.id);
-let envio = Number.isSafeInteger(id) && id > 0 ? fila.envio(id) : undefined;
+let envio = fila && Number.isSafeInteger(id) && id > 0 ? fila.envio(id) : undefined;
 let erro: string | undefined;
 
-if (!envio) {
-  Astro.response.status = 404;
+if (!fila || !envio) {
+  if (fila) Astro.response.status = 404;
 } else if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData().catch(() => new FormData());
   const acao = String(form.get('acao') ?? '');
@@ -54,17 +61,19 @@ if (!envio) {
   }
 }
 
-const vez = fila.processador();
+const vez = fila?.processador();
 const enviando = envio?.status === 'enviando';
 // a vez é da fila inteira: o processador cuida do "enviando" mais antigo, e os outros esperam atrás dele
-const naFrente = enviando && vez ? fila.proximoEnvio() : undefined;
+const naFrente = enviando && vez ? fila?.proximoEnvio() : undefined;
 const esperando = naFrente && naFrente.id !== envio!.id ? naFrente : undefined;
 // sem e-mail novo há mais de 1 min: espera depois de falha do SMTP (até 15 min) ou o processo caiu
 const parado = enviando && vez && !esperando && Date.now() - Date.parse(envio!.atualizado_em) > 60_000;
 const aberto = envio?.status === 'enviando' || envio?.status === 'pausado';
 ---
-<MesaLayout title={envio ? `Envio ${envio.id}` : 'Envio não encontrado'} nome={mesa.nome} atualizar={enviando}>
-  {!envio ? (
+<MesaLayout title={envio ? `Envio ${envio.id}` : indisponivel ? 'Tela de avisos indisponível' : 'Envio não encontrado'} nome={mesa.nome} atualizar={enviando}>
+  {indisponivel ? (
+    <MesaErro mensagem={indisponivel} />
+  ) : !envio ? (
     <>
       <h1 class="d2 mesa-h1">Envio <em>não encontrado.</em></h1>
       <p class="lead">Confira o número no endereço ou procure o envio na lista dos últimos envios.</p>

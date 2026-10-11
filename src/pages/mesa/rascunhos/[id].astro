@@ -11,7 +11,7 @@ import Icon from '../../../components/Icon.astro';
 import MesaErro from '../../../components/MesaErro.astro';
 import MesaPassos from '../../../components/MesaPassos.astro';
 import { conferirAntesDeEnviar, conferirCodigo, normalizarCodigo, testar } from '../../../lib/avisos/acoes';
-import { ErroAviso, quando } from '../../../lib/avisos/fila';
+import { ErroAviso, quando, type Fila } from '../../../lib/avisos/fila';
 import { rodape } from '../../../lib/avisos/templates';
 import { filaDaMesa, iniciarProcessamento, manifesto, mensagemDoErro, registrar, remetente, segredo, statusDoErro } from '../../../lib/mesa';
 
@@ -20,13 +20,20 @@ export const prerender = false;
 const mesa = Astro.locals.mesa;
 if (!mesa) return Astro.redirect('/mesa/entrar', 303);
 
-const fila = filaDaMesa();
+let fila: Fila | undefined;
+let indisponivel: string | undefined;
+try {
+  fila = filaDaMesa();
+} catch (e) {
+  indisponivel = mensagemDoErro(e, 'abrir a fila'); // ex.: INSCRICAO_SECRET não definido
+  Astro.response.status = 503;
+}
 const id = Number(Astro.params.id);
-const r = Number.isSafeInteger(id) && id > 0 ? fila.rascunho(id) : undefined;
+const r = fila && Number.isSafeInteger(id) && id > 0 ? fila.rascunho(id) : undefined;
 let erro: string | undefined;
 
-if (!r) {
-  Astro.response.status = 404;
+if (!fila || !r) {
+  if (fila) Astro.response.status = 404;
 } else if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData().catch(() => new FormData());
   const acao = String(form.get('acao') ?? '');
@@ -59,15 +66,17 @@ if (!r) {
 }
 
 const testeEnviado = Astro.request.method === 'GET' && Astro.url.searchParams.get('teste') === '1';
-const inscritos = r ? (await fila.inscritos()).length : 0;
-const antes = r?.item ? fila.notificacoes(r.item, r.evento) : [];
+const inscritos = fila && r ? (await fila.inscritos()).length : 0;
+const antes = fila && r?.item ? fila.notificacoes(r.item, r.evento) : [];
 // mesmo critério do envio: o teste vale por conteúdo, então outro rascunho igual já testado conta
-const teste = r ? fila.ultimoTeste(r) : undefined;
+const teste = fila && r ? fila.ultimoTeste(r) : undefined;
 const testado = Boolean(teste);
 const pessoas = inscritos === 1 ? '1 inscrito' : `${inscritos} inscritos`;
 ---
-<MesaLayout title={r ? `Rascunho ${r.id}` : 'Rascunho não encontrado'} nome={mesa.nome}>
-  {!r ? (
+<MesaLayout title={r ? `Rascunho ${r.id}` : indisponivel ? 'Tela de avisos indisponível' : 'Rascunho não encontrado'} nome={mesa.nome}>
+  {indisponivel ? (
+    <MesaErro mensagem={indisponivel} />
+  ) : !r ? (
     <>
       <h1 class="d2 mesa-h1">Rascunho <em>não encontrado.</em></h1>
       <p class="lead">Confira o número no endereço ou prepare o aviso de novo a partir da lista.</p>
