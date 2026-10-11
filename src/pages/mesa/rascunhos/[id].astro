@@ -6,7 +6,9 @@
 import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
 import MesaLayout from '../../../layouts/MesaLayout.astro';
 import Button from '../../../components/Button.astro';
+import Icon from '../../../components/Icon.astro';
 import MesaErro from '../../../components/MesaErro.astro';
+import MesaPassos from '../../../components/MesaPassos.astro';
 import { conferirAntesDeEnviar, conferirCodigo, normalizarCodigo, testar } from '../../../lib/avisos/acoes';
 import { ErroAviso, quando } from '../../../lib/avisos/fila';
 import { rodape } from '../../../lib/avisos/templates';
@@ -58,76 +60,145 @@ if (!r) {
 const testeEnviado = Astro.request.method === 'GET' && Astro.url.searchParams.get('teste') === '1';
 const inscritos = r ? (await fila.inscritos()).length : 0;
 const antes = r?.item ? fila.notificacoes(r.item, r.evento) : [];
+const testado = Boolean(r?.teste_enviado_em);
+const pessoas = inscritos === 1 ? '1 inscrito' : `${inscritos} inscritos`;
 ---
 <MesaLayout title={r ? `Rascunho ${r.id}` : 'Rascunho não encontrado'} nome={mesa.nome}>
   {!r ? (
     <>
-      <h1 class="d1">Rascunho <em>não encontrado.</em></h1>
-      <p class="body"><a class="link" href="/mesa/avisos">Voltar para os avisos</a></p>
+      <h1 class="d2 mesa-h1">Rascunho <em>não encontrado.</em></h1>
+      <p class="lead">Confira o número no endereço ou prepare o aviso de novo a partir da lista.</p>
+      <p class="mesa-voltar"><a class="link" href="/mesa/avisos">Voltar para os avisos</a></p>
     </>
   ) : (
     <>
-      <h1 class="d1">Rascunho <em>#{r.id}.</em></h1>
-      {testeEnviado && <p class="lead" role="status">Teste enviado para a caixa da LAESA. O código para liberar o envio está no e-mail.</p>}
+      <h1 class="d2 mesa-h1">Rascunho <em>#{r.id}.</em></h1>
+      <MesaPassos atual={testado ? 3 : 2} />
+      {testeEnviado && (
+        <div class="mesa-ok" role="status">
+          <Icon name="check" />
+          <div>
+            <p>Teste enviado para a caixa da LAESA. O código para liberar o envio está no e-mail.</p>
+            <p class="mesa-ok-link"><a class="link-inline" href="#enviar">Ir para o passo 4 com o código</a></p>
+          </div>
+        </div>
+      )}
       {erro && <MesaErro mensagem={erro} />}
 
-      <section aria-labelledby="previa">
-        <h2 class="d3" id="previa">Prévia</h2>
-        <p class="body"><strong>Assunto:</strong> {r.assunto}</p>
-        <pre class="mesa-previa">{`${r.texto}\n\n${rodape(r.site, '<link de descadastro de cada pessoa>')}`}</pre>
-      </section>
-
-      <section aria-labelledby="situacao">
-        <h2 class="d3" id="situacao">Situação</h2>
-        {r.evento === 'livre' && <p class="body mesa-atencao">Aviso livre: teste e envio só pelo comando (docs/avisos.md).</p>}
-        <p class="body">{r.teste_enviado_em ? `Teste enviado em ${quando(r.teste_enviado_em)}.` : 'Ainda sem teste: mande um teste antes de enviar.'}</p>
-        <p class="body">Inscritos agora: <strong>{inscritos}</strong>.</p>
-        {antes.length > 0 && (
-          <p class="body mesa-atencao">
-            Atenção: este aviso já foi enviado ({antes.map((a) => `envio #${a.envio_id} em ${quando(a.criado_em)} por ${a.por}`).join('; ')}). Só sai de novo marcando "Enviar de novo".
-          </p>
-        )}
-      </section>
-
-      <section aria-labelledby="teste">
-        <h2 class="d3" id="teste">1. Teste</h2>
-        <p class="body">O teste vai só para a caixa da LAESA ({PUBLIC_CONTACT_EMAIL}), com um código no topo. Confira assunto, texto e links no e-mail.</p>
-        <form method="post" action={`/mesa/rascunhos/${r.id}`}>
-          <input type="hidden" name="acao" value="teste" />
-          <Button type="submit" variant="outline" icon="mail">Mandar teste para a caixa da LAESA</Button>
-        </form>
-      </section>
-
-      <section aria-labelledby="enviar">
-        <h2 class="d3" id="enviar">2. Enviar para os inscritos</h2>
-        <form class="form" method="post" action={`/mesa/rascunhos/${r.id}`}>
-          <input type="hidden" name="acao" value="enviar" />
-          <div class="field">
-            <label for="codigo">Código do e-mail de teste</label>
-            <input class="input" id="codigo" name="codigo" type="text" required autocomplete="off" spellcheck="false" maxlength="20" aria-describedby="codigo-dica" />
-            <p class="hint" id="codigo-dica">Está no topo da cópia de teste. Vale 24 horas e para um envio só.</p>
+      <div class="mesa-rascunho">
+        <section class="mesa-previa-bloco" aria-labelledby="previa">
+          <h2 class="d3" id="previa">Prévia do e-mail</h2>
+          <p class="hint">É assim que cada inscrito recebe. O link de descadastro de cada pessoa entra no lugar do marcador.</p>
+          <div class="mesa-email">
+            <p class="mesa-assunto"><span>Assunto</span> {r.assunto}</p>
+            <pre class="mesa-previa">{`${r.texto}\n\n${rodape(r.site, '<link de descadastro de cada pessoa>')}`}</pre>
           </div>
-          <div class="field">
-            <label for="confirmacao">Número de destinatários</label>
-            <input class="input" id="confirmacao" name="confirmacao" type="text" inputmode="numeric" required autocomplete="off" aria-describedby="confirmacao-dica" />
-            <p class="hint" id="confirmacao-dica">Digite o número de "Inscritos agora" para confirmar. Cada pessoa recebe um e-mail.</p>
-          </div>
-          {antes.length > 0 && (
-            <label class="check">
-              <input type="checkbox" name="reenviar" value="sim" />
-              <span class="box" aria-hidden="true"></span>
-              <span>Enviar de novo<small>Este aviso já saiu antes: quem continua inscrito vai receber outra vez.</small></span>
-            </label>
+        </section>
+
+        <div class="mesa-lado">
+          <section class="mesa-situacao" aria-labelledby="situacao">
+            <h2 class="sr-only" id="situacao">Situação</h2>
+            <dl>
+              <div><dt>Teste</dt><dd>{testado ? `Teste enviado em ${quando(r.teste_enviado_em!)}.` : 'Ainda sem teste.'}</dd></div>
+              <div><dt>Inscritos agora</dt><dd class="mesa-num">{inscritos}</dd></div>
+            </dl>
+            {antes.length > 0 && (
+              <div class="mesa-atencao">
+                <Icon name="alert" />
+                <p>Este aviso já foi enviado ({antes.map((a) => `envio #${a.envio_id} em ${quando(a.criado_em)} por ${a.por}`).join('; ')}). Só sai de novo se você marcar "Enviar de novo".</p>
+              </div>
+            )}
+          </section>
+
+          {r.evento === 'livre' ? (
+            <div class="mesa-atencao">
+              <Icon name="alert" />
+              <p>Aviso livre: o teste e o envio só saem pelo comando (docs/avisos.md), não por esta tela.</p>
+            </div>
+          ) : (
+            <>
+              <section class="mesa-passo" aria-labelledby="teste">
+                <h2 class="d3" id="teste">2. Testar</h2>
+                <p class="body">A cópia de teste vai só para a caixa da LAESA ({PUBLIC_CONTACT_EMAIL}), com o código no topo. Nenhum inscrito recebe.</p>
+                <form method="post" action={`/mesa/rascunhos/${r.id}`}>
+                  <input type="hidden" name="acao" value="teste" />
+                  <Button type="submit" variant={testado ? 'outline' : 'primary'} icon="mail">{testado ? 'Mandar outro teste' : 'Mandar teste para a caixa da LAESA'}</Button>
+                </form>
+                {testado && <p class="hint">Cada teste gera um código novo e o anterior deixa de valer.</p>}
+              </section>
+
+              <section class="mesa-passo" aria-labelledby="codigo-titulo">
+                <h2 class="d3" id="codigo-titulo">3. Copiar o código</h2>
+                <p class="body">Abra a cópia de teste na caixa da LAESA e confira assunto, texto e links. O código fica no topo do e-mail, no formato XXXX-XXXX, e vale 24 horas.</p>
+              </section>
+
+              <section class="mesa-passo" aria-labelledby="enviar">
+                <h2 class="d3" id="enviar">4. Enviar</h2>
+                <form class="form mesa-enviar" method="post" action={`/mesa/rascunhos/${r.id}`}>
+                  <input type="hidden" name="acao" value="enviar" />
+                  <div class="field">
+                    <label for="codigo">Código do e-mail de teste</label>
+                    <input class="input mesa-codigo" id="codigo" name="codigo" type="text" required autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="XXXX-XXXX" aria-describedby="codigo-dica" />
+                    <p class="hint" id="codigo-dica">Serve para um envio só.</p>
+                  </div>
+                  <div class="field">
+                    <label for="confirmacao">Número de destinatários</label>
+                    <input class="input" id="confirmacao" name="confirmacao" type="text" inputmode="numeric" required autocomplete="off" aria-describedby="confirmacao-dica" />
+                    <p class="hint" id="confirmacao-dica">Digite o número de inscritos agora ({inscritos}) para confirmar. Cada pessoa recebe um e-mail.</p>
+                  </div>
+                  {antes.length > 0 && (
+                    <label class="check">
+                      <input type="checkbox" name="reenviar" value="sim" />
+                      <span class="box" aria-hidden="true"></span>
+                      <span>Enviar de novo<small>Este aviso já saiu antes: quem continua inscrito vai receber outra vez.</small></span>
+                    </label>
+                  )}
+                  <Button type="submit" variant={testado ? 'primary' : 'outline'} icon="arrow">{inscritos > 0 ? `Enviar para ${pessoas}` : 'Enviar aviso'}</Button>
+                  {!testado && <p class="hint">Mande o teste antes. O código para enviar vem nele.</p>}
+                </form>
+              </section>
+            </>
           )}
-          <Button type="submit" icon="arrow">Enviar aviso</Button>
-        </form>
-      </section>
+        </div>
+      </div>
     </>
   )}
 </MesaLayout>
 
 <style>
-  section { margin-top: 40px; }
-  .mesa-previa { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; border: 1px solid var(--rule); border-radius: 4px; font-family: inherit; font-size: 15px; line-height: 1.5; }
-  .mesa-atencao { color: #A32222; font-weight: 600; }
+  .mesa-h1 { margin-bottom: 32px; }
+  .mesa-voltar { margin-top: 24px; }
+  .mesa-ok, .mesa-atencao { display: grid; grid-template-columns: 20px 1fr; gap: 12px; padding: 14px 16px; border-radius: 4px; background: var(--paper); line-height: 1.5; color: var(--ink); font-size: 15px; }
+  .mesa-ok { border: 1.5px solid var(--blue); margin-bottom: 32px; max-width: 72ch; font-weight: 600; }
+  .mesa-ok-link { margin-top: 4px; font-weight: 500; }
+  .mesa-ok :global(svg) { width: 20px; height: 20px; margin-top: 1px; color: var(--blue-text); }
+  .mesa-atencao { border: 1.5px solid var(--error); }
+  .mesa-atencao :global(svg) { width: 20px; height: 20px; margin-top: 2px; color: var(--error); }
+  .mesa-rascunho { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 440px); gap: 40px 64px; align-items: start; }
+  .mesa-previa-bloco > .d3 { margin-bottom: 8px; }
+  .mesa-email { margin-top: 16px; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; box-shadow: 0 24px 48px -32px rgba(4, 63, 99, 0.25); }
+  .mesa-assunto { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 16px 24px; border-bottom: 1px solid var(--rule); font-size: 16px; font-weight: 600; color: var(--ink); line-height: 1.4; }
+  .mesa-assunto span { font-family: var(--mono); font-size: 12.5px; font-weight: 400; color: var(--ink-3); }
+  .mesa-previa { white-space: pre-wrap; overflow-wrap: anywhere; padding: 20px 24px 24px; font-family: var(--sans); font-size: 15.5px; line-height: 1.6; color: var(--ink-2); max-width: 72ch; }
+  .mesa-lado { display: flex; flex-direction: column; gap: 40px; }
+  .mesa-situacao { display: flex; flex-direction: column; gap: 16px; }
+  .mesa-situacao dl { display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
+  .mesa-situacao dt { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .mesa-situacao dd { font-size: 15.5px; color: var(--ink-2); line-height: 1.5; }
+  .mesa-situacao .mesa-num { font-family: var(--display); font-size: 48px; line-height: 1; color: var(--navy); font-variant-numeric: tabular-nums; }
+  .mesa-passo { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .mesa-passo .d3 { font-size: 30px; }
+  .mesa-enviar { padding: 28px; gap: 20px; align-self: stretch; }
+  .mesa-enviar .btn { justify-content: center; }
+  .mesa-codigo { font-family: var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+  .mesa-codigo::placeholder { letter-spacing: 0.06em; }
+  @media (max-width: 1100px) {
+    .mesa-rascunho { grid-template-columns: 1fr; }
+    .mesa-lado { max-width: 560px; }
+  }
+  @media (max-width: 640px) {
+    .mesa-assunto, .mesa-previa { padding-inline: 16px; }
+    .mesa-enviar { padding: 22px 18px; }
+    .mesa-passo .btn { white-space: normal; height: auto; min-height: 50px; padding-block: 12px; text-align: left; }
+  }
 </style>

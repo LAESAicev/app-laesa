@@ -134,7 +134,7 @@ describe('/mesa/avisos', () => {
     expect(res.status).toBe(200);
     const t = texto(html);
     expect(t).toContain('você entrou como Ana');
-    expect(t).toContain('Inscritos nas novidades: 1 .');
+    expect(t).toContain('Inscritos nas novidades 1 ');
     expect(t).toContain('Edital 2026.2');
     expect(t).toContain('Aviso sugerido: Edital aberto');
     expect(t).toMatch(/provisório \(exemplo\)/);
@@ -223,7 +223,7 @@ describe('/mesa/rascunhos/[id]', () => {
     expect(t).toContain('Edital T1 aberto: inscrições até');
     expect(t).toContain('Para não receber mais, abra este link e confirme: <link de descadastro de cada pessoa>');
     expect(t).toContain('Ainda sem teste');
-    expect(t).toContain(`Inscritos agora: ${await inscritosAgora()} .`);
+    expect(t).toContain(`Inscritos agora ${await inscritosAgora()} `);
     semValor(html, 'confirmacao');
     semValor(html, 'codigo');
   });
@@ -253,6 +253,8 @@ describe('/mesa/rascunhos/[id]', () => {
     const semTeste = await prepararPelaTela(EXTRAS[2]);
     let r = await enviarPelaTela(semTeste, { codigo: 'AAAA-AAAA', confirmacao: total });
     expect(r.res.status).toBe(422);
+    expect(texto(r.html)).toContain('Mande o teste'); // texto da tela, sem os comandos da CLI
+    expect(texto(r.html)).not.toContain('Rode "teste');
 
     const id = await prepararPelaTela(EXTRAS[3]);
     const codigo = await testarPelaTela(id);
@@ -317,6 +319,8 @@ describe('/mesa/rascunhos/[id]', () => {
     const r = await enviarPelaTela(de_novo, { codigo, confirmacao: total });
     expect(r.res.status).toBe(422);
     expect(texto(r.html)).toContain('Este aviso já foi enviado');
+    expect(texto(r.html)).toContain('marque "Enviar de novo"');
+    expect(texto(r.html)).not.toContain('--reenviar');
     expect(r.html).toContain('name="reenviar"');
     expect(r.html).not.toMatch(/name="reenviar"[^>]*checked/);
     expect((await enviarPelaTela(de_novo, { codigo, confirmacao: total, reenviar: 'sim' })).res.status).toBe(303);
@@ -367,8 +371,8 @@ async function envioParado(item: ItemEdital) {
   fila().marcarTeste(id);
   return fila().criarEnvio(id, 'Ana', await inscritosAgora(), { reenviar: true }).id; // o mesmo item serve a vários testes
 }
-const noEnvio = (id: number, acao?: string) =>
-  chamar(EnvioPagina, `/mesa/envios/${id}`, { method: acao ? 'POST' : 'GET', form: acao ? { acao } : undefined, params: { id: String(id) } });
+const noEnvio = (id: number, acao?: string, extra: Record<string, string> = {}) =>
+  chamar(EnvioPagina, `/mesa/envios/${id}`, { method: acao ? 'POST' : 'GET', form: acao ? { acao, ...extra } : undefined, params: { id: String(id) } });
 
 describe('/mesa/envios/[id]', () => {
   it('sem sessão: 303 para a entrada (GET e POST), nada muda', async () => {
@@ -420,9 +424,18 @@ describe('/mesa/envios/[id]', () => {
     expect(fila().envio(id)!.status).toBe('concluido');
   });
 
-  it('cancelar envio aberto → 303 e cancelado', async () => {
+  it('cancelar sem a caixa de confirmação → 422 e nada muda; com a caixa → 303 e cancelado', async () => {
     const id = await envioParado(EXTRAS[10]);
-    expect((await noEnvio(id, 'cancelar')).res.status).toBe(303);
+    const { html } = await noEnvio(id);
+    expect(html).toMatch(/name="confirmar"[^>]*required/);
+    expect(html).not.toMatch(/name="confirmar"[^>]*checked/);
+    for (const extra of [{}, { confirmar: 'nao' }] as Record<string, string>[]) {
+      const r = await noEnvio(id, 'cancelar', extra);
+      expect(r.res.status).toBe(422);
+      expect(texto(r.html)).toContain('Nada mudou');
+      expect(fila().envio(id)!.status).toBe('enviando');
+    }
+    expect((await noEnvio(id, 'cancelar', { confirmar: 'sim' })).res.status).toBe(303);
     expect(fila().envio(id)!.status).toBe('cancelado');
   });
 
