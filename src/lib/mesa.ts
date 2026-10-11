@@ -129,7 +129,7 @@ export async function pedirLinkDeEntrada(ip: string, nonce: string, base: URL): 
 
 /** O que a tela mostra de um erro: a mensagem do ErroAviso (escrita para a Mesa) ou uma frase genérica, nunca a crua. */
 export function mensagemDoErro(e: unknown, onde: string): string {
-  if (e instanceof ErroAviso) return e.message;
+  if (e instanceof ErroAviso) return e.naTela ?? e.message;
   if (e instanceof EnvioIndisponivel) {
     console.warn(`[mesa] ${onde}: envio indisponível`);
     return 'O envio de e-mail não está disponível no servidor agora. Nada foi enviado. Avise quem cuida do servidor.';

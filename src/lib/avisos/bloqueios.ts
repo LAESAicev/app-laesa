@@ -50,7 +50,7 @@ export function bloqueios({ evento, item, manifesto, conteudo, hoje = hojeEm() }
   const motivos: string[] = [];
 
   if (evento !== 'livre') {
-    if (!item) return ['Item não encontrado no site publicado. Confira o código com o comando "itens" (o site foi publicado depois do cadastro?).'];
+    if (!item) return ['Item não encontrado no site publicado. Confira o código na lista de itens (o site foi publicado depois do cadastro?).'];
     motivos.push(...doItem(evento, item, hoje));
   }
 

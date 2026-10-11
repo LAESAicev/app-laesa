@@ -16,7 +16,14 @@ const DIA = 24 * 60 * 60 * 1000;
 /** Data e hora de Teresina, para mensagens e para o status ("15/10/2026, 09:00"). */
 export const quando = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: TIMEZONE, dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
 
-export class ErroAviso extends Error {}
+/** Recusa explicada para a Mesa. `naTela`: o mesmo motivo sem os termos do comando, para a tela de avisos. */
+export class ErroAviso extends Error {
+  naTela?: string;
+  constructor(mensagem: string, naTela?: string) {
+    super(mensagem);
+    this.naTela = naTela;
+  }
+}
 
 export type Rascunho = Conteudo & {
   id: number;
@@ -186,10 +193,14 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
 
     /** Recusa rascunho sem teste deste conteúdo e, sem `reenviar`, aviso repetido. O comando confere antes de pedir a confirmação. */
     conferirEnvio(r: Rascunho, reenviar: boolean): void {
-      if (!testado(r)) throw new ErroAviso(`O rascunho ${r.id} ainda não teve teste deste conteúdo. Rode "teste ${r.id}" e confira a caixa da LAESA.`);
+      if (!testado(r)) throw new ErroAviso(
+          `O rascunho ${r.id} ainda não teve teste deste conteúdo. Rode "teste ${r.id}" e confira a caixa da LAESA.`,
+          `O rascunho ${r.id} ainda não teve teste deste conteúdo. Mande o teste e confira o e-mail na caixa da LAESA.`,
+        );
       const ultimo = api.notificacoes(chaveDoItem(r), r.evento).at(-1);
       if (ultimo && !reenviar) {
-        throw new ErroAviso(`Este aviso já foi enviado (envio ${ultimo.envio_id}, por ${ultimo.por}, em ${quando(ultimo.criado_em)}). Para mandar de novo, use --reenviar.`);
+        const ja = `Este aviso já foi enviado (envio ${ultimo.envio_id}, por ${ultimo.por}, em ${quando(ultimo.criado_em)}).`;
+        throw new ErroAviso(`${ja} Para mandar de novo, use --reenviar.`, `${ja} Para mandar de novo, marque "Enviar de novo".`);
       }
     },
 
@@ -208,7 +219,10 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
       const id = transacao(() => {
         api.conferirEnvio(r, reenviar);
         const aberto = db.prepare("SELECT id FROM avisos_envios WHERE rascunho_id = ? AND status IN ('enviando', 'pausado')").get(r.id) as { id: number } | undefined;
-        if (aberto) throw new ErroAviso(`O rascunho ${r.id} já tem o envio ${aberto.id} em andamento. Acompanhe com "status ${aberto.id}".`);
+        if (aberto) {
+          const ja = `O rascunho ${r.id} já tem o envio ${aberto.id} em andamento.`;
+          throw new ErroAviso(`${ja} Acompanhe com "status ${aberto.id}".`, `${ja} Acompanhe pela lista de envios na página de avisos.`);
+        }
         if (totalPrevisto < 1) throw new ErroAviso('Ninguém inscrito: não há para quem enviar.');
         if (c !== undefined) {
           const usado = db
@@ -240,6 +254,7 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
         if (!emails.some((email) => codigos.has(codigo(id, email)))) {
           throw new ErroAviso(
             `O envio ${id} não reconhece nenhum inscrito como já atendido: o INSCRICAO_SECRET mudou desde o começo dele? Retomar reenviaria para quem já recebeu. Volte o segredo antigo para terminar, ou cancele o envio.`,
+            `Nada mudou: retomar o envio ${id} mandaria o aviso de novo para quem já recebeu (o segredo do servidor mudou desde o começo dele?). Avise quem cuida do servidor ou cancele o envio.`,
           );
         }
       }
