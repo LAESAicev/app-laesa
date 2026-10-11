@@ -16,6 +16,7 @@ import { lerManifesto, type Manifesto } from '../src/lib/avisos/manifesto.ts';
 import { processar } from '../src/lib/avisos/processar.ts';
 import { criarRemetente } from '../src/lib/avisos/remetente.ts';
 import { eventoValido, rodape, EVENTOS } from '../src/lib/avisos/templates.ts';
+import { criarPainel } from '../src/lib/painel.ts';
 import { EnvioIndisponivel } from '../src/lib/smtp.ts';
 
 const AJUDA = `Uso: node scripts/avisar.ts <comando>
@@ -30,6 +31,7 @@ const AJUDA = `Uso: node scripts/avisar.ts <comando>
   retomar <envio>                          continua um envio pausado
   cancelar <envio>                         para um envio
   limpar                                   retenção (30 dias) dos registros de entrega; para o cron diário
+  sair-todos                               encerra todas as sessões da tela de avisos e invalida os links de entrada
 
 Eventos: ${EVENTOS.join(', ')}. No evento "livre" não há item: use --assunto e --texto-arquivo.`;
 
@@ -210,7 +212,15 @@ const COMANDOS: Record<string, () => Promise<void>> = {
 
   async limpar() {
     const { limpeza } = await abrirFila();
-    console.log(`[avisos] ${new Date().toISOString()} limpeza: ${limpeza.cancelados} envios parados cancelados, ${limpeza.apagadas} entregas apagadas`);
+    const tela = criarPainel(DB).limpar();
+    console.log(
+      `[avisos] ${new Date().toISOString()} limpeza: ${limpeza.cancelados} envios parados cancelados, ${limpeza.apagadas} entregas apagadas, ${tela.sessoes} sessões e ${tela.links} links da tela vencidos`,
+    );
+  },
+
+  async 'sair-todos'() {
+    const { sessoes, links } = criarPainel(DB).sairTodos();
+    console.log(`Tela de avisos: ${sessoes} sessões encerradas e ${links} links de entrada invalidados.`);
   },
 };
 
