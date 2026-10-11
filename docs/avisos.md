@@ -35,9 +35,9 @@ O aviso usa o que está no site publicado, e não o que está no painel. Depois 
 
 O nome fica registrado nos envios que você fizer ("por …"). Ele é só o que você digitou: a caixa é compartilhada, e o site não tem como saber quem está do outro lado. Ele serve de registro de boa-fé e não prova quem enviou.
 
-A sessão acaba depois de 30 minutos sem uso ou 2 horas depois de entrar. No topo de cada página há **Sair** (este navegador) e **Sair de todos os navegadores** (encerra todas as sessões e invalida os links que ainda não foram usados).
+A sessão acaba depois de 30 minutos sem uso ou 2 horas depois de entrar. A recarga automática da página de um envio não conta como uso: com a página aberta e ninguém mexendo, a sessão acaba do mesmo jeito. No topo de cada página há **Sair** (este navegador) e **Sair de todos os navegadores** (encerra todas as sessões e invalida os links que ainda não foram usados).
 
-Se o link não chegar: a resposta da tela é sempre a mesma, chegue o e-mail ou não. O pedido é ignorado em silêncio depois de 3 pedidos em 15 minutos do mesmo endereço, de 20 no dia, ou com 5 links ainda valendo. Espere 15 minutos e peça de novo; se continuar, avise quem cuida do servidor.
+Se o link não chegar: a resposta da tela é sempre a mesma, chegue o e-mail ou não. O pedido é ignorado em silêncio depois de 3 pedidos em 15 minutos do mesmo endereço, de 20 no dia (somando todo mundo), ou com 5 links ainda valendo. O limite por endereço e os 5 links liberam em 15 minutos. O limite do dia pode levar até 24 horas. Se não der para esperar, avise quem cuida do servidor: dá para liberar a entrada na hora ([operacao.md](operacao.md#quando-algo-der-errado)). Enquanto isso, o aviso pode sair [pelo comando](#pelo-comando-no-servidor).
 
 ### Preparar
 
