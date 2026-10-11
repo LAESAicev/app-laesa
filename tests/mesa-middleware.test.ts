@@ -26,7 +26,7 @@ async function carregar(env: { PAINEL_AVISOS?: boolean; INSCRITOS_STORE?: string
   vi.doMock('astro:env/server', () => ({ PAINEL_AVISOS: true, INSCRITOS_STORE: 'sqlite', INSCRITOS_DB: db, ...env }));
   const { onRequest } = await import('../src/middleware');
   return async (caminho: string, { method = 'GET', headers = {}, sessao }: { method?: string; headers?: Record<string, string>; sessao?: string } = {}) => {
-    const url = new URL(caminho, SITE);
+    const url = new URL(SITE + caminho); // sem resolver: "//mesa" continua caminho, não vira host
     const locals: App.Locals = {};
     const next = vi.fn(async () => new Response('conteúdo da tela'));
     const context = {
@@ -121,6 +121,17 @@ describe('middleware da tela de avisos (/mesa)', () => {
         expect(next).not.toHaveBeenCalled();
       }
     }
+  });
+
+  it('caminho codificado, com barras dobradas ou em outra caixa também é /mesa: 303 sem sessão', async () => {
+    const pedir = await carregar();
+    for (const caminho of ['/m%65sa/avisos', '/MESA/avisos', '/mesa//avisos', '//mesa/avisos', '/mesa/%61visos', '/%6D%65%73%61/avisos', '/m%2565sa/avisos', '/mesa/%zz/avisos', '/mesa%2Favisos']) {
+      const { res, next } = await pedir(caminho);
+      expect(res.status, caminho).toBe(303);
+      expect(next, caminho).not.toHaveBeenCalled();
+    }
+    // e /m%65sa/entrar continua sendo a entrada (sem sessão)
+    expect((await pedir('/m%65sa/entrar')).next).toHaveBeenCalledOnce();
   });
 
   it('/mesa/entrar abre sem sessão; com sessão válida, a tela recebe o nome e sai com no-store e noindex', async () => {

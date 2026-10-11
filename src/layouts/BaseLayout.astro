@@ -49,6 +49,7 @@ const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ''), Ast
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Logo da LAESA, Liga Acadêmica de Engenharia de Software Aplicada" />
     <meta name="twitter:card" content="summary_large_image" />
+    <slot name="head" />
   </head>
   <body>
     <Logo definicao />

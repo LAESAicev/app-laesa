@@ -16,8 +16,28 @@ const resposta = (status: number, texto: string, extra: Record<string, string> =
 
 let avisou = false;
 
+/**
+ * Caminho como o roteador pode enxergá-lo: decodificado (até 3 vezes, para %2565), sem barras repetidas, em
+ * minúsculas e sem barra no fim. Assim /m%65sa/avisos, /MESA/avisos e /mesa//avisos também caem no portão.
+ * %XX malformado: decodifica só os bytes ASCII válidos e segue (na dúvida, trata como /mesa).
+ */
+function normalizar(pathname: string): string {
+  let p = pathname;
+  for (let i = 0; i < 3; i++) {
+    let d: string;
+    try {
+      d = decodeURIComponent(p);
+    } catch {
+      d = p.replace(/%([0-7][0-9a-f])/gi, (_, h: string) => String.fromCharCode(parseInt(h, 16)));
+    }
+    if (d === p) break;
+    p = d;
+  }
+  return p.replace(/\/{2,}/g, '/').toLowerCase().replace(/\/+$/, '');
+}
+
 export const onRequest: MiddlewareHandler = async (context, next) => {
-  const caminho = context.url.pathname.toLowerCase().replace(/\/+$/, '');
+  const caminho = normalizar(context.url.pathname);
   if (caminho !== '/mesa' && !caminho.startsWith('/mesa/')) return next();
 
   if (!PAINEL_AVISOS || INSCRITOS_STORE !== 'sqlite') {

@@ -1,0 +1,86 @@
+---
+// Entrada da tela de avisos. GET nunca consome o link (scanners de e-mail abrem links): só mostra o formulário.
+//   GET              → botão para pedir o link (vai sempre para a caixa da LAESA)
+//   POST acao=pedir  → pede o link; resposta sempre igual (303 ?enviado=1), mandando ou não
+//   GET ?t=…         → campo "Seu nome" e botão Entrar, com o token num campo oculto
+//   POST t=…         → consome o link (mesmo navegador do pedido) e abre a sessão; 303 /mesa/avisos
+import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
+import MesaLayout from '../../layouts/MesaLayout.astro';
+import Button from '../../components/Button.astro';
+import MesaErro from '../../components/MesaErro.astro';
+import { COOKIE_PRE, COOKIE_PRE_OPCOES, COOKIE_SESSAO, COOKIE_SESSAO_OPCOES, aleatorio, nomeValido } from '../../lib/painel';
+import { ipDe, limites, painel, pedirLinkDeEntrada } from '../../lib/mesa';
+
+export const prerender = false;
+
+const FALHOU = 'Não deu para entrar. O link vale 15 minutos, funciona uma vez só e precisa ser aberto no mesmo navegador em que foi pedido. Peça um link novo.';
+
+let token = Astro.url.searchParams.get('t') ?? '';
+let erro: string | undefined;
+let nome = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData().catch(() => new FormData());
+  if (form.get('acao') === 'pedir') {
+    // Reaproveita o nonce deste navegador: pedir duas vezes não invalida o primeiro link aqui.
+    const atual = Astro.cookies.get(COOKIE_PRE)?.value;
+    const nonce = atual && /^[\w-]{43}$/.test(atual) ? atual : aleatorio();
+    Astro.cookies.set(COOKIE_PRE, nonce, COOKIE_PRE_OPCOES);
+    // Em dev o link aponta para o servidor local; em produção, para SITE_URL.
+    await pedirLinkDeEntrada(ipDe(Astro), nonce, import.meta.env.DEV || !Astro.site ? Astro.url : Astro.site);
+    return Astro.redirect('/mesa/entrar?enviado=1', 303);
+  }
+
+  token = String(form.get('t') ?? '');
+  nome = String(form.get('nome') ?? '');
+  if (!limites.entradaPorIp(ipDe(Astro))) {
+    erro = 'Muitas tentativas de entrar. Espere 15 minutos e tente de novo.';
+  } else if (!nomeValido(nome)) {
+    erro = 'Escreva seu nome (até 60 caracteres). Ele aparece nos envios que você fizer.';
+  } else {
+    const id = painel().entrar(token, Astro.cookies.get(COOKIE_PRE)?.value ?? '', nome, Astro.cookies.get(COOKIE_SESSAO)?.value);
+    if (id) {
+      Astro.cookies.set(COOKIE_SESSAO, id, COOKIE_SESSAO_OPCOES);
+      Astro.cookies.delete(COOKIE_PRE, { path: '/', secure: true, httpOnly: true, sameSite: 'lax' });
+      return Astro.redirect('/mesa/avisos', 303);
+    }
+    erro = FALHOU;
+    token = ''; // link que não serviu: só resta pedir outro
+  }
+}
+
+const enviado = Astro.request.method === 'GET' && Astro.url.searchParams.get('enviado') === '1';
+const entrar = Boolean(token);
+const semPre = entrar && !Astro.cookies.get(COOKIE_PRE)?.value;
+---
+<MesaLayout title="Entrar na tela de avisos">
+  <h1 class="d1">Tela de <em>avisos.</em></h1>
+  {erro && <MesaErro mensagem={erro} />}
+  {entrar ? (
+    <>
+      <p class="lead">Escreva seu nome e clique em Entrar. Abra este link no mesmo navegador em que pediu o acesso: em outro navegador ele não funciona.</p>
+      {semPre && <p class="body">Este navegador não pediu o link. Se não conseguir entrar, peça um link novo daqui mesmo.</p>}
+      <form class="form" method="post" action="/mesa/entrar">
+        <input type="hidden" name="t" value={token} />
+        <div class="field">
+          <label for="mesa-nome">Seu nome</label>
+          <input class="input" id="mesa-nome" name="nome" type="text" autocomplete="name" required maxlength="60" value={nome} aria-describedby="mesa-nome-dica" />
+          <p class="hint" id="mesa-nome-dica">Fica registrado nos envios que você fizer. É o nome que você declara: a caixa da LAESA é compartilhada.</p>
+        </div>
+        <Button type="submit">Entrar</Button>
+      </form>
+    </>
+  ) : (
+    <>
+      {enviado ? (
+        <p class="lead" role="status">Pedido recebido. Se ele foi aceito, o link chega em alguns minutos na caixa da LAESA ({PUBLIC_CONTACT_EMAIL}). O link vale 15 minutos e só funciona neste navegador.</p>
+      ) : (
+        <p class="lead">Para entrar, peça um link de acesso. Ele vai para a caixa da LAESA ({PUBLIC_CONTACT_EMAIL}), vale 15 minutos e só funciona neste navegador.</p>
+      )}
+      <form method="post" action="/mesa/entrar">
+        <input type="hidden" name="acao" value="pedir" />
+        <Button type="submit" icon="mail">{enviado ? 'Pedir outro link' : 'Enviar link de acesso para a caixa da LAESA'}</Button>
+      </form>
+    </>
+  )}
+</MesaLayout>

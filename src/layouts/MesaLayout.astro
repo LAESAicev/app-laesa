@@ -1,0 +1,37 @@
+---
+// Moldura das páginas da tela de avisos (/mesa): fora dos buscadores, com quem está usando e os botões de sair.
+// Sem JavaScript: tudo é link ou formulário (POST conferido pelo src/middleware.ts).
+import BaseLayout from './BaseLayout.astro';
+import Section from '../components/Section.astro';
+
+interface Props {
+  title: string;
+  /** Quem entrou (Astro.locals.mesa); sem nome, a página é a de entrada e não mostra o topo. */
+  nome?: string;
+  /** Recarrega a página a cada 15 s (envio em andamento). */
+  atualizar?: boolean;
+}
+
+const { title, nome, atualizar = false } = Astro.props;
+---
+<BaseLayout title={title} description="Tela de avisos da Mesa da LAESA." noindex>
+  {atualizar && <meta slot="head" http-equiv="refresh" content="15" />}
+  <Section class="page-head mesa" node={false} label="Tela de avisos">
+    {nome && (
+      <header class="mesa-topo">
+        <p class="meta">Tela de avisos · você entrou como <strong>{nome}</strong></p>
+        <nav aria-label="Tela de avisos"><a class="link" href="/mesa/avisos">Avisos e envios</a></nav>
+        <form method="post" action="/mesa/sair" class="mesa-sair">
+          <button class="btn btn-outline" type="submit" name="acao" value="sair">Sair</button>
+          <button class="btn btn-outline" type="submit" name="acao" value="sair-todos">Sair de todos os navegadores</button>
+        </form>
+      </header>
+    )}
+    <slot />
+  </Section>
+</BaseLayout>
+
+<style>
+  .mesa-topo { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; margin-bottom: 32px; }
+  .mesa-sair { display: flex; flex-wrap: wrap; gap: 8px; }
+</style>
