@@ -139,8 +139,11 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
   const envio = (id: number) => db.prepare(`${SELECT_ENVIO} WHERE e.id = ?`).get(id) as Envio | undefined;
   const rascunho = (id: number) => db.prepare('SELECT * FROM avisos_rascunhos WHERE id = ?').get(id) as Rascunho | undefined;
 
-  /** Houve teste de exatamente este conteúdo (em qualquer rascunho com o mesmo hash)? */
-  const testado = (r: Rascunho) => Boolean(db.prepare('SELECT 1 FROM avisos_rascunhos WHERE hash = ? AND teste_enviado_em IS NOT NULL').get(r.hash));
+  /** Último teste de exatamente este conteúdo, em qualquer rascunho com o mesmo hash (o código vale por conteúdo). */
+  const ultimoTeste = (r: Rascunho) =>
+    db.prepare('SELECT id, teste_enviado_em FROM avisos_rascunhos WHERE hash = ? AND teste_enviado_em IS NOT NULL ORDER BY teste_enviado_em DESC, id DESC LIMIT 1').get(r.hash) as
+      | { id: number; teste_enviado_em: string }
+      | undefined;
 
   function mudarStatus(id: number, status: StatusEnvio, motivo: string | null, de: StatusEnvio[]): Envio {
     const atual = envio(id);
@@ -163,6 +166,7 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
     },
 
     rascunho,
+    ultimoTeste,
 
     marcarTeste(id: number): void {
       db.prepare('UPDATE avisos_rascunhos SET teste_enviado_em = ? WHERE id = ?').run(agora(), id);
@@ -193,7 +197,7 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
 
     /** Recusa rascunho sem teste deste conteúdo e, sem `reenviar`, aviso repetido. O comando confere antes de pedir a confirmação. */
     conferirEnvio(r: Rascunho, reenviar: boolean): void {
-      if (!testado(r)) throw new ErroAviso(
+      if (!ultimoTeste(r)) throw new ErroAviso(
           `O rascunho ${r.id} ainda não teve teste deste conteúdo. Rode "teste ${r.id}" e confira a caixa da LAESA.`,
           `O rascunho ${r.id} ainda não teve teste deste conteúdo. Mande o teste e confira o e-mail na caixa da LAESA.`,
         );

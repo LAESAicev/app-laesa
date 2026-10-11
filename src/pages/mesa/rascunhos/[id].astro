@@ -60,7 +60,9 @@ if (!r) {
 const testeEnviado = Astro.request.method === 'GET' && Astro.url.searchParams.get('teste') === '1';
 const inscritos = r ? (await fila.inscritos()).length : 0;
 const antes = r?.item ? fila.notificacoes(r.item, r.evento) : [];
-const testado = Boolean(r?.teste_enviado_em);
+// mesmo critério do envio: o teste vale por conteúdo, então outro rascunho igual já testado conta
+const teste = r ? fila.ultimoTeste(r) : undefined;
+const testado = Boolean(teste);
 const pessoas = inscritos === 1 ? '1 inscrito' : `${inscritos} inscritos`;
 ---
 <MesaLayout title={r ? `Rascunho ${r.id}` : 'Rascunho não encontrado'} nome={mesa.nome}>
@@ -99,7 +101,7 @@ const pessoas = inscritos === 1 ? '1 inscrito' : `${inscritos} inscritos`;
           <section class="mesa-situacao" aria-labelledby="situacao">
             <h2 class="sr-only" id="situacao">Situação</h2>
             <dl>
-              <div><dt>Teste</dt><dd>{testado ? `Teste enviado em ${quando(r.teste_enviado_em!)}.` : 'Ainda sem teste.'}</dd></div>
+              <div><dt>Teste</dt><dd>{teste ? `Teste enviado em ${quando(teste.teste_enviado_em)}${teste.id !== r.id ? ` pelo rascunho #${teste.id}, de mesmo conteúdo` : ''}. Para enviar, vale o código do último teste deste conteúdo.` : 'Ainda sem teste.'}</dd></div>
               <div><dt>Inscritos agora</dt><dd class="mesa-num">{inscritos}</dd></div>
             </dl>
             {antes.length > 0 && (

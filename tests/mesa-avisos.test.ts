@@ -82,7 +82,7 @@ const passado: ItemAtividade = {
 };
 /** Editais extras, um por teste de envio: a proteção contra repetição não mistura os testes. */
 const extra = (n: number): ItemEdital => ({ ...edital, id: `edital:t${n}`, titulo: `Edital T${n}`, url: `${SITE}/processos-seletivos/t${n}` });
-const EXTRAS = Array.from({ length: 12 }, (_, i) => extra(i + 1));
+const EXTRAS = Array.from({ length: 20 }, (_, i) => extra(i + 1));
 const MANIFESTO: Manifesto = { versao: 1, geradoEm: new Date().toISOString(), site: SITE, contato: 'laesa@somosicev.com', itens: [edital, provisorio, passado, ...EXTRAS] };
 const CAIXA = 'laesa@somosicev.com'; // PUBLIC_CONTACT_EMAIL do vitest.config.ts
 
@@ -244,6 +244,19 @@ describe('/mesa/rascunhos/[id]', () => {
     const { html } = await chamar(Rascunho, `/mesa/rascunhos/${id}?teste=1`, { params: { id: String(id) } });
     expect(texto(html)).toContain('Teste enviado para a caixa da LAESA. O código para liberar o envio está no e-mail.');
     expect(texto(html)).toContain('Teste enviado em');
+  });
+
+  it('mesmo conteúdo em dois rascunhos: o segundo aparece testado pelo teste do primeiro, e o código dele envia', async () => {
+    const primeiro = await prepararPelaTela(EXTRAS[12]);
+    const codigo = await testarPelaTela(primeiro);
+    const segundo = await prepararPelaTela(EXTRAS[12]);
+    expect(fila().rascunho(segundo)!.hash).toBe(fila().rascunho(primeiro)!.hash);
+    const t = texto((await naPagina(segundo)).html);
+    expect(t).not.toContain('Ainda sem teste');
+    expect(t).toContain(`pelo rascunho #${primeiro}`);
+    expect(t).toContain('vale o código do último teste');
+    expect((await enviarPelaTela(segundo, { codigo, confirmacao: String(await inscritosAgora()) })).res.status).toBe(303);
+    await Promise.all(m.execucoes);
   });
 
   it('envio recusado (422, nada criado): sem teste, nº errado, sem código, código de outro rascunho, código já usado', async () => {
