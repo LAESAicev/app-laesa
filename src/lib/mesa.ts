@@ -113,18 +113,15 @@ export function emailDeEntrada(token: string, base: URL, agora = new Date()) {
 
 /**
  * Pede um link de entrada para a caixa da LAESA. Não diz se mandou: barrado pelo limite, com 5 links valendo
- * ou com o SMTP fora, quem chama responde igual. O destino nunca vem do pedido.
+ * ou com o SMTP fora, quem chama responde igual. O destino nunca vem do pedido. O e-mail sai sem esperar:
+ * esperar o SMTP só quando o pedido é aceito deixaria o tempo de resposta contar o que a resposta esconde.
  */
-export async function pedirLinkDeEntrada(ip: string, nonce: string, base: URL): Promise<void> {
+export function pedirLinkDeEntrada(ip: string, nonce: string, base: URL): void {
   if (!limites.pedidoPorIp(ip)) return void console.warn('[mesa] pedido de link barrado pelo limite por IP');
   if (!limites.pedidosNoDia('todos')) return void console.warn('[mesa] pedido de link barrado pelo limite diário');
   const token = painel().pedirLink(nonce);
   if (!token) return void console.warn('[mesa] pedido de link recusado: já há 5 links valendo');
-  try {
-    await enviar(emailDeEntrada(token, base));
-  } catch (e) {
-    console.error('[mesa] falha ao enviar o link de entrada', resumoErro(e));
-  }
+  void enviar(emailDeEntrada(token, base)).catch((e: unknown) => console.error('[mesa] falha ao enviar o link de entrada', resumoErro(e)));
 }
 
 /** O que a tela mostra de um erro: a mensagem do ErroAviso (escrita para a Mesa) ou uma frase genérica, nunca a crua. */

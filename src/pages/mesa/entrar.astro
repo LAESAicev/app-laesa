@@ -28,7 +28,7 @@ if (Astro.request.method === 'POST') {
     const nonce = atual && /^[\w-]{43}$/.test(atual) ? atual : aleatorio();
     Astro.cookies.set(COOKIE_PRE, nonce, COOKIE_PRE_OPCOES);
     // Em dev o link aponta para o servidor local; em produção, para SITE_URL.
-    await pedirLinkDeEntrada(ipDe(Astro), nonce, import.meta.env.DEV || !Astro.site ? Astro.url : Astro.site);
+    pedirLinkDeEntrada(ipDe(Astro), nonce, import.meta.env.DEV || !Astro.site ? Astro.url : Astro.site);
     return Astro.redirect('/mesa/entrar?enviado=1', 303);
   }
 

@@ -30,7 +30,7 @@ beforeAll(async () => {
 });
 afterAll(() => rmSync(h.dir, { recursive: true, force: true }));
 beforeEach(() => {
-  enviar.mockReset();
+  enviar.mockReset().mockResolvedValue(undefined); // como o real (async)
   // relógio adiantado 25 h a cada teste: janelas dos limites (inclusive a diária) e links anteriores já venceram
   adiantado += 25 * 60 * MIN;
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -120,10 +120,19 @@ describe('/mesa/entrar: pedir o link', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     for (let i = 0; i < 21; i++) {
       if (i % 5 === 0) vi.setSystemTime(new Date(Date.now() + 16 * MIN)); // máx. 5 links valendo: deixa os anteriores vencerem
-      await pedirLinkDeEntrada(`10.9.0.${i}`, `nonce-${i}`, new URL('http://localhost'));
+      pedirLinkDeEntrada(`10.9.0.${i}`, `nonce-${i}`, new URL('http://localhost'));
     }
     expect(enviar).toHaveBeenCalledTimes(20);
     vi.mocked(console.warn).mockRestore();
+  });
+
+  it('responde na hora, sem esperar o SMTP: o tempo de resposta não revela se o pedido foi aceito', async () => {
+    let soltar!: () => void;
+    enviar.mockImplementationOnce(() => new Promise<void>((r) => (soltar = r)));
+    const resultado = await Promise.race([pedirLink().then(() => 'respondeu'), new Promise((r) => setTimeout(() => r('esperou o SMTP'), 500))]);
+    expect(resultado).toBe('respondeu');
+    expect(enviar).toHaveBeenCalledOnce();
+    soltar();
   });
 
   it('SMTP fora do ar: resposta continua neutra', async () => {
@@ -132,6 +141,7 @@ describe('/mesa/entrar: pedir o link', () => {
     const { res } = await pedirLink();
     expect(res.status).toBe(303);
     expect(res.headers.get('location')).toBe('/mesa/entrar?enviado=1');
+    await vi.waitFor(() => expect(console.error).toHaveBeenCalled()); // a falha é registrada depois da resposta
     expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain('@');
     vi.mocked(console.error).mockRestore();
   });
