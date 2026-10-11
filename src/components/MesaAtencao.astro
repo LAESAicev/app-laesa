@@ -1,0 +1,22 @@
+---
+// Caixa de atenção da tela de avisos (borda vermelha, fundo claro): situação que pede cuidado, mas não é erro da
+// ação (esse é o MesaErro). O conteúdo vem no slot: um ou mais <p>.
+import Icon from './Icon.astro';
+
+interface Props {
+  /** "status" quando a caixa muda sozinha (recarga da página do envio) e deve ser anunciada. */
+  role?: 'status';
+}
+
+const { role } = Astro.props;
+---
+<div class="mesa-atencao" role={role}>
+  <Icon name="alert" />
+  <div><slot /></div>
+</div>
+
+<style>
+  .mesa-atencao { display: grid; grid-template-columns: 20px 1fr; gap: 12px; padding: 14px 16px; border: 1.5px solid var(--error); border-radius: 4px; background: var(--paper); color: var(--ink); font-size: 15px; line-height: 1.5; }
+  .mesa-atencao :global(svg) { width: 20px; height: 20px; margin-top: 2px; color: var(--error); }
+  .mesa-atencao :global(p + p) { margin-top: 6px; }
+</style>

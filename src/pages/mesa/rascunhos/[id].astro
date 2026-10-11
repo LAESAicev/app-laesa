@@ -8,6 +8,7 @@ import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
 import MesaLayout from '../../../layouts/MesaLayout.astro';
 import Button from '../../../components/Button.astro';
 import Icon from '../../../components/Icon.astro';
+import MesaAtencao from '../../../components/MesaAtencao.astro';
 import MesaErro from '../../../components/MesaErro.astro';
 import MesaPassos from '../../../components/MesaPassos.astro';
 import { conferirAntesDeEnviar, conferirCodigo, normalizarCodigo, testar } from '../../../lib/avisos/acoes';
@@ -112,21 +113,19 @@ const pessoas = inscritos === 1 ? '1 inscrito' : `${inscritos} inscritos`;
             <h2 class="sr-only" id="situacao">Situação</h2>
             <dl>
               <div><dt>Teste</dt><dd>{teste ? `Teste enviado em ${quando(teste.teste_enviado_em)}${teste.id !== r.id ? ` pelo rascunho #${teste.id}, de mesmo conteúdo` : ''}. Para enviar, vale o código do último teste deste conteúdo.` : 'Ainda sem teste.'}</dd></div>
-              <div><dt>Inscritos agora</dt><dd class="mesa-num">{inscritos}</dd></div>
+              <div><dt>Inscritos agora</dt><dd><span class="mesa-num">{inscritos}</span></dd></div>
             </dl>
             {antes.length > 0 && (
-              <div class="mesa-atencao">
-                <Icon name="alert" />
+              <MesaAtencao>
                 <p>Este aviso já foi enviado ({antes.map((a) => `envio #${a.envio_id} em ${quando(a.criado_em)} por ${a.por}`).join('; ')}). Só sai de novo se você marcar "Enviar de novo".</p>
-              </div>
+              </MesaAtencao>
             )}
           </section>
 
           {r.evento === 'livre' ? (
-            <div class="mesa-atencao">
-              <Icon name="alert" />
+            <MesaAtencao>
               <p>Aviso livre: o teste e o envio só saem pelo comando (docs/avisos.md), não por esta tela.</p>
-            </div>
+            </MesaAtencao>
           ) : (
             <>
               <section class="mesa-passo" aria-labelledby="teste">
@@ -180,12 +179,10 @@ const pessoas = inscritos === 1 ? '1 inscrito' : `${inscritos} inscritos`;
 <style>
   .mesa-h1 { margin-bottom: 32px; }
   .mesa-voltar { margin-top: 24px; }
-  .mesa-ok, .mesa-atencao { display: grid; grid-template-columns: 20px 1fr; gap: 12px; padding: 14px 16px; border-radius: 4px; background: var(--paper); line-height: 1.5; color: var(--ink); font-size: 15px; }
+  .mesa-ok { display: grid; grid-template-columns: 20px 1fr; gap: 12px; padding: 14px 16px; border-radius: 4px; background: var(--paper); line-height: 1.5; color: var(--ink); font-size: 15px; }
   .mesa-ok { border: 1.5px solid var(--blue); margin-bottom: 32px; max-width: 72ch; font-weight: 600; }
   .mesa-ok-link { margin-top: 4px; font-weight: 500; }
   .mesa-ok :global(svg) { width: 20px; height: 20px; margin-top: 1px; color: var(--blue-text); }
-  .mesa-atencao { border: 1.5px solid var(--error); }
-  .mesa-atencao :global(svg) { width: 20px; height: 20px; margin-top: 2px; color: var(--error); }
   .mesa-rascunho { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 440px); gap: 40px 64px; align-items: start; }
   .mesa-previa-bloco > .d3 { margin-bottom: 8px; }
   .mesa-email { margin-top: 16px; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; box-shadow: 0 24px 48px -32px rgba(4, 63, 99, 0.25); }
@@ -197,7 +194,6 @@ const pessoas = inscritos === 1 ? '1 inscrito' : `${inscritos} inscritos`;
   .mesa-situacao dl { display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
   .mesa-situacao dt { font-size: 14px; font-weight: 600; color: var(--ink); }
   .mesa-situacao dd { font-size: 15.5px; color: var(--ink-2); line-height: 1.5; }
-  .mesa-situacao .mesa-num { font-family: var(--display); font-size: 48px; line-height: 1; color: var(--navy); font-variant-numeric: tabular-nums; }
   .mesa-passo { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
   .mesa-passo .d3 { font-size: 30px; }
   .mesa-enviar { padding: 28px; gap: 20px; align-self: stretch; }

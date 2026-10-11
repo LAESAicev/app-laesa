@@ -38,6 +38,8 @@ const { title, nome, atualizar = false } = Astro.props;
   .mesa-sair { display: flex; flex-wrap: wrap; gap: 8px 20px; }
   .mesa-sair .link-btn { display: inline-flex; align-items: center; font-size: 15px; min-height: 44px; }
   :global(.mesa .wrap) { padding-bottom: 112px; }
+  /* número grande (inscritos agora, enviados, falhas), igual nas páginas do rascunho e do envio */
+  :global(.mesa-num) { font-family: var(--display); font-size: 48px; line-height: 1; color: var(--navy); font-variant-numeric: tabular-nums; margin-right: 4px; }
   @media (max-width: 640px) {
     .mesa-topo { margin-bottom: 28px; gap: 4px 20px; }
     .mesa-quem { flex-basis: 100%; }

@@ -4,7 +4,7 @@
 // Cancelar é definitivo: exige a caixa "confirmar" marcada (conferida aqui no servidor; sem ela, 422 e nada muda).
 import MesaLayout from '../../../layouts/MesaLayout.astro';
 import Button from '../../../components/Button.astro';
-import Icon from '../../../components/Icon.astro';
+import MesaAtencao from '../../../components/MesaAtencao.astro';
 import MesaErro from '../../../components/MesaErro.astro';
 import { ErroAviso, quando, type Fila } from '../../../lib/avisos/fila';
 import { ROTULO_STATUS, filaDaMesa, iniciarProcessamento, mensagemDoErro, registrar, remetente, statusDoErro } from '../../../lib/mesa';
@@ -101,10 +101,9 @@ const aberto = envio?.status === 'enviando' || envio?.status === 'pausado';
           ) : vez ? (
             <p class="body" role="status">Enviando, cerca de 1 e-mail a cada 2,5 segundos. Esta página atualiza sozinha a cada 15 segundos.</p>
           ) : (
-            <div class="mesa-atencao" role="status">
-              <Icon name="alert" />
+            <MesaAtencao role="status">
               <p><strong>Sem processamento ativo: o envio está parado.</strong> Clique em Retomar para continuar de onde parou. Quem já recebeu não recebe de novo.</p>
-            </div>
+            </MesaAtencao>
           )
         )}
         {parado && (
@@ -168,15 +167,12 @@ const aberto = envio?.status === 'enviando' || envio?.status === 'pausado';
   .mesa-dados { display: flex; flex-wrap: wrap; gap: 16px 48px; align-items: flex-end; }
   .mesa-dados dt, .mesa-detalhes dt { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
   .mesa-dados dd { color: var(--ink-2); font-size: 16px; }
-  .mesa-num { font-family: var(--display); font-size: 48px; line-height: 1; color: var(--navy); font-variant-numeric: tabular-nums; margin-right: 4px; }
   .mesa-status.concluido i { background: var(--navy); }
   .mesa-status.cancelado i, .mesa-status.pausado i { background: transparent; border: 2px solid var(--ink-3); box-sizing: border-box; }
   .mesa-barra { width: 100%; height: 8px; appearance: none; border: 0; border-radius: 4px; background: var(--ground); overflow: hidden; color: var(--blue); }
   .mesa-barra::-webkit-progress-bar { background: var(--ground); border-radius: 4px; }
   .mesa-barra::-webkit-progress-value { background: var(--blue); border-radius: 4px; }
   .mesa-barra::-moz-progress-bar { background: var(--blue); border-radius: 4px; }
-  .mesa-atencao { display: grid; grid-template-columns: 20px 1fr; gap: 12px; padding: 14px 16px; border: 1.5px solid var(--error); border-radius: 4px; color: var(--ink); line-height: 1.5; font-size: 15px; }
-  .mesa-atencao :global(svg) { width: 20px; height: 20px; margin-top: 2px; color: var(--error); }
   .mesa-acoes { display: flex; flex-wrap: wrap; gap: 12px; }
   .mesa-detalhes { max-width: 760px; margin-top: 32px; display: grid; grid-template-columns: max-content 1fr; gap: 0 32px; }
   .mesa-detalhes > div { display: contents; }

@@ -5,6 +5,7 @@
 import MesaLayout from '../../layouts/MesaLayout.astro';
 import Button from '../../components/Button.astro';
 import Icon from '../../components/Icon.astro';
+import MesaAtencao from '../../components/MesaAtencao.astro';
 import MesaErro from '../../components/MesaErro.astro';
 import MesaPassos from '../../components/MesaPassos.astro';
 import { acharItem, preparar, resumoItens, type ResumoItem } from '../../lib/avisos/acoes';
@@ -88,13 +89,10 @@ const inscritos = fila ? (await fila.inscritos()).length : 0;
       {vez ? (
         <p class="body"><span class="tag-open neutral"><i aria-hidden="true"></i>processando</span> Envios saindo agora. A vez do processamento vale até {quando(vez.expira_em)}.</p>
       ) : pendente ? (
-        <div class="mesa-atencao" role="status">
-          <Icon name="alert" />
-          <div>
-            <p><strong>O envio #{pendente.id} parou no meio.</strong> Ele está "enviando", mas nada está processando a fila.</p>
-            <p><a class="link" href={`/mesa/envios/${pendente.id}`}>Abrir o envio #{pendente.id} e retomar</a></p>
-          </div>
-        </div>
+        <MesaAtencao role="status">
+          <p><strong>O envio #{pendente.id} parou no meio.</strong> Ele está "enviando", mas nada está processando a fila.</p>
+          <p><a class="link" href={`/mesa/envios/${pendente.id}`}>Abrir o envio #{pendente.id} e retomar</a></p>
+        </MesaAtencao>
       ) : (
         <p class="body">Nenhum envio em andamento.</p>
       )}
@@ -201,10 +199,8 @@ const inscritos = fila ? (await fila.inscritos()).length : 0;
   .mesa-numeros dd { font-family: var(--display); font-size: 56px; line-height: 1; color: var(--navy); font-variant-numeric: tabular-nums; }
   .mesa-estado { display: flex; flex-direction: column; gap: 10px; }
   .mesa-estado .tag-open { margin-right: 8px; vertical-align: middle; }
-  .mesa-atencao, .mesa-bloqueios { display: grid; grid-template-columns: 20px 1fr; gap: 12px; color: var(--ink); line-height: 1.5; }
-  .mesa-atencao { padding: 14px 16px; border: 1.5px solid var(--error); border-radius: 4px; background: var(--paper); }
-  .mesa-atencao :global(svg), .mesa-bloqueios :global(svg) { width: 20px; height: 20px; margin-top: 2px; color: var(--error); }
-  .mesa-atencao p + p { margin-top: 6px; }
+  .mesa-bloqueios { display: grid; grid-template-columns: 20px 1fr; gap: 12px; color: var(--ink); line-height: 1.5; }
+  .mesa-bloqueios :global(svg) { width: 20px; height: 20px; margin-top: 2px; color: var(--error); }
   .mesa-vazio, .mesa-nada { color: var(--ink-3); }
   .mesa-itens { list-style: none; margin-top: 20px; border-bottom: 1px solid var(--rule); }
   .mesa-item { border-top: 1px solid var(--rule); }
