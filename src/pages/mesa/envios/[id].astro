@@ -1,0 +1,116 @@
+---
+// Acompanhamento de um envio: situação, totais e processamento, com recarga a cada 15 s enquanto envia.
+// POST pausar, retomar (dispara o processamento) e cancelar; mudança que não vale para a situação atual: 422.
+import MesaLayout from '../../../layouts/MesaLayout.astro';
+import Button from '../../../components/Button.astro';
+import MesaErro from '../../../components/MesaErro.astro';
+import { ErroAviso, quando } from '../../../lib/avisos/fila';
+import { ROTULO_STATUS, filaDaMesa, iniciarProcessamento, mensagemDoErro, registrar, remetente, statusDoErro } from '../../../lib/mesa';
+
+export const prerender = false;
+
+const mesa = Astro.locals.mesa;
+if (!mesa) return Astro.redirect('/mesa/entrar', 303);
+
+const fila = filaDaMesa();
+const id = Number(Astro.params.id);
+let envio = Number.isSafeInteger(id) && id > 0 ? fila.envio(id) : undefined;
+let erro: string | undefined;
+
+if (!envio) {
+  Astro.response.status = 404;
+} else if (Astro.request.method === 'POST') {
+  const acao = String((await Astro.request.formData().catch(() => new FormData())).get('acao') ?? '');
+  try {
+    if (acao === 'pausar') {
+      if (envio.status !== 'enviando') throw new ErroAviso(`O envio ${id} está "${ROTULO_STATUS[envio.status]}": só dá para pausar um envio que está enviando.`);
+      fila.pausar(id, `pausado pela Mesa por ${mesa.nome}`);
+      registrar(`envio ${id} pausado pela tela de avisos`);
+    } else if (acao === 'retomar') {
+      remetente(); // SMTP mal configurado falha aqui, antes de mudar o envio
+      await fila.retomar(id);
+      registrar(`envio ${id} retomado pela tela de avisos`);
+      iniciarProcessamento();
+    } else if (acao === 'cancelar') {
+      fila.cancelar(id);
+      registrar(`envio ${id} cancelado pela tela de avisos`);
+    } else {
+      throw new ErroAviso('Ação desconhecida. Recarregue a página e tente de novo.');
+    }
+    return Astro.redirect(`/mesa/envios/${id}`, 303);
+  } catch (e) {
+    erro = mensagemDoErro(e, acao);
+    Astro.response.status = statusDoErro(e);
+    envio = fila.envio(id);
+  }
+}
+
+const vez = fila.processador();
+const enviando = envio?.status === 'enviando';
+// sem e-mail novo há mais de 1 min: espera depois de falha do SMTP (até 15 min) ou o processo caiu
+const parado = enviando && vez && Date.now() - Date.parse(envio!.atualizado_em) > 60_000;
+---
+<MesaLayout title={envio ? `Envio ${envio.id}` : 'Envio não encontrado'} nome={mesa.nome} atualizar={enviando}>
+  {!envio ? (
+    <>
+      <h1 class="d1">Envio <em>não encontrado.</em></h1>
+      <p class="body"><a class="link" href="/mesa/avisos">Voltar para os avisos</a></p>
+    </>
+  ) : (
+    <>
+      <h1 class="d1">Envio <em>#{envio.id}.</em></h1>
+      {erro && <MesaErro mensagem={erro} />}
+
+      <dl class="mesa-dados">
+        <dt>Situação</dt><dd>{ROTULO_STATUS[envio.status]}</dd>
+        {envio.motivo && <><dt>Motivo</dt><dd>{envio.motivo}</dd></>}
+        <dt>Assunto</dt><dd>{envio.assunto}</dd>
+        <dt>Enviados</dt><dd>{envio.enviados} de {envio.total_previsto}</dd>
+        <dt>Falhas</dt><dd>{envio.falhas}</dd>
+        <dt>Criado</dt><dd>por {envio.por} em {quando(envio.criado_em)}</dd>
+        {envio.finalizado_em && <><dt>Terminou</dt><dd>{quando(envio.finalizado_em)}</dd></>}
+      </dl>
+
+      {enviando && (
+        vez ? (
+          <p class="body" role="status">Processando: cerca de 1 e-mail a cada 2,5 s (vez ocupada até {quando(vez.expira_em)}). Esta página atualiza sozinha a cada 15 segundos.</p>
+        ) : (
+          <p class="body mesa-atencao" role="status">Sem processamento ativo: o envio está parado. Clique em Retomar para continuar de onde parou (quem já recebeu não recebe de novo).</p>
+        )
+      )}
+      {parado && (
+        <p class="body">Nenhum e-mail saiu desde {quando(envio.atualizado_em)}. Pode ser a espera depois de uma falha do SMTP. Se nada mudar, retome depois de {quando(vez!.expira_em)}.</p>
+      )}
+
+      <div class="mesa-acoes">
+        {enviando && (
+          <form method="post" action={`/mesa/envios/${envio.id}`}>
+            <input type="hidden" name="acao" value="pausar" />
+            <Button type="submit" variant="outline" icon={false}>Pausar</Button>
+          </form>
+        )}
+        {(envio.status === 'pausado' || (enviando && !vez)) && (
+          <form method="post" action={`/mesa/envios/${envio.id}`}>
+            <input type="hidden" name="acao" value="retomar" />
+            <Button type="submit" icon={false}>Retomar</Button>
+          </form>
+        )}
+        {(enviando || envio.status === 'pausado') && (
+          <form method="post" action={`/mesa/envios/${envio.id}`}>
+            <input type="hidden" name="acao" value="cancelar" />
+            <Button type="submit" variant="outline" icon={false}>Cancelar envio</Button>
+          </form>
+        )}
+      </div>
+      <p class="body"><a class="link" href="/mesa/avisos">Voltar para os avisos</a></p>
+    </>
+  )}
+</MesaLayout>
+
+<style>
+  .mesa-dados { display: grid; grid-template-columns: max-content 1fr; gap: 8px 24px; margin: 24px 0; }
+  .mesa-dados dt { font-weight: 600; }
+  .mesa-dados dd { margin: 0; }
+  .mesa-atencao { color: #A32222; font-weight: 600; }
+  .mesa-acoes { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0; }
+</style>

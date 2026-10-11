@@ -43,6 +43,7 @@ vi.mock('../src/lib/avisos/processar', async (orig) => {
 
 const { default: Avisos } = await import('../src/pages/mesa/avisos.astro');
 const { default: Rascunho } = await import('../src/pages/mesa/rascunhos/[id].astro');
+const { default: EnvioPagina } = await import('../src/pages/mesa/envios/[id].astro');
 const { EnvioIndisponivel } = await import('../src/lib/smtp');
 const { filaDaMesa } = await import('../src/lib/mesa');
 const { criarInscritosSqlite } = await import('../src/lib/inscritos-sqlite');
@@ -357,6 +358,76 @@ describe('/mesa/rascunhos/[id]', () => {
     expect(res.status).toBe(422);
     expect(texto(html)).toContain('Aviso livre só sai pelo comando');
     expect(enviarAviso).not.toHaveBeenCalled();
+  });
+});
+
+/** Envio "enviando" criado direto na fila, sem processamento (como depois de o servidor cair). */
+async function envioParado(item: ItemEdital) {
+  const id = await prepararPelaTela(item);
+  fila().marcarTeste(id);
+  return fila().criarEnvio(id, 'Ana', await inscritosAgora(), { reenviar: true }).id; // o mesmo item serve a vários testes
+}
+const noEnvio = (id: number, acao?: string) =>
+  chamar(EnvioPagina, `/mesa/envios/${id}`, { method: acao ? 'POST' : 'GET', form: acao ? { acao } : undefined, params: { id: String(id) } });
+
+describe('/mesa/envios/[id]', () => {
+  it('sem sessão: 303 para a entrada (GET e POST), nada muda', async () => {
+    const id = await envioParado(EXTRAS[10]);
+    for (const acao of [undefined, 'cancelar']) {
+      const { res } = await chamar(EnvioPagina, `/mesa/envios/${id}`, { method: acao ? 'POST' : 'GET', form: acao ? { acao } : undefined, params: { id: String(id) }, nome: null });
+      expect(res.status).toBe(303);
+      expect(res.headers.get('location')).toBe('/mesa/entrar');
+    }
+    expect(fila().envio(id)!.status).toBe('enviando');
+  });
+
+  it('enviando sem processador: totais, "sem processamento ativo", Retomar e recarga de 15 s', async () => {
+    const id = await envioParado(EXTRAS[10]);
+    const { res, html } = await noEnvio(id);
+    expect(res.status).toBe(200);
+    expect(html).toMatch(/<head>[\s\S]*<meta http-equiv="refresh" content="15"[\s\S]*<\/head>/);
+    const t = texto(html);
+    expect(t).toContain('Situação enviando');
+    expect(t).toMatch(/Enviados 0 de \d+/);
+    expect(t).toContain('Sem processamento ativo');
+    expect(html).toContain('value="retomar"');
+    expect(html).toContain('value="pausar"');
+    fila().cancelar(id);
+  });
+
+  it('pausar → 303 com o motivo e o nome; pausar de novo → 422; retomar processa até o fim; cancelar concluído → 422', async () => {
+    const id = await envioParado(EXTRAS[11]);
+    let r = await noEnvio(id, 'pausar');
+    expect(r.res.status).toBe(303);
+    expect(r.res.headers.get('location')).toBe(`/mesa/envios/${id}`);
+    expect(fila().envio(id)).toMatchObject({ status: 'pausado', motivo: 'pausado pela Mesa por Ana' });
+    r = await noEnvio(id, 'pausar');
+    expect(r.res.status).toBe(422);
+    expect(texto(r.html)).toContain('só dá para pausar');
+
+    const { html } = await noEnvio(id);
+    expect(html).not.toContain('http-equiv="refresh"');
+    expect(html).toContain('value="retomar"');
+
+    expect((await noEnvio(id, 'retomar')).res.status).toBe(303);
+    await Promise.all(m.execucoes);
+    expect(fila().envio(id)).toMatchObject({ status: 'concluido', falhas: 0 });
+
+    for (const acao of ['cancelar', 'retomar', 'pausar', 'outra']) {
+      r = await noEnvio(id, acao);
+      expect(r.res.status, acao).toBe(422);
+    }
+    expect(fila().envio(id)!.status).toBe('concluido');
+  });
+
+  it('cancelar envio aberto → 303 e cancelado', async () => {
+    const id = await envioParado(EXTRAS[10]);
+    expect((await noEnvio(id, 'cancelar')).res.status).toBe(303);
+    expect(fila().envio(id)!.status).toBe('cancelado');
+  });
+
+  it('envio que não existe: 404', async () => {
+    expect((await noEnvio(99999)).res.status).toBe(404);
   });
 });
 
