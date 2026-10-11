@@ -1,0 +1,155 @@
+---
+// Tela de avisos: o que está publicado, o aviso sugerido para cada item (com bloqueios e envios anteriores),
+// os últimos envios e o processamento. POST prepara um rascunho: só eventos com modelo, conteúdo do site
+// publicado (assunto e texto não vêm do formulário; aviso livre só pelo comando).
+import MesaLayout from '../../layouts/MesaLayout.astro';
+import Button from '../../components/Button.astro';
+import MesaErro from '../../components/MesaErro.astro';
+import { acharItem, preparar, resumoItens, type ResumoItem } from '../../lib/avisos/acoes';
+import { ErroAviso, quando } from '../../lib/avisos/fila';
+import { eventoValido, type Evento } from '../../lib/avisos/templates';
+import { ROTULO_STATUS, filaDaMesa, manifesto, mensagemDoErro, statusDoErro } from '../../lib/mesa';
+
+export const prerender = false;
+
+const mesa = Astro.locals.mesa;
+if (!mesa) return Astro.redirect('/mesa/entrar', 303);
+
+const EVENTOS_DO_TIPO: Record<'edital' | 'atividade', Evento[]> = {
+  edital: ['edital-aberto', 'edital-prorrogado'],
+  atividade: ['atividade-inscricoes', 'atividade-breve', 'projeto'],
+};
+const ROTULO_EVENTO: Record<Evento, string> = {
+  'edital-aberto': 'Edital aberto',
+  'edital-prorrogado': 'Inscrições prorrogadas',
+  'atividade-inscricoes': 'Inscrições abertas',
+  'atividade-breve': 'Em breve',
+  projeto: 'Projeto saiu do papel',
+  livre: 'Aviso livre',
+};
+
+const fila = filaDaMesa();
+let erro: string | undefined;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData().catch(() => new FormData());
+  try {
+    const m = manifesto();
+    const evento = String(form.get('evento') ?? '');
+    if (!eventoValido(evento) || evento === 'livre') throw new ErroAviso('Escolha um dos avisos da lista. O aviso livre só sai pelo comando (docs/avisos.md).');
+    const item = acharItem(m, String(form.get('item') ?? ''));
+    if (!item) throw new ErroAviso('Item não encontrado no site publicado. Recarregue a página e escolha de novo.');
+    const { rascunho } = await preparar(fila, m, evento, item);
+    return Astro.redirect(`/mesa/rascunhos/${rascunho.id}`, 303);
+  } catch (e) {
+    erro = mensagemDoErro(e, 'preparar');
+    Astro.response.status = statusDoErro(e);
+  }
+}
+
+let itens: ResumoItem[] = [];
+let publicadoEm: string | undefined;
+let erroItens: string | undefined;
+try {
+  const m = manifesto();
+  itens = resumoItens(fila, m);
+  publicadoEm = m.geradoEm;
+} catch (e) {
+  erroItens = mensagemDoErro(e, 'itens');
+}
+const envios = fila.envios().slice(0, 10);
+const vez = fila.processador();
+const pendente = fila.proximoEnvio();
+const inscritos = (await fila.inscritos()).length;
+---
+<MesaLayout title="Avisos" nome={mesa.nome}>
+  <h1 class="d1">Avisos <em>da Mesa.</em></h1>
+  {erro && <MesaErro mensagem={erro} />}
+
+  <section aria-labelledby="agora">
+    <h2 class="d3" id="agora">Agora</h2>
+    <p class="body">Inscritos nas novidades: <strong>{inscritos}</strong>.</p>
+    {vez ? (
+      <p class="body">Processando envios (vez ocupada até {quando(vez.expira_em)}).</p>
+    ) : pendente ? (
+      <p class="body">O envio <a class="link" href={`/mesa/envios/${pendente.id}`}>#{pendente.id}</a> está "enviando" sem processamento ativo. Abra o envio e clique em Retomar.</p>
+    ) : (
+      <p class="body">Nenhum envio em andamento.</p>
+    )}
+  </section>
+
+  <section aria-labelledby="publicado">
+    <h2 class="d3" id="publicado">O que está publicado</h2>
+    {erroItens ? <MesaErro mensagem={erroItens} /> : <p class="meta">Site publicado em {quando(publicadoEm!)}.</p>}
+    {itens.map(({ item, nome, situacao, evento, antes, motivos }) => (
+      <article class="mesa-item" aria-labelledby={`item-${item.id}`}>
+        <h3 id={`item-${item.id}`}>{nome}</h3>
+        <p class="meta">{situacao}{item.exemplo ? ' · provisório' : ''}</p>
+        {evento ? (
+          <>
+            <p class="body">Aviso sugerido: <strong>{ROTULO_EVENTO[evento]}</strong>.</p>
+            {antes.length > 0 && (
+              <p class="body">Já avisado: {antes.map((a) => `envio #${a.envio_id} em ${quando(a.criado_em)} por ${a.por}`).join('; ')}.</p>
+            )}
+            {motivos.length > 0 && (
+              <div class="mesa-bloqueios">
+                <p>Bloqueado:</p>
+                <ul>{motivos.map((x) => <li>{x}</li>)}</ul>
+              </div>
+            )}
+            <form method="post" action="/mesa/avisos" class="mesa-preparar">
+              <input type="hidden" name="item" value={item.id} />
+              <div class="field">
+                <label for={`evento-${item.id}`}>Aviso</label>
+                <select class="select" id={`evento-${item.id}`} name="evento">
+                  {EVENTOS_DO_TIPO[item.tipo].map((ev) => (
+                    <option value={ev} selected={ev === evento}>{ROTULO_EVENTO[ev]}{ev === evento ? ' (sugerido)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+              <Button type="submit" variant="outline">Preparar aviso</Button>
+            </form>
+          </>
+        ) : (
+          <p class="body">Nada a avisar agora.</p>
+        )}
+      </article>
+    ))}
+  </section>
+
+  <section aria-labelledby="envios">
+    <h2 class="d3" id="envios">Últimos envios</h2>
+    {envios.length === 0 ? (
+      <p class="body">Nenhum envio ainda.</p>
+    ) : (
+      <table class="mesa-tabela">
+        <thead>
+          <tr><th scope="col">Envio</th><th scope="col">Assunto</th><th scope="col">Situação</th><th scope="col">Enviados</th><th scope="col">Falhas</th><th scope="col">Por</th><th scope="col">Criado em</th></tr>
+        </thead>
+        <tbody>
+          {envios.map((e) => (
+            <tr>
+              <td><a class="link" href={`/mesa/envios/${e.id}`}>#{e.id}</a></td>
+              <td>{e.assunto}</td>
+              <td>{ROTULO_STATUS[e.status]}</td>
+              <td>{e.enviados} de {e.total_previsto}</td>
+              <td>{e.falhas}</td>
+              <td>{e.por}</td>
+              <td>{quando(e.criado_em)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </section>
+</MesaLayout>
+
+<style>
+  section { margin-top: 40px; }
+  .mesa-item { padding: 20px 0; border-top: 1px solid var(--rule); }
+  .mesa-bloqueios { margin: 12px 0; color: #A32222; }
+  .mesa-bloqueios ul { padding-left: 20px; }
+  .mesa-preparar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 12px; }
+  .mesa-tabela { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .mesa-tabela th, .mesa-tabela td { text-align: left; padding: 8px; border-bottom: 1px solid var(--rule); }
+</style>

@@ -1,16 +1,41 @@
-// Peças da tela de avisos (/mesa) no servidor: painel (um por processo) e login por link. As regras ficam em
-// src/lib/painel.ts, as mesmas do comando (scripts/avisar.ts); aqui só entra o ambiente do site.
-import { INSCRITOS_DB } from 'astro:env/server';
+// Peças da tela de avisos (/mesa) no servidor: fila e painel (um por processo), manifesto publicado e login por
+// link. As regras ficam em src/lib/avisos/acoes.ts e src/lib/painel.ts, as mesmas do comando (scripts/avisar.ts);
+// aqui só entra o ambiente do site.
+import { resolve } from 'node:path';
+import { AVISOS_MANIFESTO, INSCRICAO_SECRET, INSCRITOS_DB } from 'astro:env/server';
 import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
-import { quando } from './avisos/fila';
+import { ErroAviso, criarFila, quando, type Envio, type Fila } from './avisos/fila';
+import { lerManifesto, type Manifesto } from './avisos/manifesto';
 import { resumoErro } from './http';
 import { enviar } from './mailer';
 import { painelEm } from './painel';
 import { chaveIp, criarLimite } from './rate-limit';
+import { EnvioIndisponivel } from './smtp';
 
 const MIN = 60_000;
 
+function segredo(): string {
+  if (!INSCRICAO_SECRET) throw new EnvioIndisponivel('INSCRICAO_SECRET não definido.');
+  return INSCRICAO_SECRET;
+}
+
+let fila: Fila | undefined;
+/** A fila dos avisos, uma por processo (mesmo banco dos inscritos). */
+export const filaDaMesa = (): Fila => (fila ??= criarFila(INSCRITOS_DB, segredo()));
+
 export const painel = () => painelEm(INSCRITOS_DB);
+
+/** O que está publicado no site, lido do manifesto gerado no build (o mesmo arquivo que o comando lê). */
+export function manifesto(): Manifesto {
+  try {
+    return lerManifesto(resolve(AVISOS_MANIFESTO || 'dist/client/avisos/itens.json'));
+  } catch (e) {
+    console.error('[mesa]', (e as Error).message);
+    throw new ErroAviso('Não consegui ler o que está publicado no site (avisos/itens.json). Quem cuida do servidor precisa gerar o site de novo.');
+  }
+}
+
+export const ROTULO_STATUS: Record<Envio['status'], string> = { enviando: 'enviando', pausado: 'pausado', concluido: 'concluído', cancelado: 'cancelado' };
 
 // ---- login por link
 export const limites = {
@@ -61,3 +86,17 @@ export async function pedirLinkDeEntrada(ip: string, nonce: string, base: URL): 
     console.error('[mesa] falha ao enviar o link de entrada', resumoErro(e));
   }
 }
+
+/** O que a tela mostra de um erro: a mensagem do ErroAviso (escrita para a Mesa) ou uma frase genérica, nunca a crua. */
+export function mensagemDoErro(e: unknown, onde: string): string {
+  if (e instanceof ErroAviso) return e.message;
+  if (e instanceof EnvioIndisponivel) {
+    console.warn(`[mesa] ${onde}: envio indisponível`);
+    return 'O envio de e-mail não está disponível no servidor agora. Nada foi enviado. Avise quem cuida do servidor.';
+  }
+  console.error(`[mesa] ${onde}: erro inesperado`, resumoErro(e));
+  return 'Algo deu errado do nosso lado. Tente de novo em instantes; se continuar, avise quem cuida do servidor.';
+}
+
+/** 422 para recusa explicada (ErroAviso); 500 para o resto. */
+export const statusDoErro = (e: unknown) => (e instanceof ErroAviso ? 422 : 500);
