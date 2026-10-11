@@ -417,6 +417,32 @@ describe('/mesa/envios/[id]', () => {
     fila().cancelar(id);
   });
 
+  it('processador ocupado com outro envio: "na fila, depois do envio #N", sem Retomar nem aviso de parado', async () => {
+    const id = await envioParado(EXTRAS[14]);
+    const primeiro = fila().proximoEnvio()!.id; // o processador pega sempre o "enviando" mais antigo
+    expect(primeiro).toBeLessThan(id);
+    const db = new DatabaseSync(h.db);
+    db.prepare('UPDATE avisos_envios SET atualizado_em = ? WHERE id = ?').run(new Date(Date.now() - 5 * 60_000).toISOString(), id);
+    db.close();
+    expect(fila().pegarVez('outro-processo', 60_000)).toBe(true);
+    try {
+      const { html } = await noEnvio(id);
+      const t = texto(html);
+      expect(t).toContain(`Na fila, depois do envio #${primeiro}`);
+      expect(t).not.toContain('Enviando, cerca de');
+      expect(t).not.toContain('Nenhum e-mail saiu');
+      expect(t).not.toContain('Sem processamento ativo');
+      expect(html).not.toContain('value="retomar"');
+      expect(html).toContain('value="pausar"');
+      expect(html).toContain('http-equiv="refresh"');
+
+      expect(texto((await noEnvio(primeiro)).html)).toContain('Enviando, cerca de');
+    } finally {
+      fila().liberar('outro-processo');
+      fila().cancelar(id);
+    }
+  });
+
   it('pausar → 303 com o motivo e o nome; pausar de novo → 422; retomar processa até o fim; cancelar concluído → 422', async () => {
     const id = await envioParado(EXTRAS[11]);
     let r = await noEnvio(id, 'pausar');

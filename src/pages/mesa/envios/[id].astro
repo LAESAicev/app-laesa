@@ -56,8 +56,11 @@ if (!envio) {
 
 const vez = fila.processador();
 const enviando = envio?.status === 'enviando';
+// a vez é da fila inteira: o processador cuida do "enviando" mais antigo, e os outros esperam atrás dele
+const naFrente = enviando && vez ? fila.proximoEnvio() : undefined;
+const esperando = naFrente && naFrente.id !== envio!.id ? naFrente : undefined;
 // sem e-mail novo há mais de 1 min: espera depois de falha do SMTP (até 15 min) ou o processo caiu
-const parado = enviando && vez && Date.now() - Date.parse(envio!.atualizado_em) > 60_000;
+const parado = enviando && vez && !esperando && Date.now() - Date.parse(envio!.atualizado_em) > 60_000;
 const aberto = envio?.status === 'enviando' || envio?.status === 'pausado';
 ---
 <MesaLayout title={envio ? `Envio ${envio.id}` : 'Envio não encontrado'} nome={mesa.nome} atualizar={enviando}>
@@ -84,7 +87,9 @@ const aberto = envio?.status === 'enviando' || envio?.status === 'pausado';
         <progress class="mesa-barra" max={Math.max(envio.total_previsto, 1)} value={envio.enviados} aria-label={`${envio.enviados} de ${envio.total_previsto} enviados`}></progress>
 
         {enviando && (
-          vez ? (
+          esperando ? (
+            <p class="body" role="status">Na fila, depois do envio <a class="link-inline" href={`/mesa/envios/${esperando.id}`}>#{esperando.id}</a>. Começa sozinho quando ele terminar. Esta página atualiza sozinha a cada 15 segundos.</p>
+          ) : vez ? (
             <p class="body" role="status">Enviando, cerca de 1 e-mail a cada 2,5 segundos. Esta página atualiza sozinha a cada 15 segundos.</p>
           ) : (
             <div class="mesa-atencao" role="status">
