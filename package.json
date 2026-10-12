@@ -18,11 +18,11 @@
   },
   "dependencies": {
     "@astrojs/node": "^11.1.7",
-    "@astrojs/react": "^7.0.0",
+    "@astrojs/react": "^7.0.1",
     "@keystatic/astro": "^6.0.0",
     "@keystatic/core": "^0.6.9",
-    "astro": "^7.3.5",
-    "nodemailer": "^10.0.15",
+    "astro": "^7.3.8",
+    "nodemailer": "^10.0.16",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "yaml": "^2.9.1"
