@@ -374,6 +374,44 @@ describe('/mesa/rascunhos/[id]', () => {
     expect(contar('avisos_envios')).toBe(antes);
   });
 
+  it('SMTP fora do ar ou recusando a conexão no teste: 503 com mensagem clara, sem endereço no log', async () => {
+    const id = await prepararPelaTela(EXTRAS[17]);
+    const erroSmtp = (msg: string, x: { code: string; syscall?: string; command?: string }) => Object.assign(new Error(`${msg} ${CAIXA}`), x);
+    const casos = [
+      erroSmtp('connect ECONNREFUSED 127.0.0.1:1025', { code: 'ESOCKET', syscall: 'connect', command: 'CONN' }),
+      erroSmtp('Connection closed unexpectedly', { code: 'ECONNECTION', command: 'CONN' }),
+      erroSmtp('Connection timeout', { code: 'ETIMEDOUT', command: 'CONN' }),
+      erroSmtp('getaddrinfo ENOTFOUND smtp.exemplo.test', { code: 'EDNS', command: 'CONN' }),
+      erroSmtp('connect ECONNREFUSED 127.0.0.1:1025', { code: 'ECONNREFUSED', syscall: 'connect' }),
+    ];
+    for (const e of casos) {
+      enviarAviso.mockRejectedValueOnce(e);
+      const r = await naPagina(id, { acao: 'teste' });
+      expect(r.res.status, e.code).toBe(503);
+      expect(texto(r.html)).toContain('Não consegui falar com o servidor de e-mail. Nada foi enviado. Tente de novo em alguns minutos; se continuar, avise quem cuida do servidor.');
+    }
+    const logs = [...vi.mocked(console.error).mock.calls, ...vi.mocked(console.warn).mock.calls].flat().map((x) => JSON.stringify(x));
+    expect(logs.join(' ')).toContain('ESOCKET');
+    expect(logs.join(' ')).not.toContain(CAIXA);
+    expect(fila().ultimoTeste(fila().rascunho(id)!)).toBeUndefined();
+  });
+
+  it('SMTP recusa o login no teste: 503 dizendo que o problema é a credencial do SMTP', async () => {
+    const id = await prepararPelaTela(EXTRAS[15]);
+    enviarAviso.mockRejectedValueOnce(Object.assign(new Error('Invalid login: 535 5.7.8 bad'), { code: 'EAUTH', responseCode: 535, command: 'AUTH PLAIN' }));
+    const r = await naPagina(id, { acao: 'teste' });
+    expect(r.res.status).toBe(503);
+    expect(texto(r.html)).toContain('O servidor de e-mail recusou o login');
+  });
+
+  it('erro inesperado continua genérico com 500', async () => {
+    const id = await prepararPelaTela(EXTRAS[16]);
+    enviarAviso.mockRejectedValueOnce(new Error('qualquer coisa'));
+    const r = await naPagina(id, { acao: 'teste' });
+    expect(r.res.status).toBe(500);
+    expect(texto(r.html)).toContain('Algo deu errado do nosso lado.');
+  });
+
   it('rascunho livre (do comando) não é testado nem enviado pela tela', async () => {
     const r = fila().salvarRascunho({ item: null, evento: 'livre', assunto: 'Reunião', texto: `Detalhes em ${SITE}/contato.`, site: SITE, contato: CAIXA });
     const { res, html } = await naPagina(r.id, { acao: 'teste' });

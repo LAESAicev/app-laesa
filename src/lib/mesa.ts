@@ -124,16 +124,27 @@ export function pedirLinkDeEntrada(ip: string, nonce: string, base: URL): void {
   void enviar(emailDeEntrada(token, base)).catch((e: unknown) => console.error('[mesa] falha ao enviar o link de entrada', resumoErro(e)));
 }
 
-/** O que a tela mostra de um erro: a mensagem do ErroAviso (escrita para a Mesa) ou uma frase genérica, nunca a crua. */
+/** Códigos do nodemailer (e do Node, por baixo) quando não deu para falar com o SMTP: fora do ar, recusou, DNS, TLS, login. */
+const FALHA_DE_CONEXAO = ['ESOCKET', 'ECONNECTION', 'ETIMEDOUT', 'EDNS', 'ETLS', 'ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'EAUTH', 'ENOAUTH'];
+const falhaDeConexao = (e: unknown) => FALHA_DE_CONEXAO.includes(resumoErro(e).code ?? '');
+
+/** O que a tela mostra de um erro: a mensagem do ErroAviso (escrita para a Mesa), a de falha do SMTP ou uma frase genérica, nunca a crua. */
 export function mensagemDoErro(e: unknown, onde: string): string {
   if (e instanceof ErroAviso) return e.naTela ?? e.message;
   if (e instanceof EnvioIndisponivel) {
     console.warn(`[mesa] ${onde}: envio indisponível`);
     return 'O envio de e-mail não está disponível no servidor agora. Nada foi enviado. Avise quem cuida do servidor.';
   }
+  if (falhaDeConexao(e)) {
+    const { code } = resumoErro(e);
+    console.error(`[mesa] ${onde}: falha ao falar com o SMTP`, resumoErro(e));
+    return code === 'EAUTH' || code === 'ENOAUTH'
+      ? 'O servidor de e-mail recusou o login do site. Nada foi enviado. Avise quem cuida do servidor: o usuário ou a senha do SMTP precisam ser conferidos.'
+      : 'Não consegui falar com o servidor de e-mail. Nada foi enviado. Tente de novo em alguns minutos; se continuar, avise quem cuida do servidor.';
+  }
   console.error(`[mesa] ${onde}: erro inesperado`, resumoErro(e));
   return 'Algo deu errado do nosso lado. Tente de novo em instantes; se continuar, avise quem cuida do servidor.';
 }
 
-/** 422 para recusa (ErroAviso, ou SMTP não configurado: nada foi feito); 500 para o resto. */
-export const statusDoErro = (e: unknown) => (e instanceof ErroAviso || e instanceof EnvioIndisponivel ? 422 : 500);
+/** 422 para recusa (ErroAviso, ou SMTP não configurado: nada foi feito); 503 se não deu para falar com o SMTP; 500 para o resto. */
+export const statusDoErro = (e: unknown) => (e instanceof ErroAviso || e instanceof EnvioIndisponivel ? 422 : falhaDeConexao(e) ? 503 : 500);
