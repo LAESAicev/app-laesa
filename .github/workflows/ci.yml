@@ -1,4 +1,5 @@
-# Testa e gera o site a cada push/PR; na main, publica a imagem Docker no GitHub Container Registry.
+# Testa e gera o site a cada push/PR; na main, publica a imagem Docker no GitHub Container Registry e, se desde a
+# última versão aprovada só mudou conteúdo do painel, promove a imagem para a tag "aprovada" (ADR 0004).
 # Variáveis públicas vêm de "Settings → Secrets and variables → Actions → Variables" (com fallback para
 # os valores do .env.example, e um aviso no run enquanto SITE_URL e PUBLIC_CONTACT_EMAIL não estiverem lá).
 # O deploy no servidor do iCEV entra quando a hospedagem for definida.
@@ -108,5 +109,81 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # deploy: pendente da hospedagem do iCEV (ADR 0001). Com a VM liberando saída para o GHCR, o servidor
-  # roda `docker compose pull && docker compose up -d` (cron só com o painel desligado). Ver docs/operacao.md.
+  # O servidor segue a tag "aprovada" (ADR 0004). Este job a move para a imagem nova só quando, desde a última
+  # versão aprovada, mudou apenas conteúdo do painel. Mudou código: fica para o workflow "Promover para produção".
+  # A versão aprovada é lida da própria imagem (anotação no GHCR), não de uma tag do git: o token de um editor
+  # do painel consegue mover tags do git, mas não publicar no GHCR.
+  promover:
+    name: Promover se for só conteúdo
+    needs: imagem
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: promocao-producao
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # o diff é contra a última versão aprovada, que pode estar vários commits atrás
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Saída "sim" só se tudo der certo; qualquer dúvida (sem versão aprovada, script ausente) não promove.
+      # A regra (scripts/so-conteudo.mjs) vem do commit APROVADO, não do novo: um commit não decide sobre si mesmo.
+      - name: Decide
+        id: decide
+        run: |
+          set -euo pipefail
+          imagem="ghcr.io/${GITHUB_REPOSITORY,,}"
+          nao_promove() { printf '%s\n' "$1" >> "$GITHUB_STEP_SUMMARY"; echo "::notice title=Não promovida::$1"; exit 0; }
+
+          aprovado=$(docker buildx imagetools inspect --raw "$imagem:aprovada" 2>/dev/null \
+            | jq -r '.annotations["org.opencontainers.image.revision"] // empty') || aprovado=""
+          if ! [[ "$aprovado" =~ ^[0-9a-f]{40}$ ]] || ! git cat-file -e "$aprovado^{commit}" 2>/dev/null; then
+            nao_promove "Ainda não há versão aprovada (ou ela não está na história da main): a primeira promoção é manual, pelo workflow \"Promover para produção\"."
+          fi
+          git show "$aprovado:scripts/so-conteudo.mjs" > "$RUNNER_TEMP/so-conteudo.mjs" 2>/dev/null \
+            || nao_promove "A versão aprovada ($aprovado) não tem scripts/so-conteudo.mjs: promova à mão."
+
+          set +e
+          git diff --raw -z --no-renames "$aprovado" "$GITHUB_SHA" | node "$RUNNER_TEMP/so-conteudo.mjs" > "$RUNNER_TEMP/recusados.txt"
+          decisao=$?
+          set -e
+          case "$decisao" in
+            0) echo "promover=sim" >> "$GITHUB_OUTPUT" ;;
+            2) nao_promove "Nada mudou desde a versão aprovada ($aprovado)." ;;
+            1)
+              {
+                echo "### Há mudança de código desde a última versão aprovada: promova à mão"
+                echo
+                echo "Versão aprovada: \`$aprovado\`. Arquivos fora do conteúdo do painel (até 50):"
+                echo
+                echo '```text'
+                head -n 50 "$RUNNER_TEMP/recusados.txt"
+                echo '```'
+                echo
+                echo "Revise o diff e rode o workflow \"Promover para produção\" (docs/operacao.md)."
+              } >> "$GITHUB_STEP_SUMMARY"
+              echo "::notice title=Não promovida::Há mudança de código desde a última versão aprovada: promova à mão." ;;
+            *) echo "::error::Falha ao comparar com a versão aprovada ($aprovado)."; exit 1 ;;
+          esac
+      - name: Promove (só conteúdo)
+        if: steps.decide.outputs.promover == 'sim'
+        run: |
+          set -euo pipefail
+          imagem="ghcr.io/${GITHUB_REPOSITORY,,}"
+          # Sem rebuild: um índice novo com os mesmos manifestos da imagem deste commit, anotado com o SHA.
+          docker buildx imagetools create --annotation "index:org.opencontainers.image.revision=$GITHUB_SHA" \
+            --tag "$imagem:aprovada" "$imagem:$GITHUB_SHA"
+          lido=$(docker buildx imagetools inspect --raw "$imagem:aprovada" | jq -r '.annotations["org.opencontainers.image.revision"] // empty')
+          [ "$lido" = "$GITHUB_SHA" ] || { echo "::error::A tag aprovada não ficou com $GITHUB_SHA (lido: $lido)."; exit 1; }
+          echo "Promovida: \`$imagem:aprovada\` = \`$GITHUB_SHA\` (só conteúdo desde a versão anterior)." >> "$GITHUB_STEP_SUMMARY"
+
+  # deploy: o servidor roda `docker compose pull && docker compose up -d` por cron e pega a tag "aprovada".
+  # Ver docs/operacao.md (Atualizar sozinho ou à mão).
