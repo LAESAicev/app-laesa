@@ -4,7 +4,7 @@
 # só em tempo de execução, pelo ambiente do contêiner. Nada de .env dentro da imagem (.dockerignore).
 
 # Imagem base fixada por digest (tag node:24-slim); o Dependabot abre PR quando sair uma nova.
-FROM node:24-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS base
+FROM node:26-slim@sha256:193fe51b64e77981119c98c2002c9e32a70e2f006fb4d25068ce0558998917f0 AS base
 WORKDIR /app
 ENV ASTRO_TELEMETRY_DISABLED=1
 
@@ -39,7 +39,7 @@ FROM base AS prod-deps
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
 
-FROM node:24-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20 AS runtime
+FROM node:26-slim@sha256:193fe51b64e77981119c98c2002c9e32a70e2f006fb4d25068ce0558998917f0 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
