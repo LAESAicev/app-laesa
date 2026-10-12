@@ -14,7 +14,9 @@ services:
         PUBLIC_KEYSTATIC_GITHUB_REPO: ${PUBLIC_KEYSTATIC_GITHUB_REPO:-}
         PUBLIC_KEYSTATIC_GITHUB_APP_SLUG: ${PUBLIC_KEYSTATIC_GITHUB_APP_SLUG:-}
         TRUST_PROXY: "1"
-    image: ${IMAGE:-ghcr.io/laesaicev/app-laesa:latest}
+    # "aprovada": a versão liberada para produção (ADR 0004). Só conteúdo vai sozinho; código, só promovido à mão.
+    # Para fixar uma versão (docs/operacao.md, Desfazer uma mudança): IMAGE=ghcr.io/laesaicev/app-laesa:<sha> no .env.
+    image: ${IMAGE:-ghcr.io/laesaicev/app-laesa:aprovada}
     restart: unless-stopped
     init: true # repassa o SIGTERM ao Node: atualizações sem esperar 10s nem cortar escrita no SQLite
     env_file: .env
