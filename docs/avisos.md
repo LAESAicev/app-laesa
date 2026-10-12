@@ -23,7 +23,7 @@ Para um edital, coloque também "Status do processo seletivo" como "Inscrições
 
 ### 2. Publique
 
-O aviso usa o que está no site publicado, e não o que está no painel. Depois de salvar, espere o CI gerar a imagem nova e atualize o servidor (`docker compose pull && docker compose up -d`, veja [operacao.md](operacao.md#atualizar-o-site)). A tela e o comando leem a lista do que está publicado (`avisos/itens.json`), gerada nesse build.
+O aviso usa o que está no site publicado, e não o que está no painel. Depois de salvar, espere o CI gerar e promover a imagem nova e o servidor atualizar: pelo cron, em até uns 30 minutos, ou na hora com `docker compose pull && docker compose up -d` (veja [operacao.md](operacao.md#atualizar-o-site)). A tela e o comando leem a lista do que está publicado (`avisos/itens.json`), gerada nesse build.
 
 ## Pela tela de avisos
 

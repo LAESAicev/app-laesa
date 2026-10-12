@@ -36,14 +36,15 @@ Preencha os campos `<...>` na primeira passagem e mantenha a tabela atualizada. 
    - [ ] da caixa da LAESA: no Gmail, revise filtros, encaminhamentos e delegações (Configurações → Filtros e endereços bloqueados, Encaminhamento e POP/IMAP, Contas). Um encaminhamento esquecido manda para fora os links de entrada e os códigos de teste;
    - [ ] da tela de avisos: `docker compose exec app node scripts/avisar.ts sair-todos` no servidor, depois de trocar a senha da caixa;
    - [ ] do time `mesa-diretora` e, se for o caso, da organização no GitHub;
+   - [ ] dos revisores do environment `producao` (Settings → Environments), que aprovam a promoção de código;
    - [ ] do SSH e do grupo `docker` no servidor (estar no grupo equivale a ter root e ler o `.env`);
    - [ ] do cofre e da pasta do Drive;
    - [ ] do arquivo no Figma.
 4. Conferir backups e cron:
    - [ ] `journalctl -t backup-laesa` mostra backups recentes;
    - [ ] a pasta `~/backups-laesa` não tem arquivos com mais de 30 dias;
-   - [ ] `crontab -l` do usuário do deploy ainda tem as linhas de backup e, se o painel estiver desligado, de atualização ([operacao.md](operacao.md#backup)).
-5. Combinar a revisão semanal dos PRs do Dependabot. As imagens Docker e as actions do CI estão fixadas por digest ou SHA, então correções de segurança só chegam por esses PRs. Alguém da nova Mesa precisa olhar os PRs abertos toda semana e fazer merge quando o CI estiver verde.
+   - [ ] `crontab -l` do usuário do deploy ainda tem as linhas de backup e de atualização ([operacao.md](operacao.md#backup)).
+5. Combinar a revisão semanal dos PRs do Dependabot. As imagens Docker e as actions do CI estão fixadas por digest ou SHA, então correções de segurança só chegam por esses PRs. Alguém da nova Mesa precisa olhar os PRs abertos toda semana e fazer merge quando o CI estiver verde. Depois do merge, a atualização só vai ao ar com uma promoção manual ([operacao.md](operacao.md#promover-à-mão)).
 6. Atualizar o conteúdo pelo painel (`/keystatic`):
    - [ ] Mesa Diretora: nomes e fotos dos novos cargos;
    - [ ] desmarcar "Conteúdo provisório" de quem já tem dados reais.

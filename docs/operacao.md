@@ -50,12 +50,45 @@ Perguntas para o setor de tecnologia antes da instalação:
 
 ## Atualizar o site
 
-Toda mudança na `main`, inclusive uma edição de conteúdo feita pelo painel, passa pelo CI (`.github/workflows/ci.yml`). Ele testa, gera o site e publica a imagem em `ghcr.io/laesaicev/app-laesa`. No servidor:
+Toda mudança na `main`, inclusive uma edição de conteúdo feita pelo painel, passa pelo CI (`.github/workflows/ci.yml`). Ele testa, gera o site e publica a imagem em `ghcr.io/laesaicev/app-laesa` com a tag do commit (`:<sha>`) e `latest`. O servidor não usa nenhuma das duas: ele segue a tag **`aprovada`** (decisão no [ADR 0004](adr/0004-deploy-automatico-de-conteudo.md)).
+- **Só conteúdo:** se, desde a última versão aprovada, mudaram apenas arquivos que o painel grava, o próprio CI move `aprovada` para a imagem nova (job "Promover se for só conteúdo").
+- **Qualquer outra coisa** (código, dependências, configuração, workflows): o CI não promove e escreve no resumo do run "Há mudança de código desde a última versão aprovada: promova à mão", com a lista dos arquivos. Alguém revisa e promove ([Promover à mão](#promover-à-mão)).
+
+Conta como conteúdo, comparando com a última versão aprovada (e não com o commit anterior):
+- `content/**/*.yaml`;
+- `src/assets/uploads/**` em `jpg`, `jpeg`, `png`, `webp` ou `avif` (fotos);
+- `public/uploads/**` em `pdf`, `doc`, `docx`, `odt`, `xls`, `xlsx`, `ods`, `ppt`, `pptx`, `odp`, `txt`, `csv`, `jpg`, `jpeg`, `png`, `webp`, `avif` ou `gif`.
+
+SVG, HTML e qualquer outro tipo enviado pelo painel vão ao ar só promovidos à mão. Link simbólico, arquivo executável e arquivo renomeado de fora dessas pastas também. A regra está em `scripts/so-conteudo.mjs`, e o CI usa a cópia do commit aprovado: mudar a regra exige uma promoção manual.
+
+No servidor:
 
 ```sh
-docker compose pull && docker compose up -d   # usa a imagem publicada pelo CI
-# ou, sem o registry: git pull && docker compose up -d --build
+docker compose pull && docker compose up -d   # baixa a imagem "aprovada"
 ```
+
+O caminho sem o registry (`git pull && docker compose up -d --build`) gera a imagem com o código da `main` como estiver, sem passar pela aprovação. Use só depois de revisar o diff.
+
+### Promover à mão
+
+1. Descubra a versão aprovada: está no resumo do último run do CI, ou rode
+   `docker buildx imagetools inspect --raw ghcr.io/laesaicev/app-laesa:aprovada | jq -r '.annotations["org.opencontainers.image.revision"]'`.
+2. Revise o diff em `https://github.com/LAESAicev/app-laesa/compare/<sha-aprovado>...main` e confira o CI verde do commit a promover.
+3. Em Actions → **Promover para produção** → Run workflow, com a branch `main`. O campo SHA vazio promove o último commit da `main`; para outro commit, use o SHA completo (40 caracteres).
+4. Um revisor do environment `producao` aprova o run. O workflow confere o CI verde e a imagem do commit e move `aprovada`, sem gerar a imagem de novo.
+5. O servidor pega a versão nova no próximo cron, ou na hora com `docker compose pull && docker compose up -d`.
+
+**Primeira vez:** enquanto `aprovada` não existir, o CI não promove nada sozinho, e o `docker compose pull` do servidor falha. Faça uma promoção manual antes de instalar o servidor.
+
+### Configurar a aprovação (uma vez, precisa de admin)
+
+Em Settings → Environments → **New environment**, crie `producao`:
+- **Required reviewers:** uma ou duas pessoas de confiança, de preferência o(a) orientador(a) e quem cuida do código. Evite pôr o time inteiro da Mesa: a aprovação é a barreira contra um token de editor roubado.
+- **Prevent self-review:** ligado. Quem disparou o workflow não aprova o próprio run.
+- **Allow administrators to bypass:** desligado.
+- **Deployment branches and tags:** "Selected branches and tags", só `main`.
+
+Crie o environment antes do primeiro uso: se ele não existir, o GitHub cria um vazio na primeira execução, sem revisor nenhum. Revisores obrigatórios em repositório privado podem exigir um plano pago do GitHub; em repositório público, estão em todos os planos (confira na tela, ao criar).
 
 ### De onde vêm `SITE_URL` e as variáveis `PUBLIC_*` da imagem
 
@@ -67,25 +100,28 @@ Enquanto o domínio não estiver definido, o CI publica com o fallback do `ci.ym
 
 ### Atualizar sozinho ou à mão
 
-A regra depende do painel (Keystatic) em produção, porque o token de um editor também consegue mudar o código (ver [Quem pode editar](#3-quem-pode-editar)):
-- **Painel desligado em produção** (a imagem sai sem `PUBLIC_KEYSTATIC_GITHUB_REPO`, o caso atual): só quem tem escrita no repositório muda a `main`, então um cron no host que baixa a imagem nova é aceitável. Exemplo, com `crontab -e` do usuário do deploy, a cada 30 minutos:
-  ```sh
-  */30 * * * * cd /opt/app-laesa && (docker compose pull -q && docker compose up -d) 2>&1 | logger -t atualiza-laesa
-  ```
-- **Painel ligado em produção:** tire o cron e atualize à mão, depois de revisar o diff dos commits novos na `main` e ver o CI verde. Assim um token roubado não coloca código no ar sozinho.
+Como o servidor segue `aprovada`, um cron no host vale com o painel ligado ou desligado: código novo só chega lá depois de uma promoção manual. Exemplo, com `crontab -e` do usuário do deploy, a cada 30 minutos:
 
-Não use Watchtower nem outro serviço que atualize contêineres: ele precisa do socket do Docker (equivale a root) e ainda puxaria qualquer imagem nova sem revisão.
+```sh
+*/30 * * * * cd /opt/app-laesa && (docker compose pull -q && docker compose up -d) 2>&1 | logger -t atualiza-laesa
+```
+
+O resultado sai em `journalctl -t atualiza-laesa`. Sem cron, atualize à mão com os mesmos dois comandos.
+
+Não use Watchtower nem outro serviço que atualize contêineres: ele precisa do socket do Docker (equivale a root). Também não aponte o servidor para `latest`: ela é a última imagem da `main`, sem revisão nenhuma.
 
 ## Desfazer uma mudança
 
-O conteúdo vive no git. Para voltar uma edição, reverta o commit no GitHub (`git revert <commit>`) e atualize o servidor. Para voltar uma versão inteira do site, fixe no `.env` do servidor a imagem de um commit bom, pelo SHA completo (40 caracteres, aparece no commit do GitHub e no CI):
+O conteúdo vive no git. Para voltar uma edição, reverta o commit no GitHub (`git revert <commit>`). Se a edição só mexia em conteúdo, o revert também vai ao ar sozinho; se o código já promovido estava envolvido, o revert é mudança de código e precisa de [promoção manual](#promover-à-mão).
 
-```sh
-# no .env:  IMAGE=ghcr.io/laesaicev/app-laesa:<sha-completo-do-commit>
-docker compose pull app && docker compose up -d
-```
-
-Deixe o `IMAGE` no `.env` até a `main` estar corrigida. Só com `IMAGE=... docker compose up -d` na linha de comando, o próximo `pull` (manual ou do cron) volta para a `latest` quebrada. Com a `main` corrigida e o CI verde, apague a linha `IMAGE` do `.env` e rode `docker compose pull && docker compose up -d`.
+Para voltar uma versão inteira do site, há dois caminhos, ambos pelo SHA completo de um commit bom (40 caracteres, aparece no commit do GitHub e no CI):
+- **Pelo GitHub:** rode **Promover para produção** com esse SHA. A tag `aprovada` volta para ele, e o servidor pega no próximo cron (ou na hora, com `docker compose pull && docker compose up -d`).
+- **Pelo servidor**, quando não dá para esperar o GitHub ou a aprovação: fixe a imagem no `.env`.
+  ```sh
+  # no .env:  IMAGE=ghcr.io/laesaicev/app-laesa:<sha-completo-do-commit>
+  docker compose pull app && docker compose up -d
+  ```
+  Deixe o `IMAGE` no `.env` até a `aprovada` estar boa de novo. Só com `IMAGE=... docker compose up -d` na linha de comando, o próximo `pull` (manual ou do cron) volta para a `aprovada`. Resolvido, apague a linha `IMAGE` do `.env` e rode `docker compose pull && docker compose up -d`.
 
 ## Backup
 
@@ -245,7 +281,7 @@ docker compose down
 Com o modo GitHub, o painel também fica no site publicado (`https://laesa.icev.edu.br/keystatic`):
 - **Login:** é feito com a conta do GitHub, com a senha e a verificação em duas etapas da própria pessoa. O site não guarda senha nenhuma.
 - **Quem salva:** cada edição vira um commit com o nome de quem editou, e só salva quem tem escrita no repositório `LAESAicev/app-laesa`. Um curioso consegue entrar, mas não consegue salvar nada.
-- **Quando aparece no site:** o commit passa pelo CI, que gera uma imagem nova. A mudança aparece quando alguém atualiza o servidor à mão (`docker compose pull && docker compose up -d`): com o painel ligado, sem cron (ver [Atualizar sozinho ou à mão](#atualizar-sozinho-ou-à-mão)).
+- **Quando aparece no site:** o commit passa pelo CI, que gera uma imagem nova e, se desde a última versão aprovada só mudou conteúdo, a promove sozinho. O servidor pega no próximo cron, em até uns 30 minutos (ver [Atualizar o site](#atualizar-o-site)). Se houver código esperando promoção, a edição fica parada junto com ele até alguém promover.
 
 Sem `PUBLIC_KEYSTATIC_GITHUB_REPO` no build, a imagem sai sem painel, e o painel continua só em `npm run dev`, no modo local.
 
@@ -297,11 +333,13 @@ Faça com uma conta que seja **dona (Owner)** da organização LAESAicev, de pre
   - bloqueie force-push e exclusão da `main` (Settings → Rules).
 
   Não exija PR na `main`, senão o painel não consegue salvar.
-- **O token vale para o repositório inteiro, não só para o conteúdo.** Quem tem o token de um editor consegue mudar o código também. Por isso:
-  - atualize o servidor à mão, depois de revisar o diff e ver o CI verde, e tire o cron de atualização (ver [Atualizar sozinho ou à mão](#atualizar-sozinho-ou-à-mão));
-  - não ligue a permissão `workflows` no App.
+- **O token vale para o repositório inteiro, não só para o conteúdo.** Quem tem o token de um editor consegue mudar o código e mover tags do git também. Por isso:
+  - código só vai ao ar promovido à mão, com aprovação no environment `producao` ([Atualizar o site](#atualizar-o-site)). A versão aprovada fica registrada na imagem do GHCR, que o token do painel não alcança, e não numa tag do git;
+  - o App do Keystatic é criado só com `contents: write`, `metadata: read` e `pull_requests: read`. Não acrescente `workflows`, `actions` nem `administration`: com `workflows`, o token mudaria a regra de promoção; com `actions`, dispararia workflows.
 - **Vazamento ou suspeita:**
   - nas configurações do App, use **Advanced → Revoke all user tokens**. Um token já roubado vale no máximo 8 horas;
+  - confira os commits recentes da `main` e reverta o que não foi feito por vocês. Conteúdo malicioso pode ter ido ao ar sozinho; código, só se alguém promoveu;
+  - se entrou código estranho na `main`, mesmo sem promoção, ele rodou no CI: apague os caches do Actions (Actions → Caches, ou `gh cache delete --all`) antes da próxima promoção;
   - troque `KEYSTATIC_SECRET` no `.env` e rode `docker compose up -d`; quem estava logado só entra de novo;
   - se o `KEYSTATIC_GITHUB_CLIENT_SECRET` vazar, gere outro nas configurações do App e atualize o `.env` do servidor.
 - **Proteções no site:**
