@@ -9,6 +9,7 @@ import '@fontsource/geist-mono/latin-600.css';
 import '../styles/global.css';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import Logo from '../components/Logo.astro';
 import type { NavKey } from '../data/site';
 
 interface Props {
@@ -21,7 +22,8 @@ interface Props {
 
 const { title, description, active, noindex = false } = Astro.props;
 const fullTitle = title === 'LAESA' ? 'LAESA · Liga Acadêmica de Engenharia de Software Aplicada' : `${title} · LAESA`;
-// build.format 'file' gera /index.html e /contato.html; o endereço público é / e /contato
+// build.format 'directory' + trailingSlash 'never': o pathname já chega como / e /contato. O replace só
+// protege o canonical se o formato voltar a 'file' (/index.html, /contato.html).
 const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ''), Astro.site);
 ---
 <!doctype html>
@@ -40,8 +42,16 @@ const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ''), Ast
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="pt_BR" />
+    <meta property="og:url" content={canonical} />
+    <!-- public/og.png: logo horizontal branco (brand/logo) centralizado no navy, 1200x630 -->
+    <meta property="og:image" content={new URL('/og.png', Astro.site)} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Logo da LAESA, Liga Acadêmica de Engenharia de Software Aplicada" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
+    <Logo definicao />
     <a class="skip" href="#conteudo">Pular para o conteúdo</a>
     <div class="page">
       <Nav active={active} />

@@ -22,6 +22,8 @@ export type Edital = {
   modeloCarta?: string;
   resultado?: string; // link do resultado, quando publicado
   exemplo?: boolean;
+  /** As mesmas datas em "AAAA-MM-DD", para os avisos (src/pages/avisos/itens.json.ts). */
+  datas?: { inscricoesInicio?: string; inscricoesAte?: string; prorrogadasAte?: string };
 };
 
 /** Status de um edital: o atual segue o site; os demais já foram encerrados. */

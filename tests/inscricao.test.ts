@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gerarToken, lerToken, inscricaoSchema, confirmar, descadastrar, inscritos } from '../src/lib/inscricao';
+import { gerarToken, lerToken, inscricaoSchema, confirmar, descadastrar, inscritos, podeEnviarConfirmacao, devolverConfirmacao } from '../src/lib/inscricao';
 import { criarLimite, chaveIp } from '../src/lib/rate-limit';
 
 describe('links assinados da inscrição', () => {
@@ -33,6 +33,15 @@ describe('confirmar e descadastrar', () => {
   });
 });
 
+describe('cota de confirmações', () => {
+  it('quando o teto global recusa, o destinatário não fica bloqueado por 24h', () => {
+    for (let i = 0; i < 300; i++) expect(podeEnviarConfirmacao(`p${i}@exemplo.com`)).toBe(true);
+    expect(podeEnviarConfirmacao('atrasado@exemplo.com')).toBe(false); // teto global esgotado
+    devolverConfirmacao('p0@exemplo.com'); // uma vaga global volta (o envio de p0 falhou)
+    expect(podeEnviarConfirmacao('atrasado@exemplo.com')).toBe(true);
+  });
+});
+
 describe('limite por IP', () => {
   it('libera até o máximo e reabre depois da janela', () => {
     const ok = criarLimite(2, 1000);
@@ -40,8 +49,26 @@ describe('limite por IP', () => {
     expect(ok('outro', 20)).toBe(true);
     expect(ok('ip', 1500)).toBe(true);
   });
+  it('devolver libera de novo a última vaga, mesmo com tentativas barradas no meio', () => {
+    const ok = criarLimite(1, 1000);
+    expect([ok('a', 0), ok('a', 1), ok('a', 2)]).toEqual([true, false, false]);
+    ok.devolver('a');
+    expect([ok('a', 3), ok('a', 4)]).toEqual([true, false]);
+  });
   it('IPv6 agrupado por /64', () => {
     expect(chaveIp('2804:14c:1:2:aaaa::1')).toBe(chaveIp('2804:14c:1:2:bbbb::9'));
     expect(chaveIp('200.1.2.3')).toBe('200.1.2.3');
+  });
+  it('IPv6 comprimido cai no mesmo /64 que a forma expandida', () => {
+    const chave = chaveIp('2001:db8:0:0:5:6:7:8');
+    expect(chaveIp('2001:db8::1:2:3:4')).toBe(chave);
+    expect(chaveIp('2001:DB8:0000::9')).toBe(chave);
+    expect(chaveIp('2001:db8::1%eth0')).toBe(chave);
+    expect(chaveIp('2001:db8:0:1::1')).not.toBe(chave);
+    expect(chaveIp('::1')).toBe(chaveIp('0:0:0:0:0:0:0:1'));
+  });
+  it('IPv4 mapeado em IPv6 vira o próprio IPv4', () => {
+    expect(chaveIp('::ffff:1.2.3.4')).toBe('1.2.3.4');
+    expect(chaveIp('::FFFF:102:304')).toBe('1.2.3.4');
   });
 });

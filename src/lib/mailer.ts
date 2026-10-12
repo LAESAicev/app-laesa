@@ -1,28 +1,17 @@
 // Envio de e-mail pela conta Google Workspace da LAESA (SMTP). Credenciais só em variáveis de ambiente.
-import nodemailer, { type Transporter } from 'nodemailer';
-import { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } from 'astro:env/server';
+import type { Transporter } from 'nodemailer';
+import { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ENVIO_REAL } from 'astro:env/server';
 import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
+import { EnvioIndisponivel, ambienteAtual, bloqueiaEnvioReal, criarTransporte, envioRealLiberado } from './smtp';
 
-export class EnvioIndisponivel extends Error {
-  constructor() {
-    super('SMTP não configurado: defina SMTP_USER e SMTP_PASS (ver .env.example).');
-  }
-}
+export { EnvioIndisponivel };
 
 let transporter: Transporter | undefined;
 
 function transporte(): Transporter {
   if (!SMTP_USER || !SMTP_PASS) throw new EnvioIndisponivel();
-  transporter ??= nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_PORT === 465, // 465 = TLS direto (Gmail); 587/1025 = STARTTLS ou texto (Mailpit)
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-    // Redes que bloqueiam SMTP deixariam o formulário "Enviando" por ~2 min (padrão do nodemailer).
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 20_000,
-  });
+  bloqueiaEnvioReal(SMTP_HOST, envioRealLiberado(ENVIO_REAL), ambienteAtual());
+  transporter ??= criarTransporte({ host: SMTP_HOST, port: SMTP_PORT, user: SMTP_USER, pass: SMTP_PASS });
   return transporter;
 }
 

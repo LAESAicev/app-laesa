@@ -20,10 +20,10 @@ const larguras = [...new Set([Math.min(400, largura), largura])];
 <div class:list={['person', { adv: p.orientacao }]}>
   <div class="photo">
     {foto ? (
-      // Recorte central no quadro 4:5, gerado no build em WebP.
+      // Recorte central no quadro 4:5, gerado no build em WebP. alt vazio: o nome já está no h3 ao lado.
       <Image
         src={foto}
-        alt={`Foto de ${p.nome}`}
+        alt=""
         width={largura}
         height={altura}
         fit="cover"

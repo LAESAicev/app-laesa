@@ -1,6 +1,7 @@
 # Testa e gera o site a cada push/PR; na main, publica a imagem Docker no GitHub Container Registry.
 # Variáveis públicas vêm de "Settings → Secrets and variables → Actions → Variables" (com fallback para
-# os valores do .env.example). O deploy no servidor do iCEV entra quando a hospedagem for definida.
+# os valores do .env.example, e um aviso no run enquanto SITE_URL e PUBLIC_CONTACT_EMAIL não estiverem lá).
+# O deploy no servidor do iCEV entra quando a hospedagem for definida.
 name: CI
 
 on:
@@ -32,10 +33,10 @@ jobs:
     name: Checagem, testes e build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: npm
@@ -48,6 +49,16 @@ jobs:
           INSCRICAO_SECRET: segredo-de-teste-com-mais-de-32-caracteres
       - name: Build
         run: npx astro build
+      # O comando dos avisos roda TypeScript direto no Node (a imagem leva src/lib): import quebrado ou sintaxe
+      # que o Node não sabe apagar falha aqui, e não só no servidor. Banco temporário, sem SMTP.
+      - name: Comando dos avisos
+        run: node scripts/avisar.ts itens --manifesto dist/client/avisos/itens.json
+        env:
+          INSCRICAO_SECRET: segredo-de-teste-com-mais-de-32-caracteres
+          INSCRITOS_DB: ${{ runner.temp }}/avisos.db
+      # Sobe o servidor gerado (sem SMTP), confere rotas e procura script inline e links quebrados no HTML
+      - name: Smoke test
+        run: node scripts/smoke.mjs
 
   imagem:
     name: Imagem Docker
@@ -58,18 +69,27 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+      # Domínio ainda indefinido: publica com o fallback, mas deixa um aviso visível no run.
+      # Para tornar obrigatório: ::error no lugar de ::warning, seguido de "exit 1" (docs/operacao.md).
+      - name: Confere variáveis do GitHub
+        env:
+          VAR_SITE_URL: ${{ vars.SITE_URL }}
+          VAR_CONTACT_EMAIL: ${{ vars.PUBLIC_CONTACT_EMAIL }}
+        run: |
+          [ -n "$VAR_SITE_URL" ] || echo "::warning title=SITE_URL não definido::Imagem gerada com o fallback $SITE_URL. Defina SITE_URL em Settings → Secrets and variables → Actions → Variables."
+          [ -n "$VAR_CONTACT_EMAIL" ] || echo "::warning title=PUBLIC_CONTACT_EMAIL não definido::Imagem gerada com o fallback $PUBLIC_CONTACT_EMAIL. Defina PUBLIC_CONTACT_EMAIL nas Variables do repositório."
       - id: nome
         run: echo "imagem=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           push: true
@@ -89,4 +109,4 @@ jobs:
           cache-to: type=gha,mode=max
 
   # deploy: pendente da hospedagem do iCEV (ADR 0001). Com a VM liberando saída para o GHCR, o servidor
-  # roda `docker compose pull && docker compose up -d` (manual, cron ou Watchtower). Ver docs/operacao.md.
+  # roda `docker compose pull && docker compose up -d` (cron só com o painel desligado). Ver docs/operacao.md.

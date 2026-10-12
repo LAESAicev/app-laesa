@@ -1,47 +1,31 @@
 // Inscrição em avisos (confirmação dupla). Links de confirmação e descadastro são assinados (HMAC),
 // então validá-los não exige guardar tokens. A ação só acontece por POST (botão na página ou o
 // descadastro de um clique do Gmail, RFC 8058): scanners de link fazem GET e não podem confirmar nada.
-// Inscritos: SQLite no volume /data do contêiner (INSCRITOS_STORE=sqlite, arquivo em INSCRITOS_DB) ou memória
-// (INSCRITOS_STORE=memoria, só dev e testes).
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+// Inscritos: SQLite no volume /data do contêiner (INSCRITOS_STORE=sqlite, arquivo em INSCRITOS_DB) ou SQLite
+// em memória (INSCRITOS_STORE=memoria, só dev e testes).
+import { createHash } from 'node:crypto';
 import { INSCRICAO_SECRET, INSCRITOS_DB, INSCRITOS_STORE } from 'astro:env/server';
 import { criarInscritosSqlite } from './inscritos-sqlite';
 import { criarLimite } from './rate-limit';
+import * as tokens from './tokens';
+import type { Acao, Token } from './tokens';
 
 export { inscricaoSchemaCliente as inscricaoSchema } from './inscricao.schema';
 
-// ---- links assinados
-type Acao = 'confirmar' | 'sair';
-type Token = { email: string; emitidoEm: number };
-const SETE_DIAS = 7 * 24 * 60 * 60 * 1000;
-const b64 = (s: string) => Buffer.from(s).toString('base64url');
-
+// ---- links assinados (src/lib/tokens.ts; aqui com o segredo do ambiente)
 export class InscricaoIndisponivel extends Error {}
 
-function assinatura(payload: string): string {
+function segredo(): string {
   if (!INSCRICAO_SECRET) throw new InscricaoIndisponivel('INSCRICAO_SECRET não definido.');
-  return createHmac('sha256', INSCRICAO_SECRET).update(payload).digest('base64url');
+  return INSCRICAO_SECRET;
 }
 
 export function gerarToken(email: string, acao: Acao, agora = Date.now()): string {
-  const payload = b64(JSON.stringify({ e: email, a: acao, i: agora }));
-  return `${payload}.${assinatura(payload)}`;
+  return tokens.gerarToken(segredo(), email, acao, agora);
 }
 
 export function lerToken(token: string, acao: Acao, agora = Date.now()): Token | null {
-  const [payload, sig] = token.split('.');
-  if (!payload || !sig) return null;
-  const esperado = Buffer.from(assinatura(payload));
-  const recebido = Buffer.from(sig);
-  if (esperado.length !== recebido.length || !timingSafeEqual(esperado, recebido)) return null;
-  try {
-    const { e, a, i } = JSON.parse(Buffer.from(payload, 'base64url').toString()) as { e: string; a: Acao; i: number };
-    if (a !== acao || typeof e !== 'string' || typeof i !== 'number') return null;
-    if (acao === 'confirmar' && agora - i > SETE_DIAS) return null;
-    return { email: e, emitidoEm: i };
-  } catch {
-    return null;
-  }
+  return tokens.lerToken(segredo(), token, acao, agora);
 }
 
 // ---- armazenamento
@@ -53,29 +37,14 @@ export interface Inscritos {
   listar(): Promise<string[]>;
 }
 
-const memoria = new Map<string, { consentimentoEm?: Date; removidoEm?: Date }>();
-const emMemoria: Inscritos = {
-  async adicionar(email, em) {
-    memoria.set(email, { ...memoria.get(email), consentimentoEm: em });
-  },
-  async remover(email, em) {
-    memoria.set(email, { removidoEm: em });
-  },
-  async removidoEm(email) {
-    return memoria.get(email)?.removidoEm;
-  },
-  async listar() {
-    return [...memoria].filter(([, v]) => v.consentimentoEm).map(([k]) => k);
-  },
-};
-
-let emSqlite: Inscritos | undefined;
+let ativo: Inscritos | undefined;
 
 /** Armazenamento ativo. Lança InscricaoIndisponivel sem segredo ou sem INSCRITOS_STORE definido. */
 export function inscritos(): Inscritos {
   if (!INSCRICAO_SECRET) throw new InscricaoIndisponivel('INSCRICAO_SECRET não definido.');
-  if (INSCRITOS_STORE === 'sqlite') return (emSqlite ??= criarInscritosSqlite(INSCRITOS_DB));
-  if (INSCRITOS_STORE === 'memoria') return emMemoria;
+  // "memoria" usa o mesmo SQLite, num banco que some ao reiniciar: dev e testes passam pelo SQL de produção.
+  if (INSCRITOS_STORE === 'sqlite') return (ativo ??= criarInscritosSqlite(INSCRITOS_DB, INSCRICAO_SECRET));
+  if (INSCRITOS_STORE === 'memoria') return (ativo ??= criarInscritosSqlite(':memory:', INSCRICAO_SECRET));
   throw new InscricaoIndisponivel('INSCRITOS_STORE não definido (use "sqlite" ou "memoria").');
 }
 
@@ -104,7 +73,16 @@ const hash = (email: string) => createHash('sha256').update(email).digest('hex')
 /** true se pode mandar confirmação para este e-mail agora. Consome a cota. */
 export function podeEnviarConfirmacao(email: string): boolean {
   // destinatário primeiro: repetir o mesmo e-mail não pode consumir a cota global de todo mundo
-  return porDestinatario(hash(email)) && global('todos');
+  if (!porDestinatario(hash(email))) return false;
+  if (global('todos')) return true;
+  porDestinatario.devolver(hash(email)); // nada foi enviado: sem isso a pessoa ficaria 24h sem poder pedir
+  return false;
+}
+
+/** Devolve a cota de uma confirmação que não chegou a sair (o envio falhou): a nova tentativa envia de novo. */
+export function devolverConfirmacao(email: string): void {
+  porDestinatario.devolver(hash(email));
+  global.devolver('todos');
 }
 
 export function emailConfirmacao(email: string, site: URL) {
@@ -122,10 +100,4 @@ export function emailConfirmacao(email: string, site: URL) {
       '— LAESA · Liga Acadêmica de Engenharia de Software Aplicada (iCEV)',
     ].join('\n'),
   };
-}
-
-/** Para os avisos enviados pela Mesa: link de descadastro e cabeçalhos de um clique (RFC 8058). */
-export function descadastro(email: string, site: URL) {
-  const link = new URL(`/avisos/descadastro?t=${gerarToken(email, 'sair')}`, site).toString();
-  return { link, headers: { 'List-Unsubscribe': `<${link}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } };
 }

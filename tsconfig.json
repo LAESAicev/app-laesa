@@ -1,5 +1,9 @@
 {
   "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    // scripts/avisar.ts e src/lib rodam direto no Node (só remove tipos): nada de enum, namespace ou parameter properties
+    "erasableSyntaxOnly": true
+  },
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist", "design/dist"]
 }
