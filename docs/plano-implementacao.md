@@ -15,7 +15,6 @@ Este arquivo lista só as pendências. Marque e apague o item quando ele for res
 - [ ] GitHub App do painel em produção, depois do domínio e do servidor. Passo a passo em [operacao.md](operacao.md#painel-em-produção).
 - [ ] Prazo de retenção das mensagens de contato na caixa da LAESA (também aparece na página de privacidade).
 - [ ] Decidir se os avisos saem por uma conta de envio dedicada no Workspace, separada da caixa que recebe o contato.
-- [ ] Conteúdo pendente: lista em [README](../README.md#pendências).
 - [ ] Preencher a tabela de acessos em [passagem-de-mandato.md](passagem-de-mandato.md).
 
 ## Depois de publicar
