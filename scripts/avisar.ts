@@ -10,12 +10,13 @@ import { createInterface } from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { TIMEZONE, hojeEm } from '../src/lib/atividades.ts';
-import { bloqueios } from '../src/lib/avisos/bloqueios.ts';
+import { acharItem, conferirAntesDeEnviar, preparar, resumoItens, testar } from '../src/lib/avisos/acoes.ts';
 import { ErroAviso, criarFila, quando, type Envio, type Fila, type Rascunho } from '../src/lib/avisos/fila.ts';
-import { lerManifesto, nomeDo, type Item, type Manifesto } from '../src/lib/avisos/manifesto.ts';
+import { lerManifesto, type Manifesto } from '../src/lib/avisos/manifesto.ts';
 import { processar } from '../src/lib/avisos/processar.ts';
 import { criarRemetente } from '../src/lib/avisos/remetente.ts';
-import { estadoDa, eventoSugerido, eventoValido, mensagemPara, renderizar, rodape, EVENTOS, type Evento } from '../src/lib/avisos/templates.ts';
+import { eventoValido, rodape, EVENTOS } from '../src/lib/avisos/templates.ts';
+import { criarPainel } from '../src/lib/painel.ts';
 import { EnvioIndisponivel } from '../src/lib/smtp.ts';
 
 const AJUDA = `Uso: node scripts/avisar.ts <comando>
@@ -30,6 +31,7 @@ const AJUDA = `Uso: node scripts/avisar.ts <comando>
   retomar <envio>                          continua um envio pausado
   cancelar <envio>                         para um envio
   limpar                                   retenção (30 dias) dos registros de entrega; para o cron diário
+  sair-todos                               encerra todas as sessões da tela de avisos e invalida os links de entrada
 
 Eventos: ${EVENTOS.join(', ')}. No evento "livre" não há item: use --assunto e --texto-arquivo.`;
 
@@ -86,30 +88,10 @@ const numero = (v: string | undefined, o_que: string) => {
   return n;
 };
 
-/** "2026-2", "edital:2026-2" ou o slug de uma atividade. */
-function acharItem(m: Manifesto, chave: string | undefined): Item | undefined {
-  if (!chave) return undefined;
-  return m.itens.find((i) => i.id === chave) ?? m.itens.find((i) => i.id.endsWith(`:${chave}`));
-}
-
-function conferir(evento: Evento, item: Item | undefined, m: Manifesto, conteudo: { assunto: string; texto: string }): void {
-  const motivos = bloqueios({ evento, item, manifesto: m, conteudo });
-  if (!motivos.length) return;
-  throw new ErroAviso(`Bloqueado:\n${motivos.map((x) => `  - ${x}`).join('\n')}`);
-}
-
 function rascunhoOuErro(fila: Fila, v: string | undefined): Rascunho {
   const r = fila.rascunho(numero(v, 'rascunho'));
   if (!r) throw new ErroAviso(`Rascunho ${v} não existe.`);
   return r;
-}
-
-/** Revalida o rascunho com o site publicado agora (o item pode ter mudado desde o preparar). */
-function revalidar(r: Rascunho): Manifesto {
-  const m = manifesto();
-  const item = r.item ? acharItem(m, r.item) : undefined;
-  conferir(r.evento, item, m, r);
-  return m;
 }
 
 /** Processamento em segundo plano: fechar o terminal não interrompe. Saída no arquivo de log. */
@@ -134,16 +116,12 @@ const COMANDOS: Record<string, () => Promise<void>> = {
     const { fila } = await abrirFila();
     const hoje = hojeEm();
     console.log(`Site publicado em ${quando(m.geradoEm)} (${m.site}). Hoje: ${hoje}.\n`);
-    for (const item of m.itens) {
-      const evento = eventoSugerido(item, hoje);
-      const situacao = item.tipo === 'edital' ? `seleção: ${item.status}` : estadoDa(item, hoje);
-      console.log(`${item.id}\n  ${nomeDo(item)} (${situacao}${item.exemplo ? ', provisório' : ''})`);
+    for (const { item, nome, situacao, evento, antes, motivos } of resumoItens(fila, m, hoje)) {
+      console.log(`${item.id}\n  ${nome} (${situacao}${item.exemplo ? ', provisório' : ''})`);
       if (!evento) {
         console.log('  nada a avisar agora');
         continue;
       }
-      const antes = fila.notificacoes(item.id, evento);
-      const motivos = bloqueios({ evento, item, manifesto: m, conteudo: renderizar(evento, item), hoje });
       console.log(`  sugerido: preparar ${evento} ${item.id}`);
       if (antes.length) console.log(`  já avisado: ${antes.map((a) => `envio ${a.envio_id} em ${quando(a.criado_em)}`).join(', ')}`);
       for (const x of motivos) console.log(`  bloqueado: ${x}`);
@@ -159,14 +137,10 @@ const COMANDOS: Record<string, () => Promise<void>> = {
     const arquivo = op['texto-arquivo'];
     const texto = arquivo ? readFileSync(arquivo === '-' ? 0 : arquivo, 'utf8') : undefined;
     if (ev === 'livre' && (!op.assunto || !texto)) throw new Uso('No aviso livre, passe --assunto "…" e --texto-arquivo arquivo (ou - para colar no terminal).');
-    const conteudo = renderizar(ev, item, { assunto: op.assunto, texto });
-    conferir(ev, item, m, conteudo);
     const { fila } = await abrirFila();
-    const r = fila.salvarRascunho({ item: item?.id ?? null, evento: ev, ...conteudo, site: m.site, contato: m.contato });
-    const total = (await fila.inscritos()).length;
+    const { rascunho: r, total, antes } = await preparar(fila, m, ev, item, { assunto: op.assunto, texto });
     console.log(`Rascunho ${r.id} salvo.\n\nAssunto: ${r.assunto}\n\n${r.texto}\n\n${rodape(r.site, '<link de descadastro de cada pessoa>')}\n`);
     console.log(`Inscritos agora: ${total}.`);
-    const antes = item ? fila.notificacoes(item.id, ev) : [];
     if (antes.length) console.log(`Atenção: este aviso já foi enviado (envio ${antes.at(-1)!.envio_id}). Só sai de novo com --reenviar.`);
     console.log(`Próximo passo: node scripts/avisar.ts teste ${r.id}`);
   },
@@ -174,10 +148,9 @@ const COMANDOS: Record<string, () => Promise<void>> = {
   async teste() {
     const { fila } = await abrirFila();
     const r = rascunhoOuErro(fila, args[0]);
-    revalidar(r);
-    const para = env.AVISOS_TESTE_PARA || r.contato;
-    await remetente(r.contato)(mensagemPara(r, para, segredo()));
-    fila.marcarTeste(r.id);
+    // remetente criado na hora de enviar: bloqueio do rascunho aparece antes de erro de SMTP
+    // o código do teste vai só no e-mail; a CLI não o mostra (quem envia por aqui confirma com o número)
+    const { para } = await testar({ fila, manifesto: manifesto(), rascunho: r, para: env.AVISOS_TESTE_PARA || r.contato, segredo: segredo(), enviar: (msg) => remetente(r.contato)(msg) });
     console.log(`Teste do rascunho ${r.id} enviado para ${para}. Confira assunto, texto e links.`);
     console.log(`Estando tudo certo: node scripts/avisar.ts enviar ${r.id} --por "Seu nome"`);
   },
@@ -186,11 +159,8 @@ const COMANDOS: Record<string, () => Promise<void>> = {
     const { fila } = await abrirFila();
     const r = rascunhoOuErro(fila, args[0]);
     if (!op.por?.trim()) throw new Uso('Diga quem está enviando: --por "Seu nome".');
-    revalidar(r);
     remetente(r.contato); // falha aqui, e não em segundo plano, se o SMTP estiver mal configurado
-    fila.conferirEnvio(r, op.reenviar);
-    const total = (await fila.inscritos()).length;
-    if (!total) throw new ErroAviso('Ninguém inscrito: não há para quem enviar.');
+    const { total } = await conferirAntesDeEnviar(fila, manifesto(), r, op.reenviar);
     if (!process.stdin.isTTY || !process.stdout.isTTY) throw new Uso('Rode "enviar" num terminal interativo (docker compose exec, sem -T): é preciso digitar a confirmação.');
     console.log(`Assunto: ${r.assunto}\nVai para ${total} inscritos, um e-mail por pessoa (~${Math.ceil((total * 2.5) / 60)} min).`);
     const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -242,7 +212,15 @@ const COMANDOS: Record<string, () => Promise<void>> = {
 
   async limpar() {
     const { limpeza } = await abrirFila();
-    console.log(`[avisos] ${new Date().toISOString()} limpeza: ${limpeza.cancelados} envios parados cancelados, ${limpeza.apagadas} entregas apagadas`);
+    const tela = criarPainel(DB).limpar();
+    console.log(
+      `[avisos] ${new Date().toISOString()} limpeza: ${limpeza.cancelados} envios parados cancelados, ${limpeza.apagadas} entregas apagadas, ${tela.sessoes} sessões e ${tela.links} links da tela vencidos`,
+    );
+  },
+
+  async 'sair-todos'() {
+    const { sessoes, links } = criarPainel(DB).sairTodos();
+    console.log(`Tela de avisos: ${sessoes} sessões encerradas e ${links} links de entrada invalidados.`);
   },
 };
 

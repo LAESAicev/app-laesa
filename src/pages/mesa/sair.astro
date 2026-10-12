@@ -1,0 +1,22 @@
+---
+// Sair da tela de avisos. Só POST (o src/middleware.ts confere a origem e exige sessão):
+//   acao=sair        → encerra a sessão deste navegador
+//   acao=sair-todos  → encerra todas as sessões e invalida os links pendentes
+// GET não faz nada: volta para a tela.
+import { ATRIBUTOS_COOKIE, COOKIE_SESSAO } from '../../lib/painel';
+import { painel } from '../../lib/mesa';
+
+export const prerender = false;
+
+if (Astro.request.method !== 'POST') return Astro.redirect('/mesa/avisos', 303);
+
+const acao = (await Astro.request.formData().catch(() => new FormData())).get('acao');
+if (acao === 'sair-todos') {
+  const { sessoes } = painel().sairTodos();
+  console.info(`[mesa] ${Astro.locals.mesa?.nome ?? 'alguém'} encerrou todas as sessões (${sessoes})`);
+} else {
+  painel().sair(Astro.cookies.get(COOKIE_SESSAO)?.value);
+}
+Astro.cookies.delete(COOKIE_SESSAO, ATRIBUTOS_COOKIE);
+return Astro.redirect('/mesa/entrar', 303);
+---

@@ -4,7 +4,7 @@ O site roda com Docker, a pedido da coordenação (ADR 0001, plano A). São dois
 
 | Serviço | O que faz |
 | --- | --- |
-| `app` | o site: páginas pré-geradas e as rotas `/api/*` e `/avisos/*` (Node). Guarda os inscritos das novidades em SQLite, no volume `dados`. |
+| `app` | o site: páginas pré-geradas, as rotas `/api/*` e `/avisos/*` e, se ligada, a tela de avisos (`/mesa`), em Node. Guarda os inscritos das novidades em SQLite, no volume `dados`. |
 | `proxy` | Caddy: HTTPS automático (Let's Encrypt), compressão, cabeçalhos de segurança e limite de 64 KB nos formulários. Sobrescreve `X-Forwarded-For` com o IP real do visitante. |
 
 O app não expõe porta: só o proxy (80 e 443) fica acessível de fora.
@@ -50,12 +50,45 @@ Perguntas para o setor de tecnologia antes da instalação:
 
 ## Atualizar o site
 
-Toda mudança na `main`, inclusive uma edição de conteúdo feita pelo painel, passa pelo CI (`.github/workflows/ci.yml`). Ele testa, gera o site e publica a imagem em `ghcr.io/laesaicev/app-laesa`. No servidor:
+Toda mudança na `main`, inclusive uma edição de conteúdo feita pelo painel, passa pelo CI (`.github/workflows/ci.yml`). Ele testa, gera o site e publica a imagem em `ghcr.io/laesaicev/app-laesa` com a tag do commit (`:<sha>`) e `latest`. O servidor não usa nenhuma das duas: ele segue a tag **`aprovada`** (decisão no [ADR 0004](adr/0004-deploy-automatico-de-conteudo.md)).
+- **Só conteúdo:** se, desde a última versão aprovada, mudaram apenas arquivos que o painel grava, o próprio CI move `aprovada` para a imagem nova (job "Promover se for só conteúdo").
+- **Qualquer outra coisa** (código, dependências, configuração, workflows): o CI não promove e escreve no resumo do run "Há mudança de código desde a última versão aprovada: promova à mão", com a lista dos arquivos. Alguém revisa e promove ([Promover à mão](#promover-à-mão)).
+
+Conta como conteúdo, comparando com a última versão aprovada (e não com o commit anterior):
+- `content/**/*.yaml`;
+- `src/assets/uploads/**` em `jpg`, `jpeg`, `png`, `webp` ou `avif` (fotos);
+- `public/uploads/**` em `pdf`, `doc`, `docx`, `odt`, `xls`, `xlsx`, `ods`, `ppt`, `pptx`, `odp`, `txt`, `csv`, `jpg`, `jpeg`, `png`, `webp`, `avif` ou `gif`.
+
+SVG, HTML e qualquer outro tipo enviado pelo painel vão ao ar só promovidos à mão. Link simbólico, arquivo executável e arquivo renomeado de fora dessas pastas também. A regra está em `scripts/so-conteudo.mjs`, e o CI usa a cópia do commit aprovado: mudar a regra exige uma promoção manual.
+
+No servidor:
 
 ```sh
-docker compose pull && docker compose up -d   # usa a imagem publicada pelo CI
-# ou, sem o registry: git pull && docker compose up -d --build
+docker compose pull && docker compose up -d   # baixa a imagem "aprovada"
 ```
+
+O caminho sem o registry (`git pull && docker compose up -d --build`) gera a imagem com o código da `main` como estiver, sem passar pela aprovação. Use só depois de revisar o diff.
+
+### Promover à mão
+
+1. Descubra a versão aprovada: está no resumo do último run do CI, ou rode
+   `docker buildx imagetools inspect --raw ghcr.io/laesaicev/app-laesa:aprovada | jq -r '.annotations["org.opencontainers.image.revision"]'`.
+2. Revise o diff em `https://github.com/LAESAicev/app-laesa/compare/<sha-aprovado>...main` e confira o CI verde do commit a promover.
+3. Em Actions → **Promover para produção** → Run workflow, com a branch `main`. O campo SHA vazio promove o último commit da `main`; para outro commit, use o SHA completo (40 caracteres).
+4. Um revisor do environment `producao` aprova o run. O workflow confere o CI verde e a imagem do commit e move `aprovada`, sem gerar a imagem de novo.
+5. O servidor pega a versão nova no próximo cron, ou na hora com `docker compose pull && docker compose up -d`.
+
+**Primeira vez:** enquanto `aprovada` não existir, o CI não promove nada sozinho, e o `docker compose pull` do servidor falha. Faça uma promoção manual antes de instalar o servidor.
+
+### Configurar a aprovação (uma vez, precisa de admin)
+
+Em Settings → Environments → **New environment**, crie `producao`:
+- **Required reviewers:** uma ou duas pessoas de confiança, de preferência o(a) orientador(a) e quem cuida do código. Evite pôr o time inteiro da Mesa: a aprovação é a barreira contra um token de editor roubado.
+- **Prevent self-review:** ligado. Quem disparou o workflow não aprova o próprio run.
+- **Allow administrators to bypass:** desligado.
+- **Deployment branches and tags:** "Selected branches and tags", só `main`.
+
+Crie o environment antes do primeiro uso: se ele não existir, o GitHub cria um vazio na primeira execução, sem revisor nenhum. Revisores obrigatórios em repositório privado podem exigir um plano pago do GitHub; em repositório público, estão em todos os planos (confira na tela, ao criar).
 
 ### De onde vêm `SITE_URL` e as variáveis `PUBLIC_*` da imagem
 
@@ -67,25 +100,28 @@ Enquanto o domínio não estiver definido, o CI publica com o fallback do `ci.ym
 
 ### Atualizar sozinho ou à mão
 
-A regra depende do painel (Keystatic) em produção, porque o token de um editor também consegue mudar o código (ver [Quem pode editar](#3-quem-pode-editar)):
-- **Painel desligado em produção** (a imagem sai sem `PUBLIC_KEYSTATIC_GITHUB_REPO`, o caso atual): só quem tem escrita no repositório muda a `main`, então um cron no host que baixa a imagem nova é aceitável. Exemplo, com `crontab -e` do usuário do deploy, a cada 30 minutos:
-  ```sh
-  */30 * * * * cd /opt/app-laesa && (docker compose pull -q && docker compose up -d) 2>&1 | logger -t atualiza-laesa
-  ```
-- **Painel ligado em produção:** tire o cron e atualize à mão, depois de revisar o diff dos commits novos na `main` e ver o CI verde. Assim um token roubado não coloca código no ar sozinho.
+Como o servidor segue `aprovada`, um cron no host vale com o painel ligado ou desligado: código novo só chega lá depois de uma promoção manual. Exemplo, com `crontab -e` do usuário do deploy, a cada 30 minutos:
 
-Não use Watchtower nem outro serviço que atualize contêineres: ele precisa do socket do Docker (equivale a root) e ainda puxaria qualquer imagem nova sem revisão.
+```sh
+*/30 * * * * cd /opt/app-laesa && (docker compose pull -q && docker compose up -d) 2>&1 | logger -t atualiza-laesa
+```
+
+O resultado sai em `journalctl -t atualiza-laesa`. Sem cron, atualize à mão com os mesmos dois comandos.
+
+Não use Watchtower nem outro serviço que atualize contêineres: ele precisa do socket do Docker (equivale a root). Também não aponte o servidor para `latest`: ela é a última imagem da `main`, sem revisão nenhuma.
 
 ## Desfazer uma mudança
 
-O conteúdo vive no git. Para voltar uma edição, reverta o commit no GitHub (`git revert <commit>`) e atualize o servidor. Para voltar uma versão inteira do site, fixe no `.env` do servidor a imagem de um commit bom, pelo SHA completo (40 caracteres, aparece no commit do GitHub e no CI):
+O conteúdo vive no git. Para voltar uma edição, reverta o commit no GitHub (`git revert <commit>`). Se a edição só mexia em conteúdo, o revert também vai ao ar sozinho; se o código já promovido estava envolvido, o revert é mudança de código e precisa de [promoção manual](#promover-à-mão).
 
-```sh
-# no .env:  IMAGE=ghcr.io/laesaicev/app-laesa:<sha-completo-do-commit>
-docker compose pull app && docker compose up -d
-```
-
-Deixe o `IMAGE` no `.env` até a `main` estar corrigida. Só com `IMAGE=... docker compose up -d` na linha de comando, o próximo `pull` (manual ou do cron) volta para a `latest` quebrada. Com a `main` corrigida e o CI verde, apague a linha `IMAGE` do `.env` e rode `docker compose pull && docker compose up -d`.
+Para voltar uma versão inteira do site, há dois caminhos, ambos pelo SHA completo de um commit bom (40 caracteres, aparece no commit do GitHub e no CI):
+- **Pelo GitHub:** rode **Promover para produção** com esse SHA. A tag `aprovada` volta para ele, e o servidor pega no próximo cron (ou na hora, com `docker compose pull && docker compose up -d`).
+- **Pelo servidor**, quando não dá para esperar o GitHub ou a aprovação: fixe a imagem no `.env`.
+  ```sh
+  # no .env:  IMAGE=ghcr.io/laesaicev/app-laesa:<sha-completo-do-commit>
+  docker compose pull app && docker compose up -d
+  ```
+  Deixe o `IMAGE` no `.env` até a `aprovada` estar boa de novo. Só com `IMAGE=... docker compose up -d` na linha de comando, o próximo `pull` (manual ou do cron) volta para a `aprovada`. Resolvido, apague a linha `IMAGE` do `.env` e rode `docker compose pull && docker compose up -d`.
 
 ## Backup
 
@@ -135,6 +171,7 @@ Os acessos são da LAESA, nunca de um aluno. A cada nova Mesa Diretora:
 - **Senha de app do Gmail:** revogar a antiga em https://myaccount.google.com/apppasswords, gerar outra e atualizar o `SMTP_PASS`. A recuperação e a verificação em duas etapas da conta `laesa@somosicev.com` ficam presas ao(à) orientador(a), não ao celular de um aluno.
 - **`INSCRICAO_SECRET`:** só troque se ele vazar, porque trocar invalida os links de descadastro já enviados por e-mail. Também deixa irreconhecíveis os códigos de quem se descadastrou nos últimos 30 dias, então um link de confirmação emitido antes do descadastro (vale 7 dias) volta a funcionar até vencer. Se precisar trocar, avise os inscritos no próximo envio. Antes de trocar, conclua ou cancele os avisos em andamento (`avisar.ts status`): com o segredo novo, o `retomar` recusa um envio começado com o antigo ([avisos.md](avisos.md#trocar-o-inscricao_secret)).
 - **Organização no GitHub:** pelo menos dois donos, um deles professor. Atualize o time `mesa-diretora`.
+- **Tela de avisos:** quem tem a senha da caixa da LAESA consegue entrar e mandar avisos. Troque a senha (e confira a verificação em duas etapas) quando alguém sai, e encerre as sessões com `avisar.ts sair-todos` ([Tela de avisos](#tela-de-avisos)).
 - **Servidor:** revise quem tem SSH e quem está no grupo `docker`. Estar nesse grupo equivale a ter root na máquina, inclusive para ler o `.env` com `docker inspect`.
 - **Imagem no GitHub Container Registry:**
   - deixe o pacote `app-laesa` **público** (ele não contém segredos), para a VM baixar sem login;
@@ -148,8 +185,86 @@ Um sintoma por linha, com o primeiro comando a rodar na pasta do site no servido
 - Formulário responde 503: falta variável no `.env` (`SMTP_USER` e `SMTP_PASS`; na inscrição, também `INSCRICAO_SECRET`). Confira com `docker compose logs app | grep -i indispon`, corrija o `.env` e rode `docker compose up -d`.
 - Formulário responde 500: a senha de app está errada ou a porta 465 está bloqueada (nesse caso a resposta demora uns 10 segundos). `docker compose logs app | grep "falha ao enviar"` mostra o código do erro, e `nc -vz smtp.gmail.com 465` testa a saída do servidor.
 - Certificado HTTPS não sai: `docker compose logs proxy`. Confira se `dig +short laesa.icev.edu.br` devolve o IP do servidor, se `dig +short CAA icev.edu.br` vem vazio ou inclui `letsencrypt.org` e se as portas 80 e 443 estão abertas para a internet.
+- `/mesa` responde 404: a tela está desligada (`PAINEL_AVISOS` sem `true`) ou o app não está com `INSCRITOS_STORE=sqlite`. No segundo caso, `docker compose logs app | grep "\[mesa\]"` mostra o aviso. Ver [Tela de avisos](#tela-de-avisos).
+- Na tela de avisos, todo botão responde 403 ("Pedido recusado."): a origem do navegador não bate com o `SITE_URL` da imagem. Acontece com a imagem gerada com o fallback do CI num domínio diferente, com `http` em vez de `https`, com `www` ou porta diferente, ou com um proxy que apaga o cabeçalho `Origin`. Corrija o `SITE_URL` nas Variables do GitHub e gere a imagem de novo (ver [De onde vêm `SITE_URL`…](#de-onde-vêm-site_url-e-as-variáveis-public_-da-imagem)).
+- O link de entrada da tela não chega: `docker compose logs app | grep "\[mesa\]"`. "barrado pelo limite por IP" e "já há 5 links valendo" passam em 15 minutos; "barrado pelo limite diário" pode durar até 24 horas; "falha ao enviar o link de entrada" é problema no SMTP (mesmas causas do formulário com 500). Para liberar a entrada na hora, rode `docker compose restart app` (zera os limites, que ficam na memória) e `docker compose exec app node scripts/avisar.ts sair-todos` (apaga os links pendentes e também encerra as sessões abertas). Reiniciar interrompe um envio em andamento, que depois precisa de Retomar. Até lá, o comando continua mandando avisos ([avisos.md](avisos.md#pelo-comando-no-servidor)).
 - Aviso pausado: `docker compose exec app node scripts/avisar.ts status` mostra o motivo. Resolvido o problema, `docker compose exec app node scripts/avisar.ts retomar <envio>` ([avisos.md](avisos.md#acompanhar-pausar-e-cancelar)).
 - O `.env` vazou: troque todos os segredos dele, seguindo [Troca de mandato](#troca-de-mandato-rotatividade) (inclusive o `INSCRICAO_SECRET`, com os efeitos descritos lá) e, se o painel estiver ligado, [Vazamento ou suspeita](#3-quem-pode-editar). Depois rode `docker compose up -d`.
+
+## Tela de avisos
+
+A tela (`/mesa`) deixa a Mesa preparar, testar e enviar avisos pelo navegador, sem SSH. O uso está em [avisos.md](avisos.md#pela-tela-de-avisos) e a decisão, com os riscos aceitos, no [ADR 0003](adr/0003-tela-de-avisos.md).
+
+### Ligar e desligar
+
+Antes de ligar, confira:
+- o envio de e-mail funciona (o formulário de contato envia): o link de entrada vai por e-mail;
+- a imagem foi gerada com o `SITE_URL` do domínio real. A tela recusa todo formulário que não venha dessa origem;
+- `PUBLIC_CONTACT_EMAIL` é a caixa da LAESA: é para ela que vão os links de entrada e os testes;
+- a conta da caixa tem verificação em duas etapas.
+
+No `.env` do servidor:
+
+```sh
+PAINEL_AVISOS=true
+```
+
+Depois, `docker compose up -d`. O `compose.yaml` já define `INSCRITOS_STORE=sqlite`, que a tela exige (sessões e links ficam no mesmo banco dos inscritos). Para conferir:
+
+```sh
+curl -sI https://laesa.icev.edu.br/mesa/entrar   # 200, com cache-control: no-store e x-robots-tag: noindex, nofollow
+```
+
+Para desligar, apague a linha (ou use `false`) e rode `docker compose up -d`. Com a tela desligada, `/mesa` responde 404 e o comando `avisar.ts` continua funcionando.
+
+O envio feito pela tela roda dentro do processo do site. Atualizar o site no meio de um envio interrompe o envio, que fica parado até alguém clicar em Retomar ([avisos.md](avisos.md#acompanhar-pausar-retomar-e-cancelar)). Se der, atualize sem envio em andamento.
+
+### Encerrar todas as sessões
+
+Na saída de um membro ou em qualquer suspeita de acesso indevido:
+
+```sh
+docker compose exec app node scripts/avisar.ts sair-todos
+```
+
+Encerra todas as sessões e invalida os links de entrada ainda não usados. O botão "Sair de todos os navegadores", no topo da tela, faz o mesmo. Quem ainda tem a senha da caixa da LAESA consegue pedir um link novo, então troque a senha também ([passagem-de-mandato.md](passagem-de-mandato.md)).
+
+### Proxy
+
+O `deploy/Caddyfile` põe `Cache-Control: no-store` e `X-Robots-Tag: noindex, nofollow` em `/mesa`, e a tela segue com a mesma CSP estrita das páginas públicas. O app manda esses dois cabeçalhos por conta própria. Um proxy do iCEV no lugar do Caddy precisa repassar os cabeçalhos `Origin` e `Sec-Fetch-Site` sem mexer, senão todo formulário da tela responde 403.
+
+### Testar na sua máquina
+
+Use o Mailpit ([README](../README.md#e-mails-em-desenvolvimento)): o link de entrada e o teste aparecem em http://localhost:8025. A tela lê a lista do que está publicado (`dist/client/avisos/itens.json`), que só existe depois de um build.
+
+Com `npm run dev`, no `.env` local:
+
+```sh
+PAINEL_AVISOS=true
+INSCRITOS_STORE=sqlite
+INSCRITOS_DB=./data/laesa.db
+INSCRICAO_SECRET=...   # openssl rand -hex 32
+# e o SMTP do Mailpit (SMTP_HOST=localhost, SMTP_PORT=1025, SMTP_USER=dev, SMTP_PASS=dev)
+```
+
+```sh
+npm run build   # gera dist/client/avisos/itens.json
+npm run dev     # abra http://localhost:4321/mesa/entrar
+```
+
+Em dev, a origem aceita é a do próprio servidor. Os cookies da tela são `Secure`; Chrome e Firefox aceitam esse tipo de cookie em `http://localhost`. No Safari não testamos.
+
+Com o servidor gerado, a origem aceita é a do `SITE_URL` usado no build. Gere com o endereço local e passe as variáveis no ambiente (`env` funciona no bash, no zsh e no fish):
+
+```sh
+env SITE_URL=http://localhost:4321 npm run build
+env PAINEL_AVISOS=true INSCRITOS_STORE=sqlite INSCRITOS_DB=./data/laesa.db INSCRICAO_SECRET=... \
+  SMTP_HOST=localhost SMTP_PORT=1025 SMTP_USER=dev SMTP_PASS=dev HOST=localhost PORT=4321 node dist/server/entry.mjs
+```
+
+Abra em `http://localhost:4321` (não em `127.0.0.1`: a origem precisa ser igual à do `SITE_URL`). Um build com o `SITE_URL` de produção recusa os formulários com 403 nesse teste.
+
+O smoke do CI (`node scripts/smoke.mjs`) confere só o portão: 404 com a tela desligada e, ligada, 303 sem sessão e 403 em POST sem `Origin`.
 
 ## Testar localmente com Docker
 
@@ -166,7 +281,7 @@ docker compose down
 Com o modo GitHub, o painel também fica no site publicado (`https://laesa.icev.edu.br/keystatic`):
 - **Login:** é feito com a conta do GitHub, com a senha e a verificação em duas etapas da própria pessoa. O site não guarda senha nenhuma.
 - **Quem salva:** cada edição vira um commit com o nome de quem editou, e só salva quem tem escrita no repositório `LAESAicev/app-laesa`. Um curioso consegue entrar, mas não consegue salvar nada.
-- **Quando aparece no site:** o commit passa pelo CI, que gera uma imagem nova. A mudança aparece quando alguém atualiza o servidor à mão (`docker compose pull && docker compose up -d`): com o painel ligado, sem cron (ver [Atualizar sozinho ou à mão](#atualizar-sozinho-ou-à-mão)).
+- **Quando aparece no site:** o commit passa pelo CI, que gera uma imagem nova e, se desde a última versão aprovada só mudou conteúdo, a promove sozinho. O servidor pega no próximo cron, em até uns 30 minutos (ver [Atualizar o site](#atualizar-o-site)). Se houver código esperando promoção, a edição fica parada junto com ele até alguém promover.
 
 Sem `PUBLIC_KEYSTATIC_GITHUB_REPO` no build, a imagem sai sem painel, e o painel continua só em `npm run dev`, no modo local.
 
@@ -218,11 +333,13 @@ Faça com uma conta que seja **dona (Owner)** da organização LAESAicev, de pre
   - bloqueie force-push e exclusão da `main` (Settings → Rules).
 
   Não exija PR na `main`, senão o painel não consegue salvar.
-- **O token vale para o repositório inteiro, não só para o conteúdo.** Quem tem o token de um editor consegue mudar o código também. Por isso:
-  - atualize o servidor à mão, depois de revisar o diff e ver o CI verde, e tire o cron de atualização (ver [Atualizar sozinho ou à mão](#atualizar-sozinho-ou-à-mão));
-  - não ligue a permissão `workflows` no App.
+- **O token vale para o repositório inteiro, não só para o conteúdo.** Quem tem o token de um editor consegue mudar o código e mover tags do git também. Por isso:
+  - código só vai ao ar promovido à mão, com aprovação no environment `producao` ([Atualizar o site](#atualizar-o-site)). A versão aprovada fica registrada na imagem do GHCR, que o token do painel não alcança, e não numa tag do git;
+  - o App do Keystatic é criado só com `contents: write`, `metadata: read` e `pull_requests: read`. Não acrescente `workflows`, `actions` nem `administration`: com `workflows`, o token mudaria a regra de promoção; com `actions`, dispararia workflows.
 - **Vazamento ou suspeita:**
   - nas configurações do App, use **Advanced → Revoke all user tokens**. Um token já roubado vale no máximo 8 horas;
+  - confira os commits recentes da `main` e reverta o que não foi feito por vocês. Conteúdo malicioso pode ter ido ao ar sozinho; código, só se alguém promoveu;
+  - se entrou código estranho na `main`, mesmo sem promoção, ele rodou no CI: apague os caches do Actions (Actions → Caches, ou `gh cache delete --all`) antes da próxima promoção;
   - troque `KEYSTATIC_SECRET` no `.env` e rode `docker compose up -d`; quem estava logado só entra de novo;
   - se o `KEYSTATIC_GITHUB_CLIENT_SECRET` vazar, gere outro nas configurações do App e atualize o `.env` do servidor.
 - **Proteções no site:**

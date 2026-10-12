@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { acharItem, conferirAntesDeEnviar, conferirCodigo, normalizarCodigo, preparar, resumoItens, testar } from '../src/lib/avisos/acoes';
 import { bloqueios, linksDeFora } from '../src/lib/avisos/bloqueios';
 import { criarFila, ErroAviso, type Fila } from '../src/lib/avisos/fila';
 import type { ItemAtividade, ItemEdital, Manifesto } from '../src/lib/avisos/manifesto';
@@ -290,11 +291,21 @@ describe('avisos: fila', () => {
   });
 
   it('não repete o aviso do mesmo item e evento, a não ser com --reenviar', async () => {
-    const { fila, rascunho } = await envioPronto();
+    const { fila, rascunho, envio } = await envioPronto();
     expect(() => fila.criarEnvio(rascunho.id, 'Bia', 5)).toThrow(/já foi enviado .*--reenviar/);
+    fila.cancelar(envio.id); // envio aberto do mesmo rascunho também recusaria
     expect(fila.criarEnvio(rascunho.id, 'Bia', 5, { reenviar: true }).status).toBe('enviando');
     expect(fila.notificacoes(edital.id, 'edital-aberto')).toHaveLength(2);
     expect(() => fila.criarEnvio(rascunho.id, '  ', 5, { reenviar: true })).toThrow(/--por/);
+  });
+
+  it('duplo clique com reenviar: o mesmo rascunho não ganha segundo envio enquanto o primeiro está aberto', async () => {
+    const { fila, rascunho, envio } = await envioPronto();
+    expect(() => fila.criarEnvio(rascunho.id, 'Bia', 5, { reenviar: true })).toThrow(/já tem o envio \d+ em andamento/);
+    fila.pausar(envio.id, 'teste');
+    expect(() => fila.criarEnvio(rascunho.id, 'Bia', 5, { reenviar: true })).toThrow(ErroAviso);
+    fila.cancelar(envio.id);
+    expect(fila.criarEnvio(rascunho.id, 'Bia', 5, { reenviar: true }).status).toBe('enviando'); // terminado, reenviar vale
   });
 
   it('aviso livre conta como repetido pelo conteúdo', async () => {
@@ -561,6 +572,147 @@ describe('avisos: fila', () => {
       expect(texto).not.toContain(p);
       expect(['', '-wal'].some((s) => existsSync(caminho + s) && readFileSync(caminho + s).includes(p))).toBe(false);
     }
+  });
+});
+
+describe('avisos: ações (comando e tela usam as mesmas)', () => {
+  // aviso livre com link do site: não depende da data de hoje (os bloqueios do revalidar usam o relógio real)
+  const LIVRE = { assunto: 'Reunião aberta', texto: `Quinta, 18h. Detalhes em ${SITE}/contato.` };
+  const livre = (fila: Fila, texto = LIVRE.texto) => fila.salvarRascunho({ item: null, evento: 'livre', assunto: LIVRE.assunto, texto, site: SITE, contato: 'laesa@example.test' });
+  const testarAgora = (fila: Fila, rascunho: ReturnType<typeof livre>, enviar = caixa().enviar) =>
+    testar({ fila, manifesto, rascunho, para: 'laesa@example.test', segredo: SEGREDO, enviar });
+
+  it('acharItem: código inteiro ou só o fim', () => {
+    expect(acharItem(manifesto, 'edital:2026-2')).toBe(edital);
+    expect(acharItem(manifesto, '2026-2')).toBe(edital);
+    expect(acharItem(manifesto, 'oficina-figma')).toBe(oficina);
+    expect(acharItem(manifesto, 'nao-existe')).toBeUndefined();
+    expect(acharItem(manifesto, undefined)).toBeUndefined();
+  });
+
+  it('resumoItens: sugerido, bloqueios e envios anteriores de cada item', async () => {
+    const { fila } = await envioPronto();
+    const r = resumoItens(fila, { ...manifesto, itens: [edital, { ...oficina, exemplo: true }, passado] }, HOJE);
+    expect(r.map((x) => [x.item.id, x.situacao, x.evento])).toEqual([
+      ['edital:2026-2', 'seleção: aberto', 'edital-aberto'],
+      ['atividade:oficina-figma', 'aberto', 'atividade-inscricoes'],
+      ['atividade:mostra', 'concluido', undefined],
+    ]);
+    expect(r[0].antes).toHaveLength(1);
+    expect(r[0].motivos).toEqual([]);
+    expect(r[1].motivos.join()).toMatch(/provisório/);
+    expect(r[2]).toMatchObject({ antes: [], motivos: [] });
+  });
+
+  it('preparar salva o rascunho e conta os inscritos; bloqueado não salva nada', async () => {
+    const { fila } = await cenario();
+    const { rascunho, total, antes } = await preparar(fila, manifesto, 'livre', undefined, LIVRE);
+    expect(rascunho).toMatchObject({ evento: 'livre', item: null, assunto: 'Reunião aberta', site: SITE, contato: manifesto.contato });
+    expect({ total, antes }).toEqual({ total: 5, antes: [] });
+    await expect(preparar(fila, manifesto, 'livre', undefined, { assunto: 'Oi', texto: 'Veja forms.gle/x' })).rejects.toThrow(/Bloqueado:\n {2}- Só pode ter links do site/);
+    expect(fila.rascunho(rascunho.id + 1)).toBeUndefined();
+  });
+
+  it('testar manda só para o destino dado, com o código num bloco acima do texto, e marca o teste', async () => {
+    const { fila } = await cenario();
+    const r = livre(fila);
+    const c = caixa();
+    const { para, codigo } = await testarAgora(fila, r, c.enviar);
+    expect(para).toBe('laesa@example.test');
+    expect(codigo).toMatch(/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/);
+    expect(c.para()).toEqual(['laesa@example.test']);
+    const texto = c.recebidos[0].text;
+    expect(texto.startsWith(`CÓPIA DE TESTE. Código para enviar este aviso pela tela de avisos: ${codigo}`)).toBe(true);
+    expect(texto.indexOf(codigo)).toBeLessThan(texto.indexOf('Quinta, 18h.'));
+    expect(texto).toContain(`-\n\n${r.texto}\n\n— LAESA`); // depois do bloco, a mensagem de verdade, com rodapé
+    expect(mensagemPara(r, 'ana@example.test', SEGREDO).text).not.toContain(codigo); // inscritos não recebem o bloco
+    expect(fila.rascunho(r.id)!.teste_enviado_em).toBeTruthy();
+  });
+
+  it('testar não envia rascunho bloqueado; falha no envio não marca teste nem guarda código', async () => {
+    const { fila } = await cenario();
+    const bloqueado = livre(fila, 'Inscreva-se em forms.gle/x');
+    const c = caixa();
+    await expect(testarAgora(fila, bloqueado, c.enviar)).rejects.toThrow(ErroAviso);
+    expect(c.recebidos).toHaveLength(0);
+    const r = livre(fila);
+    let codigo = '';
+    const falha = async (m: Mensagem) => {
+      codigo = m.text.match(/[A-Z2-9]{4}-[A-Z2-9]{4}/)![0];
+      throw new Error('smtp caiu');
+    };
+    await expect(testarAgora(fila, r, falha)).rejects.toThrow('smtp caiu');
+    expect(fila.rascunho(r.id)!.teste_enviado_em).toBeNull();
+    expect(() => conferirCodigo(fila, r.id, codigo)).toThrow(ErroAviso);
+  });
+
+  it('conferirCodigo: aceita o do último teste (minúsculas, sem hífen); recusa outro, de outro conteúdo, anterior e vencido', async () => {
+    const { fila } = await cenario();
+    const r = livre(fila);
+    const { codigo } = await testarAgora(fila, r);
+    expect(() => conferirCodigo(fila, r.id, codigo)).not.toThrow();
+    expect(() => conferirCodigo(fila, r.id, ` ${codigo.toLowerCase().replace('-', '')} `)).not.toThrow();
+    expect(() => conferirCodigo(fila, r.id, '')).toThrow(/não confere/);
+    expect(() => conferirCodigo(fila, r.id, 'AAAA-AAAA')).toThrow(/não confere/);
+    expect(() => conferirCodigo(fila, 999, codigo)).toThrow(/não existe/);
+    const outro = livre(fila, `Sexta, 18h. Detalhes em ${SITE}/contato.`);
+    const deOutro = (await testarAgora(fila, outro)).codigo;
+    expect(() => conferirCodigo(fila, r.id, deOutro)).toThrow(ErroAviso);
+    expect(() => conferirCodigo(fila, outro.id, codigo)).toThrow(ErroAviso);
+    const novo = (await testarAgora(fila, r)).codigo; // teste novo substitui o código anterior
+    if (novo !== codigo) expect(() => conferirCodigo(fila, r.id, codigo)).toThrow(ErroAviso);
+    expect(() => conferirCodigo(fila, r.id, novo)).not.toThrow();
+    agora += DIA - 1000;
+    expect(() => conferirCodigo(fila, r.id, novo)).not.toThrow();
+    agora += 2000;
+    expect(() => conferirCodigo(fila, r.id, novo)).toThrow(/venceu/);
+  });
+
+  it('criarEnvio com o código do teste: vale para um envio só, consumido junto com a criação', async () => {
+    const { fila } = await cenario();
+    const r = livre(fila);
+    const { codigo } = await testarAgora(fila, r);
+    const c = normalizarCodigo(codigo);
+    expect(() => fila.criarEnvio(r.id, 'Ana', 5, { codigo: 'AAAAAAAA' })).toThrow(/não confere/);
+    expect(fila.envios()).toEqual([]);
+    const e = fila.criarEnvio(r.id, 'Ana', 5, { codigo: c });
+    expect(() => conferirCodigo(fila, r.id, codigo)).toThrow(ErroAviso); // já usado
+    fila.cancelar(e.id);
+    expect(() => fila.criarEnvio(r.id, 'Ana', 5, { reenviar: true, codigo: c })).toThrow(/não confere/);
+    expect(fila.envios()).toHaveLength(1);
+    // recusa por outro motivo (envio aberto) não gasta o código
+    const outro = livre(fila, `Sexta, 18h. Detalhes em ${SITE}/contato.`);
+    const c2 = normalizarCodigo((await testarAgora(fila, outro)).codigo);
+    fila.criarEnvio(outro.id, 'Ana', 5);
+    expect(() => fila.criarEnvio(outro.id, 'Ana', 5, { reenviar: true, codigo: c2 })).toThrow(/em andamento/);
+    expect(fila.codigoTesteValido(outro, c2)).toBe(true);
+  });
+
+  it('o banco guarda só o HMAC do código, e o limpar apaga os vencidos', async () => {
+    const { caminho, fila } = await cenario();
+    const r = livre(fila);
+    const { codigo } = await testarAgora(fila, r);
+    const db = new DatabaseSync(caminho);
+    const linhas = () => db.prepare('SELECT * FROM avisos_codigos_teste').all();
+    const texto = JSON.stringify(linhas());
+    expect(texto).not.toContain(codigo);
+    expect(texto).not.toContain(codigo.replace('-', ''));
+    agora += DIA + 1000;
+    await fila.limpar();
+    expect(linhas()).toEqual([]);
+    db.close();
+  });
+
+  it('conferirAntesDeEnviar: exige teste, devolve o total do servidor e recusa sem inscritos', async () => {
+    const { fila } = await cenario();
+    const r = livre(fila);
+    await expect(conferirAntesDeEnviar(fila, manifesto, r, false)).rejects.toThrow(/ainda não teve teste/);
+    await testarAgora(fila, r);
+    expect(await conferirAntesDeEnviar(fila, manifesto, r, false)).toEqual({ rascunho: r, total: 5 });
+    const vazio = await cenario([]);
+    const v = livre(vazio.fila);
+    vazio.fila.marcarTeste(v.id);
+    await expect(conferirAntesDeEnviar(vazio.fila, manifesto, v, false)).rejects.toThrow(/Ninguém inscrito/);
   });
 });
 

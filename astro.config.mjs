@@ -85,6 +85,13 @@ export default defineConfig({
       INSCRICAO_SECRET: envField.string({ context: 'server', access: 'secret', optional: true, min: 32 }),
       INSCRITOS_STORE: envField.enum({ context: 'server', access: 'secret', values: ['memoria', 'sqlite'], optional: true }),
       INSCRITOS_DB: envField.string({ context: 'server', access: 'secret', default: '/data/laesa.db' }),
+      // Tela de avisos (/mesa): desligada por padrão; sem true, /mesa/* responde 404. Só funciona com
+      // INSCRITOS_STORE=sqlite (login e sessões ficam no mesmo banco). Lida em tempo de execução (src/middleware.ts).
+      PAINEL_AVISOS: envField.boolean({ context: 'server', access: 'secret', default: false }),
+      // Mesmos nomes e padrões do comando (scripts/avisar.ts): registro do processamento (padrão: avisos.log ao
+      // lado do INSCRITOS_DB) e manifesto do site publicado (padrão: dist/client/avisos/itens.json).
+      AVISOS_LOG: envField.string({ context: 'server', access: 'secret', optional: true }),
+      AVISOS_MANIFESTO: envField.string({ context: 'server', access: 'secret', optional: true }),
 
       // Painel em produção (modo GitHub): credenciais do GitHub App da organização. Lidas em tempo de
       // execução pelo @keystatic/astro (getSecret), nunca gravadas na imagem.

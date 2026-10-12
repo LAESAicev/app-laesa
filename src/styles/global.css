@@ -13,6 +13,8 @@
   --prorrogado: #8A4B00; /* âmbar: data prorrogada (5.9:1 sobre --paper) */
   --prorrogado-bg: #FFF1D6;
   --prorrogado-navy: #FFC965; /* sobre navy */
+  --error: #C42B2B; /* erro: 4.95:1 sobre --error-bg, 5.19:1 sobre --ground */
+  --error-bg: #FBEDED;
   --ground: #F3F6F9;
   --paper: #FFFFFF;
   --ink: #0A1D2E;

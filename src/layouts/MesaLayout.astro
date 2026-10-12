@@ -1,0 +1,48 @@
+---
+// Moldura das páginas da tela de avisos (/mesa): fora dos buscadores, com quem está usando e os botões de sair.
+// Sem JavaScript: tudo é link ou formulário (POST conferido pelo src/middleware.ts).
+import BaseLayout from './BaseLayout.astro';
+import Section from '../components/Section.astro';
+
+interface Props {
+  title: string;
+  /** Quem entrou (Astro.locals.mesa); sem nome, a página é a de entrada e não mostra o topo. */
+  nome?: string;
+  /** Recarrega a página a cada 15 s (envio em andamento), com ?auto=1: o middleware não conta a recarga como uso. */
+  atualizar?: boolean;
+}
+
+const { title, nome, atualizar = false } = Astro.props;
+---
+<BaseLayout title={title} description="Tela de avisos da Mesa da LAESA." noindex referrer="strict-origin">
+  {atualizar && <meta slot="head" http-equiv="refresh" content={`15; url=${Astro.url.pathname}?auto=1`} />}
+  <Section class="page-head mesa" node={false} label="Tela de avisos">
+    {nome && (
+      <header class="mesa-topo">
+        <p class="mesa-quem">Tela de avisos · você entrou como <strong>{nome}</strong></p>
+        <nav aria-label="Tela de avisos"><a class="link" href="/mesa/avisos">Avisos e envios</a></nav>
+        <form method="post" action="/mesa/sair" class="mesa-sair">
+          <button class="link-btn" type="submit" name="acao" value="sair">Sair</button>
+          <button class="link-btn" type="submit" name="acao" value="sair-todos">Sair de todos os navegadores</button>
+        </form>
+      </header>
+    )}
+    <slot />
+  </Section>
+</BaseLayout>
+
+<style>
+  .mesa-topo { display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; padding-bottom: 20px; margin-bottom: 40px; border-bottom: 1px solid var(--rule); }
+  .mesa-quem { font-size: 14px; color: var(--ink-2); margin-right: auto; }
+  .mesa-quem strong { color: var(--ink); font-weight: 600; }
+  .mesa-sair { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .mesa-sair .link-btn { display: inline-flex; align-items: center; font-size: 15px; min-height: 44px; }
+  :global(.mesa .wrap) { padding-bottom: 112px; }
+  /* número grande (inscritos agora, enviados, falhas), igual nas páginas do rascunho e do envio */
+  :global(.mesa-num) { font-family: var(--display); font-size: 48px; line-height: 1; color: var(--navy); font-variant-numeric: tabular-nums; margin-right: 4px; }
+  @media (max-width: 640px) {
+    .mesa-topo { margin-bottom: 28px; gap: 4px 20px; }
+    .mesa-quem { flex-basis: 100%; }
+    :global(.mesa .wrap) { padding-bottom: 72px; }
+  }
+</style>

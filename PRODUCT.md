@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Astro 7 with the Node adapter, in one Docker image. Pages are prerendered; only `/api/*` and `/avisos/*` run on the server. Content is YAML in `content/`, edited through the Keystatic panel (`/keystatic`). Architecture: `docs/adr/0001-arquitetura-do-site.md`.
+Astro 7 with the Node adapter, in one Docker image. Pages are prerendered; only `/api/*`, `/avisos/*` and `/mesa/*` run on the server. Content is YAML in `content/`, edited through the Keystatic panel (`/keystatic`). Architecture: `docs/adr/0001-arquitetura-do-site.md`.
 
 ## Users
 
@@ -41,7 +41,7 @@ Liga acadêmica sem fins lucrativos, fundada em 2023 por alunos de Engenharia de
 - Hosting and domain: provided by iCEV; infrastructure administered by iCEV's technology sector. Deployment is Docker (requested by the coordenação, 2026-10-06). Subdomain, outbound access to GitHub and backups still pending. The app must be reproducible from the repo.
 - Access and accounts belong to the LAESA institutional account, never a student's personal account.
 - E-mail: iCEV uses Google Workspace; the LAESA Workspace account sends notifications and receives contact messages (contact messages are not stored elsewhere).
-- Decided: Keystatic as the panel (local mode now, GitHub mode in production after the iCEV server exists) and Gmail SMTP from the LAESA Workspace account. Announcements to subscribers are sent by a server command (`docs/avisos.md`); there is no web UI for that yet.
+- Decided: Keystatic as the panel (local mode now, GitHub mode in production after the iCEV server exists) and Gmail SMTP from the LAESA Workspace account. Announcements to subscribers are sent from the announcements screen (`/mesa`, off unless `PAINEL_AVISOS=true`; login by one-time link sent to the LAESA mailbox) or by a server command; guide in `docs/avisos.md`, decision in `docs/adr/0003-tela-de-avisos.md`.
 
 ## Brand Commitments
 

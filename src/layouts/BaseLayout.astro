@@ -18,9 +18,15 @@ interface Props {
   active?: NavKey | 'inicio';
   /** Páginas com token na URL: fora dos buscadores e sem enviar o endereço como Referer. */
   noindex?: boolean;
+  /**
+   * Política de Referer com noindex. 'strict-origin' para páginas com formulário POST conferido pela origem
+   * (/mesa): com 'no-referrer' o navegador manda "Origin: null" no POST e a conferência recusa (403).
+   * Nas duas, o caminho (e o token) nunca sai no Referer.
+   */
+  referrer?: 'no-referrer' | 'strict-origin';
 }
 
-const { title, description, active, noindex = false } = Astro.props;
+const { title, description, active, noindex = false, referrer = 'no-referrer' } = Astro.props;
 const fullTitle = title === 'LAESA' ? 'LAESA · Liga Acadêmica de Engenharia de Software Aplicada' : `${title} · LAESA`;
 // build.format 'directory' + trailingSlash 'never': o pathname já chega como / e /contato. O replace só
 // protege o canonical se o formato voltar a 'file' (/index.html, /contato.html).
@@ -37,7 +43,7 @@ const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ''), Ast
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#043F63" />
     {noindex && <meta name="robots" content="noindex" />}
-    {noindex && <meta name="referrer" content="no-referrer" />}
+    {noindex && <meta name="referrer" content={referrer} />}
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
@@ -49,6 +55,7 @@ const canonical = new URL(Astro.url.pathname.replace(/(index)?\.html$/, ''), Ast
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Logo da LAESA, Liga Acadêmica de Engenharia de Software Aplicada" />
     <meta name="twitter:card" content="summary_large_image" />
+    <slot name="head" />
   </head>
   <body>
     <Logo definicao />

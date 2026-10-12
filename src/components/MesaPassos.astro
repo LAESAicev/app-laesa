@@ -1,0 +1,48 @@
+---
+// Os quatro passos de um aviso na tela de avisos, como uma branch do grafo: feitos em azul, o atual em menta (HEAD).
+// Linha horizontal no desktop; coluna com linha vertical no tablet e no mobile (DESIGN.md, Layout).
+interface Props {
+  /** Passo em que a pessoa está agora (1 a 4). */
+  atual: 1 | 2 | 3 | 4;
+}
+
+const { atual } = Astro.props;
+const PASSOS = [
+  { titulo: 'Preparar', texto: 'Escolha o item publicado e o tipo de aviso.' },
+  { titulo: 'Testar', texto: 'Mande a cópia de teste para a caixa da LAESA.' },
+  { titulo: 'Copiar o código', texto: 'Abra o e-mail de teste, confira o texto e copie o código do topo.' },
+  { titulo: 'Enviar', texto: 'Digite o código e o número de inscritos para confirmar.' },
+];
+---
+<ol class="passos" aria-label="Passo a passo do aviso">
+  {PASSOS.map((p, i) => {
+    const n = i + 1;
+    const estado = n < atual ? 'feito' : n === atual ? 'agora' : 'depois';
+    return (
+      <li class:list={['passo', estado]} aria-current={estado === 'agora' ? 'step' : undefined}>
+        <span class="no" aria-hidden="true"></span>
+        <p class="titulo">{n}. {p.titulo}<span class="sr-only">{estado === 'feito' ? ' (feito)' : estado === 'agora' ? ' (agora)' : ''}</span></p>
+        <p class="texto">{p.texto}</p>
+      </li>
+    );
+  })}
+</ol>
+
+<style>
+  .passos { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; position: relative; margin: 0 0 48px; padding-top: 30px; }
+  .passos::before { content: ""; position: absolute; left: 8px; right: 8px; top: 7px; height: 2px; background: var(--spine); }
+  .passo { position: relative; display: flex; flex-direction: column; gap: 4px; }
+  .no { position: absolute; left: 0; top: -30px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--blue); background: var(--ground); }
+  .feito .no { background: var(--blue); }
+  .agora .no { border-color: var(--mint); background: var(--mint); box-shadow: 0 0 0 5px rgba(92, 234, 210, 0.22); }
+  .titulo { font-size: 15px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+  .texto { font-size: 14px; line-height: 1.5; color: var(--ink-2); max-width: 30ch; }
+  .depois .titulo { color: var(--ink-2); }
+  .agora .titulo { color: var(--navy); }
+  @media (max-width: 1100px) {
+    .passos { grid-template-columns: 1fr; gap: 14px; padding: 0 0 0 32px; }
+    .passos::before { left: 7px; right: auto; top: 8px; bottom: 8px; width: 2px; height: auto; }
+    .no { left: -32px; top: 1px; }
+    .texto { max-width: 52ch; }
+  }
+</style>

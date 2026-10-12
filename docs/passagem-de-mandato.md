@@ -26,20 +26,25 @@ Preencha os campos `<...>` na primeira passagem e mantenha a tabela atualizada. 
 
 1. Transferir a posse. Para cada linha da tabela, quem entra recebe acesso e confere que consegue entrar. Quem sai só perde o acesso depois disso.
 2. Trocar os segredos (como fazer em [operacao.md](operacao.md#troca-de-mandato-rotatividade)):
+   - [ ] senha da caixa da LAESA (conta Google Workspace). Quem tem essa senha entra na tela de avisos e manda e-mail para todos os inscritos ([ADR 0003](adr/0003-tela-de-avisos.md));
+   - [ ] verificação em duas etapas da caixa: continua ligada e presa ao(à) orientador(a), sem celular de quem saiu;
    - [ ] senha de app do Gmail: revogar a antiga, gerar outra e atualizar o `SMTP_PASS` no `.env` do servidor e no cofre;
    - [ ] `KEYSTATIC_SECRET`, se o painel estiver ligado em produção. Quem estava logado no painel só precisa entrar de novo;
    - [ ] `INSCRICAO_SECRET`: **não** troque por rotina, só se vazar. Trocar invalida os links de descadastro já enviados (efeitos em operacao.md);
    - [ ] depois de mudar o `.env`, rode `docker compose up -d` no servidor (`restart` não relê o arquivo).
 3. Tirar quem saiu:
+   - [ ] da caixa da LAESA: no Gmail, revise filtros, encaminhamentos e delegações (Configurações → Filtros e endereços bloqueados, Encaminhamento e POP/IMAP, Contas). Um encaminhamento esquecido manda para fora os links de entrada e os códigos de teste;
+   - [ ] da tela de avisos: `docker compose exec app node scripts/avisar.ts sair-todos` no servidor, depois de trocar a senha da caixa;
    - [ ] do time `mesa-diretora` e, se for o caso, da organização no GitHub;
+   - [ ] dos revisores do environment `producao` (Settings → Environments), que aprovam a promoção de código;
    - [ ] do SSH e do grupo `docker` no servidor (estar no grupo equivale a ter root e ler o `.env`);
    - [ ] do cofre e da pasta do Drive;
    - [ ] do arquivo no Figma.
 4. Conferir backups e cron:
    - [ ] `journalctl -t backup-laesa` mostra backups recentes;
    - [ ] a pasta `~/backups-laesa` não tem arquivos com mais de 30 dias;
-   - [ ] `crontab -l` do usuário do deploy ainda tem as linhas de backup e, se o painel estiver desligado, de atualização ([operacao.md](operacao.md#backup)).
-5. Combinar a revisão semanal dos PRs do Dependabot. As imagens Docker e as actions do CI estão fixadas por digest ou SHA, então correções de segurança só chegam por esses PRs. Alguém da nova Mesa precisa olhar os PRs abertos toda semana e fazer merge quando o CI estiver verde.
+   - [ ] `crontab -l` do usuário do deploy ainda tem as linhas de backup e de atualização ([operacao.md](operacao.md#backup)).
+5. Combinar a revisão semanal dos PRs do Dependabot. As imagens Docker e as actions do CI estão fixadas por digest ou SHA, então correções de segurança só chegam por esses PRs. Alguém da nova Mesa precisa olhar os PRs abertos toda semana e fazer merge quando o CI estiver verde. Depois do merge, a atualização só vai ao ar com uma promoção manual ([operacao.md](operacao.md#promover-à-mão)).
 6. Atualizar o conteúdo pelo painel (`/keystatic`):
    - [ ] Mesa Diretora: nomes e fotos dos novos cargos;
    - [ ] desmarcar "Conteúdo provisório" de quem já tem dados reais.

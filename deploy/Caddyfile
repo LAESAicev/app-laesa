@@ -28,6 +28,15 @@
 	header @painel X-Robots-Tag "noindex, nofollow"
 	header @painel Cache-Control "no-store"
 
+	# Tela de avisos (/mesa): continua sob a CSP do @site (não entra na exclusão acima). Fora dos buscadores e
+	# sem cache. O app (src/middleware.ts) já manda os dois; o ">" garante os valores daqui mesmo se a resposta
+	# do app vier com outros.
+	@mesa path /mesa /mesa/*
+	header @mesa {
+		>X-Robots-Tag "noindex, nofollow"
+		>Cache-Control "no-store"
+	}
+
 	# Arquivos enviados pelo painel (PDFs, SVGs): abertos em sandbox, sem rodar script no domínio do site.
 	@uploads path /uploads/* *.svg
 	header @uploads Content-Security-Policy "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'"

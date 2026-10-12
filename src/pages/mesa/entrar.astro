@@ -1,0 +1,123 @@
+---
+// Entrada da tela de avisos. GET nunca consome o link (scanners de e-mail abrem links): só mostra o formulário.
+//   GET              → botão para pedir o link (vai sempre para a caixa da LAESA)
+//   POST acao=pedir  → pede o link; resposta sempre igual (303 ?enviado=1), mandando ou não
+//   GET ?t=…         → campo "Seu nome" e botão Entrar, com o token num campo oculto
+//   POST t=…         → consome o link (mesmo navegador do pedido) e abre a sessão; 303 /mesa/avisos
+import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
+import MesaLayout from '../../layouts/MesaLayout.astro';
+import Button from '../../components/Button.astro';
+import Icon from '../../components/Icon.astro';
+import MesaErro from '../../components/MesaErro.astro';
+import { ATRIBUTOS_COOKIE, COOKIE_PRE, COOKIE_PRE_OPCOES, COOKIE_SESSAO, COOKIE_SESSAO_OPCOES, aleatorio, nomeValido } from '../../lib/painel';
+import { ipDe, limites, painel, pedirLinkDeEntrada } from '../../lib/mesa';
+
+export const prerender = false;
+
+const FALHOU = 'Não deu para entrar. O link vale 15 minutos, funciona uma vez só e precisa ser aberto no mesmo navegador em que foi pedido. Peça um link novo.';
+
+let token = Astro.url.searchParams.get('t') ?? '';
+let erro: string | undefined;
+let nome = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData().catch(() => new FormData());
+  if (form.get('acao') === 'pedir') {
+    // Reaproveita o nonce deste navegador: pedir duas vezes não invalida o primeiro link aqui.
+    const atual = Astro.cookies.get(COOKIE_PRE)?.value;
+    const nonce = atual && /^[\w-]{43}$/.test(atual) ? atual : aleatorio();
+    Astro.cookies.set(COOKIE_PRE, nonce, COOKIE_PRE_OPCOES);
+    // Em dev o link aponta para o servidor local; em produção, para SITE_URL.
+    pedirLinkDeEntrada(ipDe(Astro), nonce, import.meta.env.DEV || !Astro.site ? Astro.url : Astro.site);
+    return Astro.redirect('/mesa/entrar?enviado=1', 303);
+  }
+
+  token = String(form.get('t') ?? '');
+  nome = String(form.get('nome') ?? '');
+  if (!limites.entradaPorIp(ipDe(Astro))) {
+    erro = 'Muitas tentativas de entrar. Espere 15 minutos e tente de novo.';
+  } else if (!nomeValido(nome)) {
+    erro = 'Escreva seu nome (até 60 caracteres). Ele aparece nos envios que você fizer.';
+  } else {
+    const id = painel().entrar(token, Astro.cookies.get(COOKIE_PRE)?.value ?? '', nome, Astro.cookies.get(COOKIE_SESSAO)?.value);
+    if (id) {
+      Astro.cookies.set(COOKIE_SESSAO, id, COOKIE_SESSAO_OPCOES);
+      Astro.cookies.delete(COOKIE_PRE, ATRIBUTOS_COOKIE);
+      return Astro.redirect('/mesa/avisos', 303);
+    }
+    erro = FALHOU;
+    token = ''; // link que não serviu: só resta pedir outro
+  }
+}
+
+const enviado = Astro.request.method === 'GET' && Astro.url.searchParams.get('enviado') === '1';
+const entrar = Boolean(token);
+const semPre = entrar && !Astro.cookies.get(COOKIE_PRE)?.value;
+---
+<MesaLayout title="Entrar na tela de avisos">
+  <div class="mesa-entrada">
+    <div class="mesa-entrada-texto">
+      <h1 class="d2">Tela de <em>avisos.</em></h1>
+      <p class="lead">Aqui a Mesa prepara, testa e envia os avisos para quem se inscreveu nas novidades do site.</p>
+      <ol class="mesa-como" aria-label="Como entrar">
+        <li class:list={{ agora: !enviado && !entrar, feito: enviado || entrar }} aria-current={!enviado && !entrar ? 'step' : undefined}><span class="no" aria-hidden="true"></span>Peça o link de acesso nesta página.</li>
+        <li class:list={{ agora: enviado, feito: entrar }} aria-current={enviado ? 'step' : undefined}><span class="no" aria-hidden="true"></span>Abra o e-mail na caixa da LAESA ({PUBLIC_CONTACT_EMAIL}).</li>
+        <li class:list={{ agora: entrar }} aria-current={entrar ? 'step' : undefined}><span class="no" aria-hidden="true"></span>Abra o link neste mesmo navegador e escreva seu nome.</li>
+      </ol>
+    </div>
+
+    <div class="form mesa-entrada-form">
+      {erro && <MesaErro mensagem={erro} />}
+      {entrar ? (
+        <>
+          <h2 class="mesa-form-titulo">Entrar</h2>
+          <p class="body">O link funciona só no navegador em que foi pedido.</p>
+          {semPre && <p class="body mesa-aviso">Este navegador não pediu o link. Se não conseguir entrar, peça um link novo daqui mesmo.</p>}
+          <form class="mesa-form" method="post" action="/mesa/entrar">
+            <input type="hidden" name="t" value={token} />
+            <div class="field">
+              <label for="mesa-nome">Seu nome</label>
+              <input class="input" id="mesa-nome" name="nome" type="text" autocomplete="name" required maxlength="60" value={nome} aria-describedby="mesa-nome-dica" />
+              <p class="hint" id="mesa-nome-dica">Fica registrado nos envios que você fizer. Como a caixa da LAESA é compartilhada, vale o nome que você escrever aqui.</p>
+            </div>
+            <Button type="submit">Entrar</Button>
+          </form>
+        </>
+      ) : (
+        <>
+          <h2 class="mesa-form-titulo">{enviado ? 'Confira a caixa da LAESA' : 'Pedir o link de acesso'}</h2>
+          {enviado ? (
+            <p class="body mesa-enviado" role="status"><Icon name="mail" /><span>Pedido recebido. Se ele foi aceito, o link chega em alguns minutos na caixa da LAESA ({PUBLIC_CONTACT_EMAIL}). O link vale 15 minutos e só funciona neste navegador.</span></p>
+          ) : (
+            <p class="body">O link vai para a caixa da LAESA ({PUBLIC_CONTACT_EMAIL}), vale 15 minutos e só funciona neste navegador.</p>
+          )}
+          <form method="post" action="/mesa/entrar" class="mesa-form">
+            <input type="hidden" name="acao" value="pedir" />
+            <Button type="submit" icon="mail" variant={enviado ? 'outline' : 'primary'}>{enviado ? 'Pedir outro link' : 'Enviar link de acesso para a caixa da LAESA'}</Button>
+          </form>
+          {enviado && <p class="hint">Não chegou? Confira o spam e espere alguns minutos antes de pedir de novo.</p>}
+        </>
+      )}
+    </div>
+  </div>
+</MesaLayout>
+
+<style>
+  .mesa-entrada { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 520px); gap: 48px 80px; align-items: start; }
+  .mesa-entrada-texto .d2 { margin-bottom: 20px; }
+  .mesa-como { list-style: none; margin-top: 32px; position: relative; display: flex; flex-direction: column; gap: 16px; padding-left: 32px; max-width: 48ch; }
+  .mesa-como::before { content: ""; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: var(--spine); }
+  .mesa-como li { position: relative; font-size: 16px; line-height: 1.5; color: var(--ink-2); }
+  .mesa-como .no { position: absolute; left: -32px; top: 3px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--blue); background: var(--ground); }
+  .mesa-como .feito .no { background: var(--blue); }
+  .mesa-como .agora { color: var(--ink); font-weight: 600; }
+  .mesa-como .agora .no { border-color: var(--mint); background: var(--mint); box-shadow: 0 0 0 5px rgba(92, 234, 210, 0.22); }
+  .mesa-entrada-form { gap: 16px; }
+  .mesa-form-titulo { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+  .mesa-form { display: flex; flex-direction: column; gap: 20px; margin-top: 4px; }
+  .mesa-form .btn { justify-content: center; white-space: normal; height: auto; min-height: 52px; padding-block: 12px; text-align: center; }
+  .mesa-enviado { display: grid; grid-template-columns: 20px 1fr; gap: 12px; }
+  .mesa-enviado :global(svg) { width: 20px; height: 20px; margin-top: 3px; color: var(--blue-text); }
+  .mesa-aviso { color: var(--ink); font-weight: 500; }
+  @media (max-width: 1100px) { .mesa-entrada { grid-template-columns: 1fr; } .mesa-entrada-form { max-width: 560px; } }
+</style>

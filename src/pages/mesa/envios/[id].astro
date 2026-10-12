@@ -1,0 +1,194 @@
+---
+// Acompanhamento de um envio: situação, totais e processamento, com recarga a cada 15 s enquanto envia.
+// POST pausar, retomar (dispara o processamento) e cancelar; mudança que não vale para a situação atual: 422.
+// Cancelar é definitivo: exige a caixa "confirmar" marcada (conferida aqui no servidor; sem ela, 422 e nada muda).
+import MesaLayout from '../../../layouts/MesaLayout.astro';
+import Button from '../../../components/Button.astro';
+import MesaAtencao from '../../../components/MesaAtencao.astro';
+import MesaErro from '../../../components/MesaErro.astro';
+import { ErroAviso, quando, type Fila } from '../../../lib/avisos/fila';
+import { ROTULO_STATUS, filaDaMesa, iniciarProcessamento, mensagemDoErro, registrar, remetente, statusDoErro } from '../../../lib/mesa';
+
+export const prerender = false;
+
+const mesa = Astro.locals.mesa;
+if (!mesa) return Astro.redirect('/mesa/entrar', 303);
+
+let fila: Fila | undefined;
+let indisponivel: string | undefined;
+try {
+  fila = filaDaMesa();
+} catch (e) {
+  indisponivel = mensagemDoErro(e, 'abrir a fila'); // ex.: INSCRICAO_SECRET não definido
+  Astro.response.status = 503;
+}
+const id = Number(Astro.params.id);
+let envio = fila && Number.isSafeInteger(id) && id > 0 ? fila.envio(id) : undefined;
+let erro: string | undefined;
+
+if (!fila || !envio) {
+  if (fila) Astro.response.status = 404;
+} else if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData().catch(() => new FormData());
+  const acao = String(form.get('acao') ?? '');
+  const podeMudar = envio.status === 'enviando' || envio.status === 'pausado';
+  try {
+    if (acao === 'pausar') {
+      // atômico: o processador pode ter concluído ou pausado o envio depois da leitura lá em cima
+      if (!fila.pausar(id, `pausado pela Mesa por ${mesa.nome}`)) {
+        throw new ErroAviso(`O envio ${id} está "${ROTULO_STATUS[fila.envio(id)!.status]}": só dá para pausar um envio que está enviando.`);
+      }
+      registrar(`envio ${id} pausado pela tela de avisos`);
+    } else if (acao === 'retomar') {
+      if (!podeMudar) throw new ErroAviso(`O envio ${id} está "${ROTULO_STATUS[envio.status]}": só dá para retomar um envio pausado ou parado.`);
+      remetente(); // SMTP mal configurado falha aqui, antes de mudar o envio
+      await fila.retomar(id);
+      registrar(`envio ${id} retomado pela tela de avisos`);
+      iniciarProcessamento();
+    } else if (acao === 'cancelar') {
+      if (!podeMudar) throw new ErroAviso(`O envio ${id} está "${ROTULO_STATUS[envio.status]}": só dá para cancelar um envio que ainda não terminou.`);
+      if (form.get('confirmar') !== 'sim') throw new ErroAviso('Nada mudou. Para cancelar, marque a caixa "Entendo que quem ainda não recebeu não vai receber este aviso".');
+      fila.cancelar(id);
+      registrar(`envio ${id} cancelado pela tela de avisos`);
+    } else {
+      throw new ErroAviso('Ação desconhecida. Recarregue a página e tente de novo.');
+    }
+    return Astro.redirect(`/mesa/envios/${id}`, 303);
+  } catch (e) {
+    erro = mensagemDoErro(e, acao);
+    Astro.response.status = statusDoErro(e);
+    envio = fila.envio(id);
+  }
+}
+
+const vez = fila?.processador();
+const enviando = envio?.status === 'enviando';
+// a vez é da fila inteira: o processador cuida do "enviando" mais antigo, e os outros esperam atrás dele
+const naFrente = enviando && vez ? fila?.proximoEnvio() : undefined;
+const esperando = naFrente && naFrente.id !== envio!.id ? naFrente : undefined;
+// sem e-mail novo há mais de 1 min: espera depois de falha do SMTP (até 15 min) ou o processo caiu
+const parado = enviando && vez && !esperando && Date.now() - Date.parse(envio!.atualizado_em) > 60_000;
+const aberto = envio?.status === 'enviando' || envio?.status === 'pausado';
+---
+<MesaLayout title={envio ? `Envio ${envio.id}` : indisponivel ? 'Tela de avisos indisponível' : 'Envio não encontrado'} nome={mesa.nome} atualizar={enviando}>
+  {indisponivel ? (
+    <MesaErro mensagem={indisponivel} />
+  ) : !envio ? (
+    <>
+      <h1 class="d2 mesa-h1">Envio <em>não encontrado.</em></h1>
+      <p class="lead">Confira o número no endereço ou procure o envio na lista dos últimos envios.</p>
+      <p class="mesa-voltar"><a class="link" href="/mesa/avisos">Voltar para os avisos</a></p>
+    </>
+  ) : (
+    <>
+      <h1 class="d2 mesa-h1">Envio <em>#{envio.id}.</em></h1>
+      {erro && <MesaErro mensagem={erro} />}
+
+      <div class="mesa-painel">
+        <dl class="mesa-dados">
+          <div><dt>Situação</dt><dd><span class:list={['tag-open', 'neutral', 'mesa-status', envio.status]}><i aria-hidden="true"></i>{ROTULO_STATUS[envio.status]}</span></dd></div>
+          <div class="mesa-progresso">
+            <dt>Enviados</dt>
+            <dd><span class="mesa-num">{envio.enviados}</span> de {envio.total_previsto}</dd>
+          </div>
+          <div><dt>Falhas</dt><dd><span class="mesa-num">{envio.falhas}</span></dd></div>
+        </dl>
+        <progress class="mesa-barra" max={Math.max(envio.total_previsto, 1)} value={envio.enviados} aria-label={`${envio.enviados} de ${envio.total_previsto} enviados`}></progress>
+
+        {enviando && (
+          esperando ? (
+            <p class="body" role="status">Na fila, depois do envio <a class="link-inline" href={`/mesa/envios/${esperando.id}`}>#{esperando.id}</a>. Começa sozinho quando ele terminar. Esta página atualiza sozinha a cada 15 segundos.</p>
+          ) : vez ? (
+            <p class="body" role="status">Enviando, cerca de 1 e-mail a cada 2,5 segundos. Esta página atualiza sozinha a cada 15 segundos.</p>
+          ) : (
+            <MesaAtencao role="status">
+              <p><strong>Sem processamento ativo: o envio está parado.</strong> Clique em Retomar para continuar de onde parou. Quem já recebeu não recebe de novo.</p>
+            </MesaAtencao>
+          )
+        )}
+        {parado && (
+          <p class="body">Nenhum e-mail saiu desde {quando(envio.atualizado_em)}. Pode ser a espera depois de uma falha do SMTP. Se nada mudar, retome depois de {quando(vez!.expira_em)}.</p>
+        )}
+        {envio.status === 'pausado' && <p class="body">Envio pausado. Quando retomar, ele continua de onde parou e quem já recebeu não recebe de novo.</p>}
+        {envio.status === 'concluido' && <p class="body">Envio concluído{envio.finalizado_em ? ` em ${quando(envio.finalizado_em)}` : ''}.</p>}
+        {envio.status === 'cancelado' && <p class="body">Envio cancelado. Quem não tinha recebido até ali não vai receber.</p>}
+
+        {(enviando || envio.status === 'pausado') && (
+          <div class="mesa-acoes">
+            {(envio.status === 'pausado' || (enviando && !vez)) && (
+              <form method="post" action={`/mesa/envios/${envio.id}`}>
+                <input type="hidden" name="acao" value="retomar" />
+                <Button type="submit" icon={false}>Retomar</Button>
+              </form>
+            )}
+            {enviando && (
+              <form method="post" action={`/mesa/envios/${envio.id}`}>
+                <input type="hidden" name="acao" value="pausar" />
+                <Button type="submit" variant="outline" icon={false}>Pausar</Button>
+              </form>
+            )}
+          </div>
+        )}
+      </div>
+
+      <dl class="mesa-detalhes">
+        <div><dt>Assunto</dt><dd>{envio.assunto}</dd></div>
+        {envio.motivo && <div><dt>Motivo</dt><dd>{envio.motivo}</dd></div>}
+        <div><dt>Criado</dt><dd>por {envio.por} em {quando(envio.criado_em)}</dd></div>
+        {envio.finalizado_em && <div><dt>Terminou</dt><dd>{quando(envio.finalizado_em)}</dd></div>}
+      </dl>
+
+      {aberto && (
+        <section class="mesa-cancelar" aria-labelledby="cancelar">
+          <h2 id="cancelar">Cancelar envio</h2>
+          <p class="body">Cancelar é definitivo: o envio para aqui e não dá para retomar. Para só interromper por um tempo, use Pausar.</p>
+          <form method="post" action={`/mesa/envios/${envio.id}`} class="mesa-cancelar-form">
+            <input type="hidden" name="acao" value="cancelar" />
+            <label class="check">
+              <input type="checkbox" name="confirmar" value="sim" required />
+              <span class="box" aria-hidden="true"></span>
+              <span>Entendo que quem ainda não recebeu não vai receber este aviso.</span>
+            </label>
+            <button class="btn mesa-perigo" type="submit">Cancelar envio</button>
+          </form>
+          {enviando && <p class="hint">A página atualiza a cada 15 segundos e desmarca a caixa. Marque e cancele logo em seguida.</p>}
+        </section>
+      )}
+
+      <p class="mesa-voltar"><a class="link" href="/mesa/avisos">Voltar para os avisos</a></p>
+    </>
+  )}
+</MesaLayout>
+
+<style>
+  .mesa-h1 { margin-bottom: 32px; }
+  .mesa-voltar { margin-top: 40px; }
+  .mesa-painel { max-width: 760px; padding: 28px 32px; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; display: flex; flex-direction: column; gap: 18px; }
+  .mesa-dados { display: flex; flex-wrap: wrap; gap: 16px 48px; align-items: flex-end; }
+  .mesa-dados dt, .mesa-detalhes dt { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+  .mesa-dados dd { color: var(--ink-2); font-size: 16px; }
+  .mesa-status.concluido i { background: var(--navy); }
+  .mesa-status.cancelado i, .mesa-status.pausado i { background: transparent; border: 2px solid var(--ink-3); box-sizing: border-box; }
+  .mesa-barra { width: 100%; height: 8px; appearance: none; border: 0; border-radius: 4px; background: var(--ground); overflow: hidden; color: var(--blue); }
+  .mesa-barra::-webkit-progress-bar { background: var(--ground); border-radius: 4px; }
+  .mesa-barra::-webkit-progress-value { background: var(--blue); border-radius: 4px; }
+  .mesa-barra::-moz-progress-bar { background: var(--blue); border-radius: 4px; }
+  .mesa-acoes { display: flex; flex-wrap: wrap; gap: 12px; }
+  .mesa-detalhes { max-width: 760px; margin-top: 32px; display: grid; grid-template-columns: max-content 1fr; gap: 0 32px; }
+  .mesa-detalhes > div { display: contents; }
+  .mesa-detalhes dt, .mesa-detalhes dd { padding: 12px 0; border-bottom: 1px solid var(--rule); margin: 0; }
+  .mesa-detalhes dd { color: var(--ink-2); line-height: 1.5; overflow-wrap: anywhere; }
+  .mesa-cancelar { max-width: 760px; margin-top: 48px; padding-top: 28px; border-top: 2px solid var(--rule-strong); display: flex; flex-direction: column; gap: 14px; }
+  .mesa-cancelar h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+  .mesa-cancelar-form { display: flex; flex-direction: column; gap: 16px; align-items: flex-start; }
+  .mesa-perigo { border-color: var(--error); color: var(--error); background: var(--paper); }
+  @media (hover: hover) and (pointer: fine) { .mesa-perigo:hover { background: var(--error-bg); } }
+  @media (max-width: 640px) {
+    .mesa-painel { padding: 22px 20px; }
+    .mesa-dados { gap: 16px 32px; }
+    .mesa-detalhes { grid-template-columns: 1fr; }
+    .mesa-detalhes dt { padding-bottom: 0; border-bottom: 0; margin-bottom: 0; }
+    .mesa-detalhes dd { padding-top: 4px; }
+    .mesa-acoes .btn, .mesa-perigo { justify-content: center; }
+  }
+</style>

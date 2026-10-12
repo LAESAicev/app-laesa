@@ -4,19 +4,26 @@
 // no meio fica de fora sozinho.
 // LGPD: as entregas guardam só um código do e-mail (HMAC com INSCRICAO_SECRET, diferente para cada envio),
 // nunca o endereço, e são apagadas 30 dias depois do fim do envio. Ficam os totais (enviados, falhas).
-import { createHash, createHmac } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { TIMEZONE } from '../atividades.ts';
-import { criarInscritosSqlite } from '../inscritos-sqlite.ts';
+import { criarInscritosSqlite, transacao as emTransacao } from '../inscritos-sqlite.ts';
 import type { Evento, Rascunho as Conteudo } from './templates.ts';
 
 const DIA = 24 * 60 * 60 * 1000;
 /** Data e hora de Teresina, para mensagens e para o status ("15/10/2026, 09:00"). */
 export const quando = (iso: string) => new Intl.DateTimeFormat('pt-BR', { timeZone: TIMEZONE, dateStyle: 'short', timeStyle: 'short' }).format(new Date(iso));
 
-export class ErroAviso extends Error {}
+/** Recusa explicada para a Mesa. `naTela`: o mesmo motivo sem os termos do comando, para a tela de avisos. */
+export class ErroAviso extends Error {
+  naTela?: string;
+  constructor(mensagem: string, naTela?: string) {
+    super(mensagem);
+    this.naTela = naTela;
+  }
+}
 
 export type Rascunho = Conteudo & {
   id: number;
@@ -102,30 +109,31 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
       dono TEXT NOT NULL,
       expira_em TEXT NOT NULL
     );
+    -- código do último teste de cada conteúdo, que a tela de avisos pede para enviar. Só o HMAC: o código em si
+    -- existe apenas na cópia de teste (caixa da LAESA). Vale 24 h; o limpar apaga os vencidos.
+    CREATE TABLE IF NOT EXISTS avisos_codigos_teste (
+      rascunho_hash TEXT PRIMARY KEY,
+      codigo TEXT NOT NULL,
+      expira_em TEXT NOT NULL
+    );
   `);
 
   const agora = () => relogio().toISOString();
   const antes = (ms: number) => new Date(relogio().getTime() - ms).toISOString();
   const codigo = (envioId: number, email: string) => createHmac('sha256', segredo).update(`aviso:${envioId}:${email}`).digest('base64url');
+  const codigoTeste = (r: Rascunho, c: string) => createHmac('sha256', segredo).update(`teste:${r.hash}:${c}`).digest();
 
-  function transacao<T>(fn: () => T): T {
-    db.exec('BEGIN IMMEDIATE');
-    try {
-      const r = fn();
-      db.exec('COMMIT');
-      return r;
-    } catch (e) {
-      db.exec('ROLLBACK');
-      throw e;
-    }
-  }
+  const transacao = <T>(fn: () => T): T => emTransacao(db, fn);
 
   const SELECT_ENVIO = `SELECT e.*, r.item, r.evento, r.assunto FROM avisos_envios e JOIN avisos_rascunhos r ON r.id = e.rascunho_id`;
   const envio = (id: number) => db.prepare(`${SELECT_ENVIO} WHERE e.id = ?`).get(id) as Envio | undefined;
   const rascunho = (id: number) => db.prepare('SELECT * FROM avisos_rascunhos WHERE id = ?').get(id) as Rascunho | undefined;
 
-  /** Houve teste de exatamente este conteúdo (em qualquer rascunho com o mesmo hash)? */
-  const testado = (r: Rascunho) => Boolean(db.prepare('SELECT 1 FROM avisos_rascunhos WHERE hash = ? AND teste_enviado_em IS NOT NULL').get(r.hash));
+  /** Último teste de exatamente este conteúdo, em qualquer rascunho com o mesmo hash (o código vale por conteúdo). */
+  const ultimoTeste = (r: Rascunho) =>
+    db.prepare('SELECT id, teste_enviado_em FROM avisos_rascunhos WHERE hash = ? AND teste_enviado_em IS NOT NULL ORDER BY teste_enviado_em DESC, id DESC LIMIT 1').get(r.hash) as
+      | { id: number; teste_enviado_em: string }
+      | undefined;
 
   function mudarStatus(id: number, status: StatusEnvio, motivo: string | null, de: StatusEnvio[]): Envio {
     const atual = envio(id);
@@ -148,9 +156,23 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
     },
 
     rascunho,
+    ultimoTeste,
 
     marcarTeste(id: number): void {
       db.prepare('UPDATE avisos_rascunhos SET teste_enviado_em = ? WHERE id = ?').run(agora(), id);
+    },
+
+    /** Guarda (só o HMAC) o código do teste deste conteúdo, válido por 24 h. Um teste novo substitui o anterior. */
+    guardarCodigoTeste(r: Rascunho, c: string): void {
+      db.prepare(
+        'INSERT INTO avisos_codigos_teste (rascunho_hash, codigo, expira_em) VALUES (?, ?, ?) ON CONFLICT(rascunho_hash) DO UPDATE SET codigo = excluded.codigo, expira_em = excluded.expira_em',
+      ).run(r.hash, codigoTeste(r, c).toString('base64url'), new Date(relogio().getTime() + DIA).toISOString());
+    },
+
+    /** O código é o do último teste deste conteúdo e ainda vale? */
+    codigoTesteValido(r: Rascunho, c: string): boolean {
+      const linha = db.prepare('SELECT codigo FROM avisos_codigos_teste WHERE rascunho_hash = ? AND expira_em > ?').get(r.hash, agora()) as { codigo: string } | undefined;
+      return Boolean(linha) && timingSafeEqual(Buffer.from(linha!.codigo, 'base64url'), codigoTeste(r, c));
     },
 
     /** Envios anteriores deste item com este evento (proteção contra repetir aviso). */
@@ -165,25 +187,49 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
 
     /** Recusa rascunho sem teste deste conteúdo e, sem `reenviar`, aviso repetido. O comando confere antes de pedir a confirmação. */
     conferirEnvio(r: Rascunho, reenviar: boolean): void {
-      if (!testado(r)) throw new ErroAviso(`O rascunho ${r.id} ainda não teve teste deste conteúdo. Rode "teste ${r.id}" e confira a caixa da LAESA.`);
+      if (!ultimoTeste(r)) throw new ErroAviso(
+          `O rascunho ${r.id} ainda não teve teste deste conteúdo. Rode "teste ${r.id}" e confira a caixa da LAESA.`,
+          `O rascunho ${r.id} ainda não teve teste deste conteúdo. Mande o teste e confira o e-mail na caixa da LAESA.`,
+        );
       const ultimo = api.notificacoes(chaveDoItem(r), r.evento).at(-1);
       if (ultimo && !reenviar) {
-        throw new ErroAviso(`Este aviso já foi enviado (envio ${ultimo.envio_id}, por ${ultimo.por}, em ${quando(ultimo.criado_em)}). Para mandar de novo, use --reenviar.`);
+        const ja = `Este aviso já foi enviado (envio ${ultimo.envio_id}, por ${ultimo.por}, em ${quando(ultimo.criado_em)}).`;
+        throw new ErroAviso(`${ja} Para mandar de novo, use --reenviar.`, `${ja} Para mandar de novo, marque "Enviar de novo".`);
       }
     },
 
-    /** Cria o envio para todos os inscritos, com as mesmas recusas de conferirEnvio. */
-    criarEnvio(rascunhoId: number, por: string, totalPrevisto: number, { reenviar = false } = {}): Envio {
+    /**
+     * Cria o envio para todos os inscritos, com as mesmas recusas de conferirEnvio. Recusa também se o mesmo
+     * rascunho já tem envio aberto (enviando ou pausado), mesmo com `reenviar`: duplo clique não vira dois envios.
+     * Conferência e INSERT na mesma transação, sem await no meio: vale também entre processos (CLI e site).
+     * `codigo` (tela de avisos; já normalizado): o do último teste deste conteúdo, apagado na mesma transação do
+     * INSERT. Vale para um envio só; recusado por outro motivo, continua valendo.
+     */
+    criarEnvio(rascunhoId: number, por: string, totalPrevisto: number, { reenviar = false, codigo: c }: { reenviar?: boolean; codigo?: string } = {}): Envio {
       const r = rascunho(rascunhoId);
       if (!r) throw new ErroAviso(`Rascunho ${rascunhoId} não existe.`);
       const quem = por.trim();
       if (!quem) throw new ErroAviso('Diga quem está enviando: --por "Seu nome".');
-      api.conferirEnvio(r, reenviar);
-      if (totalPrevisto < 1) throw new ErroAviso('Ninguém inscrito: não há para quem enviar.');
-      const { lastInsertRowid } = db
-        .prepare("INSERT INTO avisos_envios (rascunho_id, por, criado_em, total_previsto, status, atualizado_em) VALUES (?, ?, ?, ?, 'enviando', ?)")
-        .run(r.id, quem, agora(), totalPrevisto, agora());
-      return envio(Number(lastInsertRowid))!;
+      const id = transacao(() => {
+        api.conferirEnvio(r, reenviar);
+        const aberto = db.prepare("SELECT id FROM avisos_envios WHERE rascunho_id = ? AND status IN ('enviando', 'pausado')").get(r.id) as { id: number } | undefined;
+        if (aberto) {
+          const ja = `O rascunho ${r.id} já tem o envio ${aberto.id} em andamento.`;
+          throw new ErroAviso(`${ja} Acompanhe com "status ${aberto.id}".`, `${ja} Acompanhe pela lista de envios na página de avisos.`);
+        }
+        if (totalPrevisto < 1) throw new ErroAviso('Ninguém inscrito: não há para quem enviar.');
+        if (c !== undefined) {
+          const usado = db
+            .prepare('DELETE FROM avisos_codigos_teste WHERE rascunho_hash = ? AND codigo = ? AND expira_em > ?')
+            .run(r.hash, codigoTeste(r, c).toString('base64url'), agora());
+          if (usado.changes !== 1) throw new ErroAviso('O código não confere com o do último teste deste aviso, já foi usado num envio ou venceu. Mande um teste novo e use o código dele.');
+        }
+        const { lastInsertRowid } = db
+          .prepare("INSERT INTO avisos_envios (rascunho_id, por, criado_em, total_previsto, status, atualizado_em) VALUES (?, ?, ?, ?, 'enviando', ?)")
+          .run(r.id, quem, agora(), totalPrevisto, agora());
+        return Number(lastInsertRowid);
+      });
+      return envio(id)!;
     },
 
     envio,
@@ -202,6 +248,7 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
         if (!emails.some((email) => codigos.has(codigo(id, email)))) {
           throw new ErroAviso(
             `O envio ${id} não reconhece nenhum inscrito como já atendido: o INSCRICAO_SECRET mudou desde o começo dele? Retomar reenviaria para quem já recebeu. Volte o segredo antigo para terminar, ou cancele o envio.`,
+            `Nada mudou: retomar o envio ${id} mandaria o aviso de novo para quem já recebeu (o segredo do servidor mudou desde o começo dele?). Avise quem cuida do servidor ou cancele o envio.`,
           );
         }
       }
@@ -209,8 +256,9 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
     },
     cancelar: (id: number) => mudarStatus(id, 'cancelado', 'cancelado pela Mesa', ['enviando', 'pausado']),
     // usados pelo processador: só mexem em envio ainda "enviando" (a Mesa pode ter cancelado no meio)
-    pausar(id: number, motivo: string): void {
-      db.prepare("UPDATE avisos_envios SET status = 'pausado', motivo = ?, atualizado_em = ? WHERE id = ? AND status = 'enviando'").run(motivo, agora(), id);
+    /** false: o envio não estava "enviando" e nada mudou (a tela de avisos recusa; o processador só segue). */
+    pausar(id: number, motivo: string): boolean {
+      return db.prepare("UPDATE avisos_envios SET status = 'pausado', motivo = ?, atualizado_em = ? WHERE id = ? AND status = 'enviando'").run(motivo, agora(), id).changes === 1;
     },
     concluir(id: number): void {
       db.prepare("UPDATE avisos_envios SET status = 'concluido', atualizado_em = ?, finalizado_em = ? WHERE id = ? AND status = 'enviando'").run(agora(), agora(), id);
@@ -292,7 +340,8 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
     /**
      * Retenção: apaga as entregas de envios terminados há mais de 30 dias. Envio parado por 30 dias (pausado e
      * esquecido, ou "enviando" sem processador) é cancelado com fim na última atividade, então sai na mesma hora:
-     * nenhum código fica guardado sem prazo. Ficam os totais. O comando roda isto a cada execução e no cron diário.
+     * nenhum código fica guardado sem prazo. Ficam os totais. Apaga também os códigos de teste vencidos (24 h).
+     * O comando roda isto a cada execução e no cron diário.
      * Também abre o store de inscritos, que expira ao ser acessado os códigos de descadastro de mais de 30 dias.
      */
     async limpar(): Promise<{ cancelados: number; apagadas: number }> {
@@ -305,6 +354,7 @@ export function criarFila(caminho: string, segredo: string, relogio: () => Date 
           )
           .run(limite).changes;
         const apagadas = db.prepare('DELETE FROM avisos_entregas WHERE envio_id IN (SELECT id FROM avisos_envios WHERE finalizado_em < ?)').run(limite).changes;
+        db.prepare('DELETE FROM avisos_codigos_teste WHERE expira_em <= ?').run(agora());
         return { cancelados: Number(cancelados), apagadas: Number(apagadas) };
       });
     },

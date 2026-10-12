@@ -23,6 +23,17 @@ export async function lerJson(request: Request): Promise<Record<string, unknown>
   }
 }
 
+/**
+ * Formulários (POST) da tela de avisos: com checkOrigin desligado, cada POST confere a origem (CSRF).
+ * Exige o cabeçalho Origin igual a `origem` (ex.: new URL(SITE_URL).origin) e, se o navegador mandar
+ * Sec-Fetch-Site, que seja same-origin. Sem Origin, recusa: não vale para o descadastro de um clique.
+ */
+export function mesmaOrigem(request: Request, origem: string): boolean {
+  if (request.headers.get('origin') !== origem) return false;
+  const site = request.headers.get('sec-fetch-site');
+  return !site || site === 'same-origin';
+}
+
 /** Para logs: só o código do erro, sem envelope/destinatários (dados pessoais). */
 export function resumoErro(e: unknown) {
   const x = e as { code?: string; responseCode?: number; name?: string };

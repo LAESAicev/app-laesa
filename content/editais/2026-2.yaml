@@ -1,33 +1,35 @@
 titulo: Edital 2026.2
-inscricoesInicio: 2026-10-12
-inscricoesAte: 2026-10-23
-analise: 23 out a 3 nov 2026
-integracao: 2026-11-12
+inscricoesInicio: 2026-10-19
+inscricoesAte: 2026-10-30
+analise: 03 a 10 nov 2026
+integracao: 2026-11-24
 cronograma:
   - etapa: Publicação do edital
-    quando: 12 out 2026
+    quando: 19 out 2026
   - etapa: Período de inscrições
-    quando: 12 a 23 out 2026
+    quando: 19 a 30 out 2026 (até 23h59 do dia 30)
   - etapa: Análise dos documentos
-    quando: 23 a 26 out 2026
+    quando: 3 a 5 nov 2026
   - etapa: Divulgação dos horários de entrevista
-    quando: 27 out 2026
+    quando: 6 nov 2026
   - etapa: Entrevistas
-    quando: 2 e 3 nov 2026
+    quando: 9 e 10 nov 2026
   - etapa: Resultado preliminar
-    quando: Até 48h após o fim das entrevistas
+    quando: 12 nov 2026 (até 48h após o fim das entrevistas)
     ref: Art. 57
   - etapa: Prazo de recurso
-    quando: Até 48h após o resultado preliminar
+    quando: Até 48h após a divulgação do resultado preliminar
   - etapa: Resultado final e convocação
-    quando: 5 nov 2026
+    quando: 17 nov 2026
   - etapa: Prazo para aceite
     quando: 24h após o e-mail de convocação
     ref: Art. 58
   - etapa: Segunda chamada, se houver
-    quando: 9 nov 2026
+    quando: 19 nov 2026
   - etapa: Assinatura do termo e reunião de boas-vindas
-    quando: 12 nov 2026
+    quando: 24 nov 2026
 vagas: 15
+linkInscricao: https://forms.gle/1efoHoVuWtHwjikc6
+pdfEdital: /uploads/editais/2026-2/pdfEdital.pdf
 modeloCarta: /uploads/editais/2026-2/modeloCarta.docx
 exemplo: false

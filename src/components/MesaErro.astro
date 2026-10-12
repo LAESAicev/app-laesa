@@ -1,0 +1,27 @@
+---
+// Erro da tela de avisos: a primeira linha como frase e as linhas "  - motivo" (bloqueios) como lista.
+// Recebe só mensagem de ErroAviso ou genérica (src/lib/mesa.ts, mensagemDoErro). Texto escapado, sem set:html.
+import Icon from './Icon.astro';
+
+interface Props {
+  mensagem: string;
+}
+
+const linhas = Astro.props.mensagem.split('\n').filter((l) => l.trim());
+const motivos = linhas.filter((l) => /^\s*-\s/.test(l)).map((l) => l.replace(/^\s*-\s/, ''));
+const frases = linhas.filter((l) => !/^\s*-\s/.test(l));
+---
+<div class="mesa-erro" role="alert">
+  <Icon name="alert" />
+  <div>
+    {frases.map((f) => <p>{f === 'Bloqueado:' ? 'Este aviso está bloqueado:' : f}</p>)}
+    {motivos.length > 0 && <ul>{motivos.map((m) => <li>{m}</li>)}</ul>}
+  </div>
+</div>
+
+<style>
+  .mesa-erro { display: grid; grid-template-columns: 20px 1fr; gap: 12px; padding: 16px 18px; margin-bottom: 32px; border-radius: 4px; background: var(--error-bg); color: var(--error); font-size: 15px; font-weight: 600; line-height: 1.45; max-width: 72ch; }
+  .mesa-erro :global(svg) { width: 20px; height: 20px; margin-top: 1px; }
+  .mesa-erro p + p { margin-top: 6px; }
+  .mesa-erro ul { margin: 8px 0 0; padding-left: 20px; font-weight: 500; display: flex; flex-direction: column; gap: 4px; }
+</style>
