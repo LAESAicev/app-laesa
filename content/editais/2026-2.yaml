@@ -1,7 +1,7 @@
 titulo: Edital 2026.2
 inscricoesInicio: 2026-10-19
 inscricoesAte: 2026-10-30
-analise: 3 a 10 nov 2026
+analise: 03 a 10 nov 2026
 integracao: 2026-11-24
 cronograma:
   - etapa: Publicação do edital
@@ -29,5 +29,7 @@ cronograma:
   - etapa: Assinatura do termo e reunião de boas-vindas
     quando: 24 nov 2026
 vagas: 15
+linkInscricao: https://forms.gle/1efoHoVuWtHwjikc6
+pdfEdital: /uploads/editais/2026-2/pdfEdital.pdf
 modeloCarta: /uploads/editais/2026-2/modeloCarta.docx
 exemplo: false
