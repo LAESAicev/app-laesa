@@ -10,20 +10,17 @@ const exemplo = fields.checkbox({
   defaultValue: false,
 });
 
-const pessoa = (label: string) =>
-  fields.object(
-    {
-      nome: fields.text({ label: 'Nome', validation: { length: { min: 2 } } }),
-      foto: fields.image({
-        label: 'Foto',
-        description: 'Qualquer foto serve: o site recorta no centro e redimensiona para o quadro 4:5 (800×1000). Prefira o rosto centralizado.',
-        directory: 'src/assets/uploads/mesa',
-        publicPath: '/src/assets/uploads/mesa/',
-      }),
-      exemplo,
-    },
-    { label },
-  );
+// Mandatos da Mesa (ADR 0005): foto e LinkedIn só de quem autorizou (registro fora do site).
+const foto = fields.image({
+  label: 'Foto (opcional)',
+  description: 'Só com autorização da pessoa. Qualquer foto serve: o site recorta no centro e redimensiona para o quadro 4:5 (800×1000). Prefira o rosto centralizado. Sem foto, o site mostra as iniciais.',
+  directory: 'src/assets/uploads/mandatos',
+  publicPath: '/src/assets/uploads/mandatos/',
+});
+const linkedin = fields.url({
+  label: 'LinkedIn (opcional)',
+  description: 'Só com autorização da pessoa. Perfil pessoal, sem nada depois do nome: https://www.linkedin.com/in/seu-perfil',
+});
 
 // Modo do painel: local (edita os arquivos da máquina, em `npm run dev`) ou GitHub (edita via commits no
 // repositório da organização). O modo GitHub liga com PUBLIC_KEYSTATIC_GITHUB_REPO="LAESAicev/app-laesa" e
@@ -37,7 +34,7 @@ export default config({
   ui: {
     brand: { name: 'LAESA' },
     navigation: {
-      Site: ['configuracoes', 'hero', 'mesa', 'faq'],
+      Site: ['configuracoes', 'hero', 'mandatos', 'faq'],
       'Projetos e editais': ['projetos', 'editais'],
     },
   },
@@ -94,19 +91,6 @@ export default config({
       },
     }),
 
-    mesa: singleton({
-      label: 'Mesa Diretora',
-      path: 'content/mesa',
-      format: { data: 'yaml' },
-      schema: {
-        presidente: pessoa('Presidente'),
-        vicePresidente: pessoa('Vice-Presidente'),
-        diretorProjetos: pessoa('Diretor(a) de Projetos'),
-        diretorMarketing: pessoa('Diretor(a) de Marketing'),
-        orientador: pessoa('Professor(a) Orientador(a)'),
-      },
-    }),
-
     faq: singleton({
       label: 'Perguntas frequentes',
       path: 'content/faq',
@@ -125,6 +109,55 @@ export default config({
   },
 
   collections: {
+    mandatos: collection({
+      label: 'Mandatos da Mesa Diretora',
+      slugField: 'titulo',
+      path: 'content/mandatos/*',
+      format: { data: 'yaml' },
+      columns: ['titulo', 'periodo'],
+      schema: {
+        titulo: fields.slug({
+          name: { label: 'Título', description: 'Ex.: Mandato 2027' },
+          slug: {
+            label: 'Ano',
+            description: 'Só o ano, com 4 dígitos (ex.: 2027). O mandato de maior ano é o atual: é a Mesa que aparece na home. Crie o mandato novo na posse, sem editar o anterior.',
+            generate: (titulo) => titulo.match(/\d{4}/)?.[0] ?? '',
+            validation: { pattern: { regex: /^\d{4}$/, message: 'Use só o ano, com 4 dígitos. Ex.: 2027' } },
+          },
+        }),
+        periodo: fields.text({ label: 'Período (opcional)', description: 'Ex.: 2026.1 a 2026.2' }),
+        // ponytail: uma pessoa por item, sem período próprio. Se alguém for substituído no meio do mandato e o
+        // item for editado, quem saiu some do histórico (ADR 0005); se acontecer, dar "desde/até" a cada membro.
+        membros: fields.array(
+          fields.object({
+            cargo: fields.text({
+              label: 'Cargo',
+              description: 'Como aparece no site. Estatuto atual: Presidente, Vice-Presidente, Diretor(a) de Projetos, Diretor(a) de Marketing. Mandatos antigos podem ter outros (Financeiro, Comunicação, Ensino, Pesquisa).',
+              validation: { length: { min: 2 } },
+            }),
+            nome: fields.text({ label: 'Nome', validation: { length: { min: 2 } } }),
+            foto,
+            linkedin,
+            exemplo,
+          }),
+          {
+            label: 'Mesa Diretora',
+            description: 'Na ordem em que aparecem no site. Arraste para reordenar.',
+            itemLabel: (p) => [p.fields.cargo.value, p.fields.nome.value].filter(Boolean).join(': ') || 'Membro',
+          },
+        ),
+        orientador: fields.object(
+          {
+            nome: fields.text({ label: 'Nome', description: 'Vazio se não souber: o mandato aparece sem orientador(a).' }),
+            foto,
+            linkedin,
+            exemplo,
+          },
+          { label: 'Professor(a) Orientador(a)', description: 'Não faz parte da Mesa: aparece depois dela.' },
+        ),
+      },
+    }),
+
     projetos: collection({
       label: 'Atividades e projetos',
       slugField: 'nome',

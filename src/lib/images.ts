@@ -1,5 +1,5 @@
 // Fotos enviadas pelo painel ficam em src/assets/uploads e chegam aqui como caminho
-// ("/src/assets/uploads/mesa/presidente/foto.jpg"). Resolvemos o caminho para a imagem importada,
+// ("/src/assets/uploads/mandatos/2026/membros/0/foto.png"). Resolvemos o caminho para a imagem importada,
 // para o astro:assets redimensionar e recortar no build.
 import type { ImageMetadata } from 'astro';
 

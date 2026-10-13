@@ -4,9 +4,9 @@ import { parse } from 'yaml';
 import { z } from 'astro/zod';
 import { PUBLIC_CONTACT_EMAIL, PUBLIC_LINKEDIN_URL, PUBLIC_GITHUB_URL, PUBLIC_INSTAGRAM_URL } from 'astro:env/client';
 import type { Canal, StatusSelecao } from '../data/site';
-import type { Atividade, Commit, Pessoa } from '../data/home';
+import type { Atividade, Commit, Mandato, Pessoa } from '../data/home';
 import { EIXOS, candidatasHome, comparar, hojeEm } from './atividades';
-import { dataCurta, dataIso, linkSeguro, periodo, prorrogacao, validar } from './content-helpers';
+import { anoDoMandato, dataCurta, dataIso, linkedinPerfil, linkSeguro, mandatosPorAno, periodo, prorrogacao, validar } from './content-helpers';
 import type { Edital } from '../data/editais';
 
 // O conteúdo (content/*.yaml, escrito pelo painel) entra NO BUILD via import.meta.glob: o servidor de
@@ -71,25 +71,47 @@ export const heroLog: Commit[] = (heroRaw.commits ?? []).map((c) => ({
   meta: c.meta || undefined,
 }));
 
-// ---- mesa diretora (ordem fixa dos cargos)
-const pessoa = z.strictObject({ nome: texto, foto: texto, exemplo }).nullish();
-const mesaRaw = ler(
-  '/content/mesa.yaml',
-  z.strictObject({ presidente: pessoa, vicePresidente: pessoa, diretorProjetos: pessoa, diretorMarketing: pessoa, orientador: pessoa }),
-  'Mesa Diretora',
+// ---- mandatos da Mesa Diretora (content/mandatos/<ano>.yaml, ADR 0005): mais recente primeiro; o atual é o de maior ano
+const linkedin = texto.refine(
+  (v) => !v || linkedinPerfil(v),
+  'LinkedIn precisa ser um perfil pessoal, https://www.linkedin.com/in/seu-perfil (sem ?... nem outra página no fim)',
 );
-const cargos = [
-  ['presidente', 'Presidente'],
-  ['vicePresidente', 'Vice-Presidente'],
-  ['diretorProjetos', 'Diretor(a) de Projetos'],
-  ['diretorMarketing', 'Diretor(a) de Marketing'],
-  ['orientador', 'Professor(a) Orientador(a)'],
-] as const;
-
-export const mesa: Pessoa[] = cargos.map(([key, cargo]) => {
-  const p = mesaRaw[key] ?? {};
-  return { nome: p.nome ?? 'Nome a confirmar', cargo, foto: p.foto ?? undefined, orientacao: key === 'orientador', exemplo: Boolean(p.exemplo) };
+const pessoa = { nome: texto, foto: texto, linkedin, exemplo };
+const mandato = z.strictObject({
+  titulo: z.string(),
+  periodo: texto,
+  membros: z.array(z.strictObject({ cargo: z.string(), ...pessoa })).nullish(),
+  orientador: z.strictObject(pessoa).nullish(),
 });
+
+const paraPessoa = (p: { nome?: string | null; foto?: string | null; linkedin?: string | null; exemplo?: boolean | null }, cargo: string, orientacao: boolean): Pessoa => ({
+  nome: p.nome ?? 'Nome a confirmar',
+  cargo,
+  foto: p.foto || undefined,
+  linkedin: p.linkedin || undefined,
+  orientacao,
+  exemplo: Boolean(p.exemplo),
+});
+
+export const mandatos: Mandato[] = mandatosPorAno(
+  colecao('mandatos', mandato).map(({ slug, entry }) => {
+    const membros = (entry.membros ?? []).map((p) => paraPessoa(p, p.cargo, false));
+    const orientador = entry.orientador?.nome ? paraPessoa(entry.orientador, 'Professor(a) Orientador(a)', true) : undefined;
+    const pessoas = orientador ? [...membros, orientador] : membros;
+    return {
+      ano: anoDoMandato(slug),
+      titulo: entry.titulo,
+      periodo: entry.periodo || undefined,
+      // selo no cabeçalho do mandato quando todo mundo é provisório; misturado, o selo vai por pessoa
+      exemplo: pessoas.length > 0 && pessoas.every((p) => p.exemplo),
+      membros,
+      orientador,
+    };
+  }),
+);
+
+/** A Mesa da home: o mandato atual, na ordem, com o(a) orientador(a) no fim. */
+export const mesa: Pessoa[] = mandatos[0].orientador ? [...mandatos[0].membros, mandatos[0].orientador] : mandatos[0].membros;
 
 // ---- FAQ
 export type Pergunta = { pergunta: string; resposta: string; ref?: string };

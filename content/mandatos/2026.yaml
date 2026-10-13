@@ -1,0 +1,22 @@
+titulo: Mandato 2026
+membros:
+  - cargo: Presidente
+    nome: Felipe Duan da Silva Sousa
+    foto: /src/assets/uploads/mandatos/2026/membros/0/foto.png
+    exemplo: false
+  - cargo: Vice-Presidente
+    nome: Beatriz Barreto Marreiros Barbosa
+    foto: /src/assets/uploads/mandatos/2026/membros/1/foto.png
+    exemplo: false
+  - cargo: Diretor(a) de Projetos
+    nome: Guilherme Santos de Melo
+    foto: /src/assets/uploads/mandatos/2026/membros/2/foto.png
+    exemplo: false
+  - cargo: Diretor(a) de Marketing
+    nome: Samuel Egson Milhomem Rodrigues
+    foto: /src/assets/uploads/mandatos/2026/membros/3/foto.png
+    exemplo: false
+orientador:
+  nome: Carlos Futino Barreto
+  foto: /src/assets/uploads/mandatos/2026/orientador/foto.jpeg
+  exemplo: false
