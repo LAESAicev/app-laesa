@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'astro/zod';
-import { anoDoMandato, dataIso, linkedinPerfil, linkSeguro, mandatosPorAno, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
+import { anoDoMandato, dataIso, linkedinPerfil, linkSeguro, mandatosPorAno, paragrafos, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
 
 describe('linkSeguro (links vindos do painel)', () => {
   it('recusa javascript: e endereços que o navegador leva para outro domínio', () => {
@@ -111,6 +111,14 @@ describe('mandatos da Mesa', () => {
   it('um mandato só é o atual; nenhum mandato é erro', () => {
     expect(mandatosPorAno([{ ano: '2026' }])).toEqual([{ ano: '2026', atual: true }]);
     expect(() => mandatosPorAno([])).toThrow(/content\/mandatos/);
+  });
+});
+
+describe('paragrafos (texto da história)', () => {
+  it('linha em branco separa parágrafos; quebra simples e espaços sobrando não', () => {
+    expect(paragrafos('Primeiro\ncontinua.\n\n  \nSegundo. \n')).toEqual(['Primeiro\ncontinua.', 'Segundo.']);
+    expect(paragrafos('')).toEqual([]);
+    expect(paragrafos(null)).toEqual([]);
   });
 });
 

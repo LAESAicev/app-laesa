@@ -34,7 +34,7 @@ export default config({
   ui: {
     brand: { name: 'LAESA' },
     navigation: {
-      Site: ['configuracoes', 'hero', 'mandatos', 'faq'],
+      Site: ['configuracoes', 'hero', 'mandatos', 'historia', 'faq'],
       'Projetos e editais': ['projetos', 'editais'],
     },
   },
@@ -88,6 +88,27 @@ export default config({
             validation: { length: { min: 2, max: 8 } },
           },
         ),
+      },
+    }),
+
+    historia: singleton({
+      label: 'História da liga',
+      path: 'content/historia',
+      format: { data: 'yaml' },
+      schema: {
+        texto: fields.text({
+          label: 'Texto',
+          description: 'Como a liga começou e o que mudou desde então. Deixe uma linha em branco entre os parágrafos.',
+          multiline: true,
+        }),
+        fundadores: fields.array(
+          fields.object({
+            nome: fields.text({ label: 'Nome', validation: { length: { min: 2 } } }),
+            papel: fields.text({ label: 'Papel (opcional)', description: 'Ex.: primeira presidente' }),
+          }),
+          { label: 'Fundadores', description: 'Sem foto. Arraste para reordenar.', itemLabel: (p) => p.fields.nome.value || 'Fundador(a)' },
+        ),
+        exemplo,
       },
     }),
 

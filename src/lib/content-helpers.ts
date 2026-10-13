@@ -80,3 +80,8 @@ export function mandatosPorAno<T extends { ano: string }>(lista: T[]): (T & { at
   if (!lista.length) throw new Error('Nenhum mandato em content/mandatos. Abra o painel (/keystatic) e crie o mandato atual.');
   return [...lista].sort((a, b) => b.ano.localeCompare(a.ano)).map((m, i) => ({ ...m, atual: i === 0 }));
 }
+
+/** Texto longo do painel → parágrafos (separados por linha em branco). */
+export function paragrafos(texto: string | null | undefined): string[] {
+  return (texto ?? '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+}

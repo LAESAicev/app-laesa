@@ -4,9 +4,9 @@ import { parse } from 'yaml';
 import { z } from 'astro/zod';
 import { PUBLIC_CONTACT_EMAIL, PUBLIC_LINKEDIN_URL, PUBLIC_GITHUB_URL, PUBLIC_INSTAGRAM_URL } from 'astro:env/client';
 import type { Canal, StatusSelecao } from '../data/site';
-import type { Atividade, Commit, Mandato, Pessoa } from '../data/home';
+import type { Atividade, Commit, Historia, Mandato, Pessoa } from '../data/home';
 import { EIXOS, candidatasHome, comparar, hojeEm } from './atividades';
-import { anoDoMandato, dataCurta, dataIso, linkedinPerfil, linkSeguro, mandatosPorAno, periodo, prorrogacao, validar } from './content-helpers';
+import { anoDoMandato, dataCurta, dataIso, linkedinPerfil, linkSeguro, mandatosPorAno, paragrafos, periodo, prorrogacao, validar } from './content-helpers';
 import type { Edital } from '../data/editais';
 
 // O conteúdo (content/*.yaml, escrito pelo painel) entra NO BUILD via import.meta.glob: o servidor de
@@ -112,6 +112,18 @@ export const mandatos: Mandato[] = mandatosPorAno(
 
 /** A Mesa da home: o mandato atual, na ordem, com o(a) orientador(a) no fim. */
 export const mesa: Pessoa[] = mandatos[0].orientador ? [...mandatos[0].membros, mandatos[0].orientador] : mandatos[0].membros;
+
+// ---- história da liga (página /historia)
+const historiaRaw = ler(
+  '/content/historia.yaml',
+  z.strictObject({ texto, fundadores: z.array(z.strictObject({ nome: z.string(), papel: texto })).nullish(), exemplo }),
+  'História da liga',
+);
+export const historia: Historia = {
+  paragrafos: paragrafos(historiaRaw.texto),
+  fundadores: (historiaRaw.fundadores ?? []).map((f) => ({ nome: f.nome, papel: f.papel || undefined })),
+  exemplo: Boolean(historiaRaw.exemplo),
+};
 
 // ---- FAQ
 export type Pergunta = { pergunta: string; resposta: string; ref?: string };
