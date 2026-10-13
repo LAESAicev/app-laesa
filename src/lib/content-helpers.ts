@@ -59,3 +59,24 @@ export function validar<S extends z.ZodType>(schema: S, caminho: string, dados: 
   const erros = r.error.issues.map((i) => `  - ${i.path.join('.') || '(arquivo)'}: ${i.message}`).join('\n');
   throw new Error(`Conteúdo inválido em ${caminho.replace(/^\//, '')}:\n${erros}\nCorrija pelo painel (/keystatic) ou no arquivo.`);
 }
+
+/**
+ * LinkedIn de quem foi da Mesa: só perfil pessoal, https://linkedin.com/in/<perfil> (com ou sem www, barra
+ * final opcional). Qualquer outro esquema, host, página ou sobra (?utm=..., #...) é recusado: o link vai
+ * para um botão do site, então não pode levar a outro lugar.
+ */
+export function linkedinPerfil(v: string): boolean {
+  return /^https:\/\/(www\.)?linkedin\.com\/in\/([\w-]|%[0-9a-f]{2})+\/?$/i.test(v);
+}
+
+/** content/mandatos/<ano>.yaml: o nome do arquivo (endereço no painel) é o ano do mandato. */
+export function anoDoMandato(slug: string): string {
+  if (!/^\d{4}$/.test(slug)) throw new Error(`content/mandatos/${slug}.yaml: o nome do arquivo precisa ser o ano do mandato (ex.: 2027.yaml). Corrija o campo "Ano" no painel (/keystatic).`);
+  return slug;
+}
+
+/** Mais recente primeiro. O atual é o de maior ano: trocar a Mesa é criar o mandato novo na posse. */
+export function mandatosPorAno<T extends { ano: string }>(lista: T[]): (T & { atual: boolean })[] {
+  if (!lista.length) throw new Error('Nenhum mandato em content/mandatos. Abra o painel (/keystatic) e crie o mandato atual.');
+  return [...lista].sort((a, b) => b.ano.localeCompare(a.ano)).map((m, i) => ({ ...m, atual: i === 0 }));
+}

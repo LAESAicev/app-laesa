@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'astro/zod';
-import { dataIso, linkSeguro, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
+import { anoDoMandato, dataIso, linkedinPerfil, linkSeguro, mandatosPorAno, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
 
 describe('linkSeguro (links vindos do painel)', () => {
   it('recusa javascript: e endereços que o navegador leva para outro domínio', () => {
@@ -52,6 +52,65 @@ describe('prorrogacao', () => {
     expect(prorrogacao('2026-10-23', '2026-10-20')).toBeUndefined();
     expect(prorrogacao(undefined, '2026-10-30')).toBe('2026-10-30');
     expect(prorrogacao('2026-10-23', undefined)).toBeUndefined();
+  });
+});
+
+describe('linkedinPerfil (LinkedIn de quem foi da Mesa)', () => {
+  it('aceita só perfil pessoal em https://(www.)linkedin.com/in/<perfil>', () => {
+    for (const bom of [
+      'https://www.linkedin.com/in/fulana',
+      'https://linkedin.com/in/fulana-silva-123',
+      'https://www.linkedin.com/in/fulana/',
+      'https://www.linkedin.com/in/jo%C3%A3o-silva',
+    ]) {
+      expect(linkedinPerfil(bom), bom).toBe(true);
+    }
+  });
+
+  it('recusa outro esquema, outro host, outra página do LinkedIn e sobras na URL', () => {
+    for (const ruim of [
+      'http://www.linkedin.com/in/fulana', // sem https
+      'javascript:alert(1)//linkedin.com/in/x',
+      'https://linkedin.com.evil.com/in/fulana',
+      'https://evil.com/linkedin.com/in/fulana',
+      'https://www.linkedin.com.br/in/fulana',
+      'https://br.linkedin.com/in/fulana',
+      'https://user@www.linkedin.com/in/fulana',
+      'https://www.linkedin.com/company/laesaicev',
+      'https://www.linkedin.com/in/',
+      'https://www.linkedin.com/in/fulana/detalhes',
+      'https://www.linkedin.com/in/fulana?utm_source=share',
+      'https://www.linkedin.com/in/fulana#x',
+      'https://www.linkedin.com/in/ful ana',
+      ' https://www.linkedin.com/in/fulana',
+      'www.linkedin.com/in/fulana',
+      '',
+    ]) {
+      expect(linkedinPerfil(ruim), ruim).toBe(false);
+    }
+  });
+});
+
+describe('mandatos da Mesa', () => {
+  it('o nome do arquivo é o ano do mandato', () => {
+    expect(anoDoMandato('2026')).toBe('2026');
+    for (const ruim of ['mandato-2026', '26', '2026-1', '20266']) {
+      expect(() => anoDoMandato(ruim), ruim).toThrow(/content\/mandatos\/.*\.yaml.*ano/);
+    }
+  });
+
+  it('mais recente primeiro; o atual é o de maior ano', () => {
+    const r = mandatosPorAno([{ ano: '2024' }, { ano: '2026' }, { ano: '2025' }]);
+    expect(r).toEqual([
+      { ano: '2026', atual: true },
+      { ano: '2025', atual: false },
+      { ano: '2024', atual: false },
+    ]);
+  });
+
+  it('um mandato só é o atual; nenhum mandato é erro', () => {
+    expect(mandatosPorAno([{ ano: '2026' }])).toEqual([{ ano: '2026', atual: true }]);
+    expect(() => mandatosPorAno([])).toThrow(/content\/mandatos/);
   });
 });
 
