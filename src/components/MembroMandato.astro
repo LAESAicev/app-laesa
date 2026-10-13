@@ -1,0 +1,62 @@
+---
+// Pessoa de um mandato na /historia: miniatura 4:5, nome, cargo e LinkedIn opcional.
+// Sem foto: iniciais em Bebas Neue (decorativas, o nome está ao lado); nome ainda a confirmar: "?".
+import { Image } from 'astro:assets';
+import Icon from './Icon.astro';
+import Sample from './Sample.astro';
+import { uploadedImage } from '../lib/images';
+import type { Pessoa } from '../data/home';
+
+interface Props {
+  pessoa: Pessoa;
+  /** Selo "exemplo" na pessoa: só quando o mandato mistura gente real e de exemplo. */
+  selo?: boolean;
+}
+
+const { pessoa: p, selo = false } = Astro.props;
+const foto = uploadedImage(p.foto);
+// Miniatura de 72×90 (56×70 no celular) em até 2x; o Astro não amplia, então foto pequena sai menor.
+const largura = foto ? Math.min(144, foto.width, Math.floor(foto.height * 0.8)) : 0;
+const altura = Math.round(largura * 1.25);
+const larguras = [...new Set([Math.min(72, largura), largura])];
+
+const iniciais = (nome: string) => {
+  if (/a confirmar/i.test(nome)) return '?';
+  const partes = nome.replace(/[[\]]/g, '').trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return '?';
+  const ultima = partes.length > 1 ? partes[partes.length - 1] : '';
+  return (partes[0][0] + (ultima[0] ?? '')).toUpperCase();
+};
+---
+<div class="membro">
+  <div class="membro-foto">
+    {foto ? (
+      // alt vazio: o nome já está ao lado.
+      <Image
+        src={foto}
+        alt=""
+        width={largura}
+        height={altura}
+        fit="cover"
+        position="center"
+        widths={larguras}
+        sizes="(max-width: 640px) 56px, 72px"
+        format="webp"
+        quality={80}
+        loading="lazy"
+      />
+    ) : (
+      <span aria-hidden="true">{iniciais(p.nome)}</span>
+    )}
+  </div>
+  <div class="membro-txt">
+    <p class="membro-nome">{p.nome}</p>
+    <p class="membro-cargo">{p.cargo}</p>
+    {selo && <Sample />}
+  </div>
+  {p.linkedin && (
+    <a class="in-btn" href={p.linkedin} target="_blank" rel="noopener noreferrer" aria-label={`LinkedIn de ${p.nome}`}>
+      <Icon name="linkedin" />
+    </a>
+  )}
+</div>

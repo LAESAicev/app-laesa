@@ -1,6 +1,7 @@
 ---
 import { Image } from 'astro:assets';
 import Logo from './Logo.astro';
+import Icon from './Icon.astro';
 import Sample from './Sample.astro';
 import { uploadedImage } from '../lib/images';
 import type { Pessoa } from '../data/home';
@@ -41,8 +42,21 @@ const larguras = [...new Set([Math.min(400, largura), largura])];
       </>
     )}
   </div>
-  <div>
-    <h3>{p.nome}</h3>
-    <p class="role">{p.cargo}</p>
-  </div>
+  {p.linkedin ? (
+    // Com LinkedIn: botão redondo à direita do nome. Sem ele, o card fica como sempre foi.
+    <div class="person-in">
+      <div>
+        <h3>{p.nome}</h3>
+        <p class="role">{p.cargo}</p>
+      </div>
+      <a class="in-btn" href={p.linkedin} target="_blank" rel="noopener noreferrer" aria-label={`LinkedIn de ${p.nome}`}>
+        <Icon name="linkedin" />
+      </a>
+    </div>
+  ) : (
+    <div>
+      <h3>{p.nome}</h3>
+      <p class="role">{p.cargo}</p>
+    </div>
+  )}
 </div>
