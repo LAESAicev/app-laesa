@@ -2,14 +2,14 @@
 
 [![CI](https://github.com/LAESAicev/app-laesa/actions/workflows/ci.yml/badge.svg)](https://github.com/LAESAicev/app-laesa/actions/workflows/ci.yml)
 
-Site da Liga Acadêmica de Engenharia de Software Aplicada (iCEV, Teresina-PI). Versão 1.0.0.
+Site da Liga Acadêmica de Engenharia de Software Aplicada (iCEV, Teresina-PI). Versão 1.1.0.
 
 É um único app Astro com o site, o painel de conteúdo (Keystatic), as rotas de API dos formulários e a tela de avisos da Mesa (`/mesa`). O conteúdo fica em arquivos YAML no repositório; só os inscritos nas novidades ficam num banco SQLite.
 
 O visual segue a direção *Grafo de Commits*: a página funciona como um `git log --graph`, e as branches são as portas de entrada (entrar na liga, propor um projeto, receber as novidades).
 
 - Design: [Figma: LAESA Site v2 e Componentes](https://www.figma.com/design/xBth5y7AzKE2UxvbGaXuzf?node-id=3046-758) e [DESIGN.md](DESIGN.md). Contexto do produto: [PRODUCT.md](PRODUCT.md).
-- Decisões: [ADR 0001](docs/adr/0001-arquitetura-do-site.md) (arquitetura), [0002](docs/adr/0002-atividades-pela-data.md) (atividades pela data), [0003](docs/adr/0003-tela-de-avisos.md) (tela de avisos) e [0004](docs/adr/0004-deploy-automatico-de-conteudo.md) (deploy).
+- Decisões: [ADR 0001](docs/adr/0001-arquitetura-do-site.md) (arquitetura), [0002](docs/adr/0002-atividades-pela-data.md) (atividades pela data), [0003](docs/adr/0003-tela-de-avisos.md) (tela de avisos), [0004](docs/adr/0004-deploy-automatico-de-conteudo.md) (deploy) e [0005](docs/adr/0005-mandatos-e-historia.md) (mandatos e história).
 - O site está pronto. A publicação depende do domínio e do servidor do iCEV; o que falta está em [docs/plano-implementacao.md](docs/plano-implementacao.md).
 
 ## Rodar localmente
@@ -55,7 +55,8 @@ Com `npm run dev` no ar, abra `/keystatic`. O painel grava nos arquivos de `cont
 | --- | --- |
 | Configurações e status da seleção | status do processo seletivo (aberto, em andamento ou finalizado), que muda a tag do menu, a seção "Quer entrar?" da home e a página de processos seletivos; também o edital atual e o link do estatuto |
 | Hero: git log | painel do topo da home (o primeiro commit é o HEAD) |
-| Mesa Diretora | nome e foto de cada cargo (a foto é recortada sozinha no quadro 4:5) |
+| Mandatos | um item por mandato da Mesa Diretora, com o ano como endereço (`2026`). O de maior ano é a Mesa da home; todos aparecem em `/historia`. Cada pessoa tem cargo, nome e, se autorizou, foto (recortada sozinha no quadro 4:5) e LinkedIn. Na troca da Mesa, crie um mandato novo em vez de editar o atual ([passagem de mandato](docs/passagem-de-mandato.md)) |
+| História | texto e fundadores da abertura da página `/historia` |
 | Perguntas frequentes | FAQ da página de processos seletivos |
 | Atividades e projetos | oficinas, cursos, eventos, pesquisas e projetos. A ordem e o status ("em breve", "inscrições abertas", "concluído") saem da data. A home mostra as 5 mais perto de hoje, e `/atividades` mostra todas, com busca e filtro por eixo |
 | Editais | uma página por edital, com datas, vagas, PDF e modelo da carta |
@@ -108,7 +109,7 @@ O porquê dessa divisão está no [ADR 0004](docs/adr/0004-deploy-automatico-de-
 ```
 .
 ├── src/
-│   ├── pages/            /, /atividades, /processos-seletivos(/[slug]), /contato, /novidades, /privacidade, 404
+│   ├── pages/            /, /atividades, /historia, /processos-seletivos(/[slug]), /contato, /novidades, /privacidade, 404
 │   │   ├── api/          contato.ts e inscricao.ts (rodam no servidor)
 │   │   ├── avisos/       confirmar e descadastrar inscrição; itens.json (manifesto do que dá para avisar)
 │   │   └── mesa/         tela de avisos da Mesa (roda no servidor; 404 sem PAINEL_AVISOS=true)
@@ -127,7 +128,7 @@ O porquê dessa divisão está no [ADR 0004](docs/adr/0004-deploy-automatico-de-
 ├── Dockerfile · compose.yaml · deploy/   imagem, Caddy e script de backup
 ├── .github/workflows/    ci.yml (testes, build, imagem e promoção de conteúdo) e promover.yml (promoção manual)
 ├── docs/
-│   ├── adr/                    0001 arquitetura · 0002 atividades · 0003 tela de avisos · 0004 deploy
+│   ├── adr/                    0001 arquitetura · 0002 atividades · 0003 tela de avisos · 0004 deploy · 0005 mandatos
 │   ├── plano-implementacao.md  o que falta para publicar
 │   ├── operacao.md             deploy, atualização, backup, troca de mandato, incidentes
 │   ├── avisos.md               e-mails para os inscritos

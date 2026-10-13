@@ -6,7 +6,7 @@ import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
 ---
 <BaseLayout
   title="Privacidade"
-  description="Como a LAESA usa os dados enviados pelo site: formulário de contato e inscrição nas novidades."
+  description="Como a LAESA usa os dados do site: formulário de contato, inscrição nas novidades e Mesa Diretora na página História."
 >
   <Section class="page-head" node={104} label="Privacidade">
     <h1 class="d1">Seus dados, <em>só para o que você pediu.</em></h1>
@@ -28,6 +28,10 @@ import { PUBLIC_CONTACT_EMAIL } from 'astro:env/client';
 
       <h2>Proteção contra abuso</h2>
       <p>Para limitar envios repetidos, o servidor usa o endereço IP de quem envia os formulários. Ele fica só na memória do servidor, não é gravado em arquivo e some quando o servidor reinicia.</p>
+
+      <h2>Mesa Diretora e história da liga</h2>
+      <p>A página <a href="/historia">História</a> mostra o nome, o cargo e o período do mandato de quem fez parte da Mesa Diretora ou orientou a liga, e a home mostra a Mesa atual. Foto e perfil do LinkedIn só aparecem com autorização da pessoa, e o registro dessa autorização fica com a Mesa, fora do site.</p>
+      <p>Se você aparece nessas páginas e quer tirar o nome, a foto ou o LinkedIn, peça pela <a href="/contato?assunto=duvida">página de contato</a>.</p>
 
       <h2>Com quem compartilhamos</h2>
       <p>Com ninguém para fins comerciais. O site é hospedado na infraestrutura do iCEV. Os e-mails, tanto as mensagens de contato quanto as novidades, são enviados pelo Google Workspace institucional usado pela LAESA. O Google pode processar esses dados em servidores fora do Brasil, o que caracteriza transferência internacional de dados.</p>
