@@ -105,12 +105,13 @@ export const mandatos: Mandato[] = mandatosPorAno(
       exemplo: pessoas.length > 0 && pessoas.every((p) => p.exemplo),
       membros,
       orientador,
+      pessoas,
     };
   }),
 );
 
 /** A Mesa da home: o mandato atual, na ordem, com o(a) orientador(a) no fim. */
-export const mesa: Pessoa[] = mandatos[0].orientador ? [...mandatos[0].membros, mandatos[0].orientador] : mandatos[0].membros;
+export const mesa: Pessoa[] = mandatos[0].pessoas;
 
 // ---- história da liga (página /historia)
 const historiaRaw = ler(

@@ -1,0 +1,14 @@
+---
+// Botão redondo do LinkedIn de uma pessoa (home e /historia). O href já vem normalizado do build (linkedinPerfil).
+import Icon from './Icon.astro';
+
+interface Props {
+  href: string;
+  nome: string;
+}
+
+const { href, nome } = Astro.props;
+---
+<a class="in-btn" href={href} target="_blank" rel="noopener noreferrer" aria-label={`LinkedIn de ${nome} (abre em nova aba)`}>
+  <Icon name="linkedin" />
+</a>
