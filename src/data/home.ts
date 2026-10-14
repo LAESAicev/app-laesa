@@ -1,5 +1,5 @@
 // Conteúdo fixo, tirado do estatuto (não editável pelo painel), e tipos do conteúdo editável.
-// Hero, projetos e Mesa vêm de content/ via src/lib/content.ts.
+// Hero, projetos, mandatos da Mesa e história vêm de content/ via src/lib/content.ts.
 import type { Datas, Eixo } from '../lib/atividades';
 
 export type Commit = { mensagem: string; hash: string; meta?: string };
@@ -53,5 +53,11 @@ export type Atividade = Datas & {
 };
 
 
-export type Pessoa = { nome: string; cargo: string; foto?: string; orientacao?: boolean; exemplo?: boolean };
+export type Pessoa = { nome: string; cargo: string; foto?: string; linkedin?: string; orientacao?: boolean; exemplo?: boolean };
+
+/** Mandato da Mesa (content/mandatos/<ano>-<semestre>.yaml). O atual é o de maior ano-semestre. */
+export type Mandato = { semestre: string; titulo: string; periodo?: string; estatuto?: string; atual: boolean; exemplo: boolean; membros: Pessoa[]; orientador?: Pessoa; /** membros e, no fim, o(a) orientador(a) */ pessoas: Pessoa[] };
+
+/** Página /historia (content/historia.yaml). */
+export type Historia = { paragrafos: string[]; fundadores: { nome: string; papel?: string; linkedin?: string }[]; exemplo: boolean };
 

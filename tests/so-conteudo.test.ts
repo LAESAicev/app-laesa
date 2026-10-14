@@ -49,6 +49,16 @@ describe('so-conteudo: o que vai ao ar sem promoção manual', () => {
     expect(decidir((e) => { e('public/uploads/editais/2027-1/pdfEdital.pdf'); e('src/assets/uploads/mesa/presidente/foto.JPG'); }).status).toBe(0);
   });
 
+  it('mandato novo da Mesa (YAML + fotos + estatuto da época no caminho do painel) promove', () => {
+    const r = decidir((e) => {
+      e('content/mandatos/2027-1.yaml', 'titulo: Mandato 2027.1\n');
+      e('src/assets/uploads/mandatos/2027-1/membros/0/foto.jpg');
+      e('src/assets/uploads/mandatos/2027-1/orientador/foto.png');
+      e('public/uploads/mandatos/2027-1/estatuto.pdf');
+    });
+    expect(r).toEqual({ status: 0, recusados: '' });
+  });
+
   it('arquivo apagado em content/ promove', () => {
     expect(decidir((_, repo) => rmSync(join(repo, 'content/projetos/a.yaml'))).status).toBe(0);
   });

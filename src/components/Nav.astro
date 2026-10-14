@@ -11,6 +11,8 @@ interface Props {
 }
 
 const { active = 'inicio' } = Astro.props;
+// /historia é o "Museu da LAESA": fica fora de navLinks, com botão próprio (e não recebe `active`)
+const noMuseu = Astro.url.pathname === '/historia';
 const numero = numeroDo(editalAtual);
 const tag =
   selecao.status === 'aberto'
@@ -19,7 +21,8 @@ const tag =
       ? { text: `Seleção ${numero} em andamento` }
       : null;
 ---
-<header class="nav">
+<!-- tabindex -1: o "Voltar ao topo" (src/scripts/topo.ts) põe o foco aqui -->
+<header class="nav" tabindex="-1">
   <div class="wrap">
     <div class="nav-in">
       <a class="logo" href="/" aria-label="LAESA, página inicial"><Logo /></a>
@@ -28,6 +31,7 @@ const tag =
           <a href={l.href} aria-current={l.key === active ? 'page' : undefined}>{l.label}</a>
         ))}
       </nav>
+      <a class="nav-museu" href="/historia" aria-current={noMuseu ? 'page' : undefined}>Museu<span class="nav-museu-de"> da LAESA</span></a>
       {tag && <StatusTag status={selecao.status} text={tag.text} href="/processos-seletivos" />}
       <button class="nav-burger" type="button" aria-expanded="false" aria-controls="nav-panel" aria-label="Abrir menu">
         <Icon name="menu" />
@@ -38,6 +42,7 @@ const tag =
     {navLinks.map((l) => (
       <a href={l.href} aria-current={l.key === active ? 'page' : undefined}>{l.label}</a>
     ))}
+    <a class="nav-museu" href="/historia" aria-current={noMuseu ? 'page' : undefined}>Museu da LAESA</a>
     {tag && <StatusTag status={selecao.status} text={tag.text} href="/processos-seletivos" />}
   </nav>
 </header>

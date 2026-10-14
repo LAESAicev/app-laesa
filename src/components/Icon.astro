@@ -2,7 +2,7 @@
 // Ícones 24px, traço 2 (estilo Lucide). Os SVGs ficam em src/icons/ e são os mesmos do Figma (Componentes → Ícones).
 const icons = import.meta.glob<string>('../icons/*.svg', { query: '?raw', import: 'default', eager: true });
 
-export type IconName = 'alert' | 'arrow' | 'calendar' | 'check' | 'chevron' | 'doc' | 'github' | 'instagram' | 'linkedin' | 'mail' | 'menu' | 'plus';
+export type IconName = 'alert' | 'arrow' | 'arrow-up' | 'calendar' | 'check' | 'chevron' | 'doc' | 'github' | 'instagram' | 'linkedin' | 'mail' | 'menu' | 'plus';
 
 interface Props {
   name: IconName;

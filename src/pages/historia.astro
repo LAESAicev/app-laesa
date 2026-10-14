@@ -1,0 +1,92 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/Section.astro';
+import Sample from '../components/Sample.astro';
+import MembroMandato from '../components/MembroMandato.astro';
+import Icon from '../components/Icon.astro';
+import FaixaAvisos from '../components/FaixaAvisos.astro';
+import { historia, mandatos } from '../lib/content';
+
+export const prerender = true;
+---
+<BaseLayout
+  title="História"
+  description="Como a LAESA começou e quem já esteve na Mesa Diretora, do mandato mais recente ao primeiro."
+>
+  <Section class="hist-open" node={104} colClass="hist-open-grid" label="A história da LAESA">
+    <div class="hist-txt">
+      <h1 class="d1">A história <em>da LAESA.</em></h1>
+      {historia.paragrafos.map((p) => <p class="lead">{p}</p>)}
+      {historia.exemplo && <Sample />}
+    </div>
+    {historia.fundadores.length > 0 && (
+      <div class="fundadores sticky-lateral">
+        <div class="fundadores-head">
+          <h2>Fundadores</h2>
+          <span class="meta">2023</span>
+          {historia.exemplo && <Sample />}
+        </div>
+        <ul>
+          {historia.fundadores.map((f) => (
+            <li>
+              {f.linkedin ? (
+                <a class="link-inline" href={f.linkedin} target="_blank" rel="noopener noreferrer" aria-label={`LinkedIn de ${f.nome} (abre em nova aba)`}>{f.nome}</a>
+              ) : f.nome}
+              {f.papel && <span class="meta">{f.papel}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </Section>
+
+  <Section class="paper hist-mandatos" label="Mandatos da Mesa Diretora">
+    <div class="sec-head">
+      <h2 class="d2">Quem já conduziu <em>a liga.</em></h2>
+      <p class="body">A Mesa Diretora pode mudar a cada semestre. O mandato mais recente vem primeiro.</p>
+    </div>
+    <ol class="mandatos">
+      {mandatos.map((m) => (
+        <li class:list={['mandato', { atual: m.atual }]}>
+          <span class="mandato-node" aria-hidden="true"></span>
+          <div class="mandato-head">
+            <h3 class="d3">{m.titulo}</h3>
+            {m.periodo && <p class="meta">{m.periodo}</p>}
+            {m.atual && <span class="tag-open"><i></i>mandato atual</span>}
+            {m.exemplo && <Sample />}
+            {m.estatuto && <a class="link mandato-estatuto" href={m.estatuto}>Estatuto em vigor na época <Icon name="doc" /></a>}
+          </div>
+          <div class="mandato-pessoas">
+            <ul class="membros">
+              {m.membros.map((p) => (
+                <li><MembroMandato pessoa={p} selo={!m.exemplo && p.exemplo} /></li>
+              ))}
+            </ul>
+            {m.orientador && (
+              <div class="orientacao">
+                <MembroMandato pessoa={m.orientador} selo={!m.exemplo && m.orientador.exemplo} />
+              </div>
+            )}
+          </div>
+        </li>
+      ))}
+    </ol>
+    <p class="raiz">
+      <span class="raiz-node" aria-hidden="true"></span>
+      <b>Fundação da liga</b> <span class="meta">2023</span>
+    </p>
+  </Section>
+
+  <Section class="paper hist-remocao" node={false}>
+    <p class="remocao">Seu nome ou sua foto aparece aqui e você quer tirar? <a class="link-inline" href="/contato?assunto=duvida">Peça pelo formulário de contato</a>.</p>
+  </Section>
+
+  <FaixaAvisos
+    avisosTitulo="Quer fazer parte dessa história?"
+    avisosTexto="Deixe seu e-mail e saiba quando abrir o próximo edital da LAESA."
+    colaborarTitulo="Fez parte da LAESA e não está aqui?"
+    colaborarTexto="Se você esteve na Mesa Diretora ou ajudou a fundar a liga, fale com a gente para completarmos o registro."
+    colaborarLink="Completar o registro"
+    colaborarHref="/contato?assunto=duvida"
+  />
+</BaseLayout>

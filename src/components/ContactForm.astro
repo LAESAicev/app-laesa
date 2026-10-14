@@ -13,7 +13,7 @@ const { id = 'contato-form', nivel = 3 } = Astro.props;
 const Titulo = `h${nivel}` as const;
 const f = (name: string) => `${id}-${name}`;
 ---
-<div class="contact-box" data-contact-box>
+<div class="contact-box sticky-lateral" data-contact-box>
 <form class="form contact-form" id={id} action="/api/contato" method="post" novalidate data-contact-form>
   <div class="err-banner" role="alert" tabindex="-1" data-banner hidden><Icon name="alert" /><span data-banner-text></span></div>
   <div class="hp" aria-hidden="true" inert>
@@ -160,6 +160,9 @@ const f = (name: string) => `${id}-${name}`;
 <script>
   import type { Assunto } from '../lib/contato.schema';
   import { formParaObjeto, type Erros } from '../lib/formulario';
+  import { iniciarStickyLateral } from '../scripts/sticky-lateral';
+
+  iniciarStickyLateral();
 
   // O schema traz o zod (~24 KB gzip): só baixa quando a pessoa começa a preencher ou envia.
   type Schema = typeof import('../lib/contato.schema');

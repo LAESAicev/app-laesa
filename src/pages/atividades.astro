@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Section from '../components/Section.astro';
 import Button from '../components/Button.astro';
 import ListaAtividades from '../components/ListaAtividades.astro';
+import FaixaAvisos from '../components/FaixaAvisos.astro';
 import { atividades } from '../lib/content';
 import { EIXOS } from '../lib/atividades';
 
@@ -49,6 +50,15 @@ const eixos = EIXOS.filter((e) => atividades.some((a) => a.eixos.includes(e.valo
       <Button href="/contato?assunto=projeto">Propor um projeto</Button>
     </div>
   </Section>
+
+  <FaixaAvisos
+    avisosTitulo="Quer saber da próxima atividade?"
+    avisosTexto="Deixe seu e-mail e receba as novidades da LAESA: oficinas, palestras, cursos e editais."
+    colaborarTitulo="Quer ministrar uma atividade?"
+    colaborarTexto="Profissionais, professores e estudantes de outros cursos podem propor palestras, oficinas e mentorias."
+    colaborarLink="Propor uma atividade"
+    colaborarHref="/contato?assunto=colaborar"
+  />
 </BaseLayout>
 
 <script>

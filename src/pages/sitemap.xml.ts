@@ -4,7 +4,7 @@ import { editais } from '../lib/content';
 
 export const prerender = true;
 
-const paginas = ['/', '/atividades', '/novidades', '/processos-seletivos', '/contato', '/privacidade'];
+const paginas = ['/', '/atividades', '/historia', '/novidades', '/processos-seletivos', '/contato', '/privacidade'];
 
 export const GET: APIRoute = ({ site }) => {
   const caminhos = [...paginas, ...editais.map((e) => `/processos-seletivos/${e.slug}`)];

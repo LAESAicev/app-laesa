@@ -1,8 +1,7 @@
 ---
-import { Image } from 'astro:assets';
-import Logo from './Logo.astro';
+import LinkedinBtn from './LinkedinBtn.astro';
+import Retrato from './Retrato.astro';
 import Sample from './Sample.astro';
-import { uploadedImage } from '../lib/images';
 import type { Pessoa } from '../data/home';
 
 interface Props {
@@ -10,39 +9,20 @@ interface Props {
 }
 
 const { pessoa: p } = Astro.props;
-const foto = uploadedImage(p.foto);
-// Maior recorte 4:5 que cabe na foto, até 800×1000: o Astro não amplia imagens, então uma foto pequena
-// ainda sai no formato do quadro em vez de manter a proporção original.
-const largura = foto ? Math.min(800, foto.width, Math.floor(foto.height * 0.8)) : 0;
-const altura = Math.round(largura * 1.25);
-const larguras = [...new Set([Math.min(400, largura), largura])];
+// Com LinkedIn, nome e cargo ganham o botão à direita (no celular, abaixo do cargo). Sem ele, o card fica como sempre foi.
+const Texto = p.linkedin ? 'div' : Fragment;
 ---
 <div class:list={['person', { adv: p.orientacao }]}>
-  <div class="photo">
-    {foto ? (
-      // Recorte central no quadro 4:5, gerado no build em WebP. alt vazio: o nome já está no h3 ao lado.
-      <Image
-        src={foto}
-        alt=""
-        width={largura}
-        height={altura}
-        fit="cover"
-        position="center"
-        widths={larguras}
-        sizes="(max-width: 640px) 45vw, (max-width: 1100px) 28vw, 240px"
-        format="webp"
-        quality={80}
-        loading="lazy"
-      />
-    ) : (
-      <>
-        <Logo variant="icone" />
-        <Sample text="foto" />
-      </>
-    )}
+  {/* Sem foto (a pessoa não autorizou): iniciais, como na /historia. Selo só se a pessoa for de exemplo. */}
+  <div class:list={['photo', { iniciais: !p.foto }]}>
+    <Retrato foto={p.foto} nome={p.nome} max={800} menor={400} sizes="(max-width: 640px) 45vw, (max-width: 1100px) 28vw, 240px" />
+    {!p.foto && p.exemplo && <Sample text="foto" />}
   </div>
-  <div>
-    <h3>{p.nome}</h3>
-    <p class="role">{p.cargo}</p>
-  </div>
+  <Texto {...(p.linkedin ? { class: 'person-in' } : {})}>
+    <div>
+      <h3>{p.nome}</h3>
+      <p class="role">{p.cargo}</p>
+    </div>
+    {p.linkedin && <LinkedinBtn href={p.linkedin} nome={p.nome} />}
+  </Texto>
 </div>

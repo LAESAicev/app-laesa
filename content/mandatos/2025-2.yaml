@@ -1,0 +1,34 @@
+titulo: Mandato 2025.2
+periodo: '2025.2'
+estatuto: /uploads/mandatos/2025-2/estatuto.pdf
+membros:
+  - cargo: Presidente
+    nome: Kevilla da Silva Aguiar
+    foto: /src/assets/uploads/mandatos/2025-2/membros/0/foto.jpeg
+    linkedin: https://www.linkedin.com/in/kevilla-aguiar/
+    exemplo: false
+  - cargo: Vice-Presidente
+    nome: Felipe Duan da Silva Sousa
+    foto: /src/assets/uploads/mandatos/2025-2/membros/1/foto.png
+    linkedin: https://www.linkedin.com/in/felipe-duan/
+    exemplo: false
+  - cargo: Diretor(a) de Ensino
+    nome: Ingrid Ribeiro Silva
+    foto: /src/assets/uploads/mandatos/2025-2/membros/2/foto.png
+    linkedin: https://www.linkedin.com/in/ingridsilva-r/
+    exemplo: false
+  - cargo: Diretor(a) Financeiro(a)
+    nome: Beatriz Barreto Marreiros Barbosa
+    foto: /src/assets/uploads/mandatos/2025-2/membros/3/foto.png
+    linkedin: https://www.linkedin.com/in/beatriz-barreto-8b0076261/
+    exemplo: false
+  - cargo: Diretor(a) de Comunicação e Pesquisa
+    nome: Rafaela (Cassy) Sousa Costa
+    foto: /src/assets/uploads/mandatos/2025-2/membros/4/foto.jpeg
+    linkedin: https://www.linkedin.com/in/rafaela-sousa-costa-3920572bb/
+    exemplo: false
+orientador:
+  nome: Carlos Futino Barreto
+  foto: /src/assets/uploads/mandatos/2025-2/orientador/foto.jpeg
+  linkedin: https://www.linkedin.com/in/futino/
+  exemplo: false

@@ -4,9 +4,9 @@ import { parse } from 'yaml';
 import { z } from 'astro/zod';
 import { PUBLIC_CONTACT_EMAIL, PUBLIC_LINKEDIN_URL, PUBLIC_GITHUB_URL, PUBLIC_INSTAGRAM_URL } from 'astro:env/client';
 import type { Canal, StatusSelecao } from '../data/site';
-import type { Atividade, Commit, Pessoa } from '../data/home';
+import type { Atividade, Commit, Historia, Mandato, Pessoa } from '../data/home';
 import { EIXOS, candidatasHome, comparar, hojeEm } from './atividades';
-import { dataCurta, dataIso, linkSeguro, periodo, prorrogacao, validar } from './content-helpers';
+import { dataCurta, dataIso, estatutoPdf, linkedinPerfil, linkSeguro, mandatosPorSemestre, orientadorDoMandato, paragrafos, pessoaDoPainel, periodo, prorrogacao, semestreDoMandato, validar } from './content-helpers';
 import type { Edital } from '../data/editais';
 
 // O conteúdo (content/*.yaml, escrito pelo painel) entra NO BUILD via import.meta.glob: o servidor de
@@ -71,25 +71,59 @@ export const heroLog: Commit[] = (heroRaw.commits ?? []).map((c) => ({
   meta: c.meta || undefined,
 }));
 
-// ---- mesa diretora (ordem fixa dos cargos)
-const pessoa = z.strictObject({ nome: texto, foto: texto, exemplo }).nullish();
-const mesaRaw = ler(
-  '/content/mesa.yaml',
-  z.strictObject({ presidente: pessoa, vicePresidente: pessoa, diretorProjetos: pessoa, diretorMarketing: pessoa, orientador: pessoa }),
-  'Mesa Diretora',
-);
-const cargos = [
-  ['presidente', 'Presidente'],
-  ['vicePresidente', 'Vice-Presidente'],
-  ['diretorProjetos', 'Diretor(a) de Projetos'],
-  ['diretorMarketing', 'Diretor(a) de Marketing'],
-  ['orientador', 'Professor(a) Orientador(a)'],
-] as const;
-
-export const mesa: Pessoa[] = cargos.map(([key, cargo]) => {
-  const p = mesaRaw[key] ?? {};
-  return { nome: p.nome ?? 'Nome a confirmar', cargo, foto: p.foto ?? undefined, orientacao: key === 'orientador', exemplo: Boolean(p.exemplo) };
+// ---- mandatos da Mesa Diretora (content/mandatos/<ano>-<semestre>.yaml, ADR 0005): mais recente primeiro; o atual é o de maior ano-semestre
+// ?utm_..., #..., br.linkedin.com e afins são limpos (linkedinPerfil); o HTML recebe o endereço normalizado.
+const linkedin = texto
+  .refine(
+    (v) => !v || linkedinPerfil(v),
+    'LinkedIn precisa ser um perfil pessoal em https, como https://www.linkedin.com/in/seu-perfil (outro site ou outra página do LinkedIn não servem)',
+  )
+  .transform((v) => (v ? linkedinPerfil(v) : undefined));
+const pessoa = { nome: texto, foto: texto, linkedin, exemplo };
+const mandato = z.strictObject({
+  titulo: z.string(),
+  periodo: texto,
+  // o painel (fields.file) não restringe a extensão: o erro diz qual arquivo veio e o que fazer
+  estatuto: texto.refine((v) => !v || estatutoPdf(v), {
+    error: (i) => `"${String(i.input)}" não é um PDF enviado pelo painel. No mandato, remova esse arquivo do campo "Estatuto em vigor na época" e envie o estatuto em PDF (ou deixe o campo vazio).`,
+  }),
+  membros: z.array(z.strictObject({ cargo: z.string(), ...pessoa })).nullish(),
+  orientador: z.strictObject(pessoa).nullish(),
 });
+
+export const mandatos: Mandato[] = mandatosPorSemestre(
+  colecao('mandatos', mandato).map(({ slug, entry }) => {
+    const membros = (entry.membros ?? []).map((p) => pessoaDoPainel(p, p.cargo, false));
+    const orientador = orientadorDoMandato(entry.orientador);
+    const pessoas = orientador ? [...membros, orientador] : membros;
+    return {
+      semestre: semestreDoMandato(slug),
+      titulo: entry.titulo,
+      periodo: entry.periodo || undefined,
+      estatuto: entry.estatuto || undefined,
+      // selo no cabeçalho do mandato quando todo mundo é provisório; misturado, o selo vai por pessoa
+      exemplo: pessoas.length > 0 && pessoas.every((p) => p.exemplo),
+      membros,
+      orientador,
+      pessoas,
+    };
+  }),
+);
+
+/** A Mesa da home: o mandato atual, na ordem, com o(a) orientador(a) no fim. */
+export const mesa: Pessoa[] = mandatos[0].pessoas;
+
+// ---- história da liga (página /historia)
+const historiaRaw = ler(
+  '/content/historia.yaml',
+  z.strictObject({ texto, fundadores: z.array(z.strictObject({ nome: z.string(), papel: texto, linkedin })).nullish(), exemplo }),
+  'História da liga',
+);
+export const historia: Historia = {
+  paragrafos: paragrafos(historiaRaw.texto),
+  fundadores: (historiaRaw.fundadores ?? []).map((f) => ({ nome: f.nome, papel: f.papel || undefined, linkedin: f.linkedin })),
+  exemplo: Boolean(historiaRaw.exemplo),
+};
 
 // ---- FAQ
 export type Pergunta = { pergunta: string; resposta: string; ref?: string };

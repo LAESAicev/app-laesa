@@ -1,0 +1,50 @@
+---
+// Foto 4:5 de uma pessoa (home e /historia) ou, sem foto, as iniciais (decorativas: o nome está ao lado).
+// Nome ainda a confirmar: "?". Quem usa põe o quadro em volta (.photo, .membro-foto).
+import { Image } from 'astro:assets';
+import { uploadedImage } from '../lib/images';
+
+interface Props {
+  foto?: string;
+  nome: string;
+  /** Largura máxima do recorte, já contando telas 2x. */
+  max: number;
+  /** Largura da versão menor no srcset. */
+  menor: number;
+  sizes: string;
+}
+
+const { foto: caminho, nome, max, menor, sizes } = Astro.props;
+const foto = uploadedImage(caminho);
+// Maior recorte 4:5 que cabe na foto, até `max`: o Astro não amplia imagens, então uma foto pequena
+// ainda sai no formato do quadro em vez de manter a proporção original.
+const largura = foto ? Math.min(max, foto.width, Math.floor(foto.height * 0.8)) : 0;
+const altura = Math.round(largura * 1.25);
+const larguras = [...new Set([Math.min(menor, largura), largura])];
+
+const iniciais = (nome: string) => {
+  if (/a confirmar/i.test(nome)) return '?';
+  const partes = nome.replace(/[[\]]/g, '').trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return '?';
+  const ultima = partes.length > 1 ? partes[partes.length - 1] : '';
+  return (partes[0][0] + (ultima[0] ?? '')).toUpperCase();
+};
+---
+{foto ? (
+  // Recorte central, gerado no build em WebP. alt vazio: o nome já está ao lado.
+  <Image
+    src={foto}
+    alt=""
+    width={largura}
+    height={altura}
+    fit="cover"
+    position="center"
+    widths={larguras}
+    sizes={sizes}
+    format="webp"
+    quality={80}
+    loading="lazy"
+  />
+) : (
+  <span aria-hidden="true">{iniciais(nome)}</span>
+)}

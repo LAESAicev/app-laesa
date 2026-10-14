@@ -1,0 +1,38 @@
+titulo: Mandato 2026.1
+periodo: '2026.1'
+estatuto: /uploads/mandatos/2026-1/estatuto.pdf
+membros:
+  - cargo: Presidente
+    nome: Felipe Duan da Silva Sousa
+    foto: /src/assets/uploads/mandatos/2026-1/membros/0/foto.png
+    linkedin: https://www.linkedin.com/in/felipe-duan/
+    exemplo: false
+  - cargo: Vice-Presidente
+    nome: Jeanderson Asafe Visgueira Escobar
+    linkedin: https://www.linkedin.com/in/asafe-escobar-217594322/
+    exemplo: false
+  - cargo: Diretor(a) de Ensino
+    nome: Aurelius Navi Albuquerque Oliveira Brito
+    foto: /src/assets/uploads/mandatos/2026-1/membros/2/foto.jpeg
+    linkedin: https://www.linkedin.com/in/aureliusnavi/
+    exemplo: false
+  - cargo: Diretor(a) de Comunicação
+    nome: Guilherme Santos de Melo
+    foto: /src/assets/uploads/mandatos/2026-1/membros/3/foto.png
+    linkedin: https://www.linkedin.com/in/guilhermesantosdemelo/
+    exemplo: false
+  - cargo: Diretor(a) Financeiro(a)
+    nome: Samuel Egson Milhomem Rodrigues
+    foto: /src/assets/uploads/mandatos/2026-1/membros/4/foto.png
+    linkedin: https://www.linkedin.com/in/samuelemrodrigues/
+    exemplo: false
+  - cargo: Diretor(a) de Pesquisa
+    nome: Beatriz Barreto Marreiros Barbosa
+    foto: /src/assets/uploads/mandatos/2026-1/membros/5/foto.png
+    linkedin: https://www.linkedin.com/in/beatriz-barreto-8b0076261/
+    exemplo: false
+orientador:
+  nome: Carlos Futino Barreto
+  foto: /src/assets/uploads/mandatos/2026-1/orientador/foto.jpeg
+  linkedin: https://www.linkedin.com/in/futino/
+  exemplo: false

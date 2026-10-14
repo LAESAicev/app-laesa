@@ -1,5 +1,6 @@
 // Funções puras usadas por src/lib/content.ts para tratar o que vem do painel (testes em tests/content-helpers.test.ts).
 import type { z } from 'astro/zod';
+import type { Pessoa } from '../data/home';
 
 /**
  * Links vindos do painel: só http(s), mailto e caminhos do próprio site (nada de javascript:).
@@ -58,4 +59,65 @@ export function validar<S extends z.ZodType>(schema: S, caminho: string, dados: 
   if (r.success) return r.data;
   const erros = r.error.issues.map((i) => `  - ${i.path.join('.') || '(arquivo)'}: ${i.message}`).join('\n');
   throw new Error(`Conteúdo inválido em ${caminho.replace(/^\//, '')}:\n${erros}\nCorrija pelo painel (/keystatic) ou no arquivo.`);
+}
+
+/**
+ * LinkedIn de quem foi da Mesa: só perfil pessoal. Normaliza o que o app e o navegador costumam copiar
+ * (?utm_..., #..., barra final, sem www, subdomínio de país como br.linkedin.com, "joão" sem codificar) para
+ * https://www.linkedin.com/in/<perfil> e só então valida, estrito: o perfil é [A-Za-z0-9_-] ou percent-encoding
+ * de bytes UTF-8 não ASCII (%80 a %FF), então %2e%2e, %00 e %2f não passam. Outro esquema, host, porta, usuário
+ * ou página do LinkedIn → undefined. O valor devolvido é o que vai para o HTML.
+ */
+export function linkedinPerfil(v: string): string | undefined {
+  const m = /^https:\/\/(?:(?:www|[a-z]{2})\.)?linkedin\.com\/in\/([^/?#]+)\/?(?:[?#].*)?$/is.exec(v);
+  if (!m || /\s/.test(v)) return undefined;
+  const perfil = m[1].replace(/[^\x00-\x7f]+/gu, encodeURIComponent);
+  return /^(?:[\w-]|%[89a-f][0-9a-f])+$/i.test(perfil) ? `https://www.linkedin.com/in/${perfil}` : undefined;
+}
+
+/** O mesmo formato, no campo do painel (keystatic.config.ts): vazio ou perfil do LinkedIn em https. */
+export const LINKEDIN_PAINEL = /^(?:https:\/\/(?:(?:www|[a-z]{2})\.)?linkedin\.com\/in\/(?:[\w-]|%[89a-f][0-9a-f]|[^\x00-\x7f])+\/?(?:[?#]\S*)?)?$/i;
+
+/**
+ * Estatuto em vigor na época de um mandato: só PDF enviado pelo painel, caminho do próprio site em /uploads/
+ * terminado em .pdf. Link externo, outra extensão ou ".." no caminho são recusados.
+ */
+export function estatutoPdf(v: string): boolean {
+  return linkSeguro(v) === v && /^\/uploads\/(?:[\w-][\w.-]*\/)*[\w-][\w.-]*\.pdf$/i.test(v);
+}
+
+/** content/mandatos/<ano>-<semestre>.yaml: o nome do arquivo (endereço no painel) é o ano e o semestre (1 ou 2) em que a Mesa começou. */
+export function semestreDoMandato(slug: string): string {
+  if (!/^\d{4}-[12]$/.test(slug)) throw new Error(`content/mandatos/${slug}.yaml: o nome do arquivo precisa ser ano-semestre de início do mandato, com semestre 1 ou 2 (ex.: 2027-1.yaml). Corrija o campo "Ano-semestre" no painel (/keystatic).`);
+  return slug;
+}
+
+type PessoaDoPainel = { nome?: string | null; foto?: string | null; linkedin?: string | null; exemplo?: boolean | null };
+
+/** Pessoa de um mandato como o painel grava (vazio = null ou '') → Pessoa das páginas. */
+export function pessoaDoPainel(p: PessoaDoPainel, cargo: string, orientacao: boolean): Pessoa {
+  return {
+    nome: p.nome || 'Nome a confirmar',
+    cargo,
+    foto: p.foto || undefined,
+    linkedin: p.linkedin || undefined,
+    orientacao,
+    exemplo: Boolean(p.exemplo),
+  };
+}
+
+/** O(a) orientador(a) existe se qualquer campo estiver preenchido (só foto ou LinkedIn também conta). */
+export function orientadorDoMandato(o: PessoaDoPainel | null | undefined): Pessoa | undefined {
+  return o && (o.nome || o.foto || o.linkedin || o.exemplo) ? pessoaDoPainel(o, 'Professor(a) Orientador(a)', true) : undefined;
+}
+
+/** Mais recente primeiro. O atual é o de maior ano-semestre: trocar a Mesa é criar o mandato novo na posse. */
+export function mandatosPorSemestre<T extends { semestre: string }>(lista: T[]): (T & { atual: boolean })[] {
+  if (!lista.length) throw new Error('Nenhum mandato em content/mandatos. Abra o painel (/keystatic) e crie o mandato atual.');
+  return [...lista].sort((a, b) => b.semestre.localeCompare(a.semestre)).map((m, i) => ({ ...m, atual: i === 0 }));
+}
+
+/** Texto longo do painel → parágrafos (separados por linha em branco). */
+export function paragrafos(texto: string | null | undefined): string[] {
+  return (texto ?? '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
 }

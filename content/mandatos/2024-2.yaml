@@ -1,0 +1,42 @@
+titulo: Mandato 2024.2
+periodo: '2024.2'
+estatuto: /uploads/mandatos/2024-2/estatuto.pdf
+membros:
+  - cargo: Presidente
+    nome: Kevilla da Silva Aguiar
+    foto: /src/assets/uploads/mandatos/2024-2/membros/0/foto.jpeg
+    linkedin: https://www.linkedin.com/in/kevilla-aguiar/
+    exemplo: false
+  - cargo: Vice-Presidente
+    nome: Kaielly Vitória Sousa De Morais
+    foto: /src/assets/uploads/mandatos/2024-2/membros/1/foto.jpeg
+    linkedin: https://www.linkedin.com/in/kaielly-sousa
+    exemplo: false
+  - cargo: Diretor(a) de Ensino
+    nome: Ingrid Ribeiro Silva
+    foto: /src/assets/uploads/mandatos/2024-2/membros/2/foto.png
+    linkedin: https://www.linkedin.com/in/ingridsilva-r/
+    exemplo: false
+  - cargo: Diretor(a) de Comunicação
+    nome: Milena Ribeiro Duarte
+    linkedin: https://www.linkedin.com/in/miluarte/
+    exemplo: false
+  - cargo: Diretor(a) de Métodos Ágeis
+    nome: Aline Dias Marques Ramos
+    linkedin: https://www.linkedin.com/in/aline-ramos-0617b5276/
+    exemplo: false
+  - cargo: Diretor(a) Financeiro(a)
+    nome: Ana Vitória Amorim Mendes Melo
+    foto: /src/assets/uploads/mandatos/2024-2/membros/5/foto.jpg
+    linkedin: https://www.linkedin.com/in/anavi-melo/
+    exemplo: false
+  - cargo: Diretor(a) de Pesquisa
+    nome: Rafaela (Cassy) Sousa Costa
+    foto: /src/assets/uploads/mandatos/2024-2/membros/6/foto.jpeg
+    linkedin: https://www.linkedin.com/in/rafaela-sousa-costa-3920572bb/
+    exemplo: false
+orientador:
+  nome: Carlos Futino Barreto
+  foto: /src/assets/uploads/mandatos/2024-2/orientador/foto.jpeg
+  linkedin: https://www.linkedin.com/in/futino/
+  exemplo: false

@@ -45,7 +45,12 @@ Preencha os campos `<...>` na primeira passagem e mantenha a tabela atualizada. 
    - [ ] a pasta `~/backups-laesa` não tem arquivos com mais de 30 dias;
    - [ ] `crontab -l` do usuário do deploy ainda tem as linhas de backup e de atualização ([operacao.md](operacao.md#backup)).
 5. Combinar a revisão semanal dos PRs do Dependabot. As imagens Docker e as actions do CI estão fixadas por digest ou SHA, então correções de segurança só chegam por esses PRs. Alguém da nova Mesa precisa olhar os PRs abertos toda semana e fazer merge quando o CI estiver verde. Depois do merge, a atualização só vai ao ar com uma promoção manual ([operacao.md](operacao.md#promover-à-mão)).
-6. Atualizar o conteúdo pelo painel (`/keystatic`):
-   - [ ] Mesa Diretora: nomes e fotos dos novos cargos;
-   - [ ] desmarcar "Conteúdo provisório" de quem já tem dados reais.
+6. Cadastrar a Mesa nova no painel (`/keystatic`), no dia da posse (a última reunião interna do ano, Art. 35 do [estatuto](estatuto-2026.md)):
+   - [ ] antes da posse, peça a cada pessoa da Mesa nova e ao(à) orientador(a) autorização por escrito para publicar foto e LinkedIn. Guarde esse registro fora do site, no cofre ou na pasta restrita do Drive (tabela de acessos). Sem autorização, a pessoa aparece só com nome e cargo;
+   - [ ] abra Mandatos e crie um mandato novo. O endereço é o ano-semestre em que a Mesa começa, com semestre 1 ou 2 (`2027-1`); a Mesa pode mudar a cada semestre, e cada Mesa ganha o seu mandato. Preencha cada pessoa com cargo e nome, e foto e LinkedIn só de quem autorizou. No LinkedIn, cole o link do perfil pessoal (`https://www.linkedin.com/in/<perfil>`). Pode colar como o app ou o navegador copiam: o site tira sozinho o `?utm_...` do fim e troca `br.linkedin.com` por `www.linkedin.com`. O painel recusa, com uma mensagem no próprio campo, o que não for perfil do LinkedIn em `https` (página de empresa, outro site, `http`). O(a) orientador(a) vai no campo próprio, fora da lista da Mesa;
+   - [ ] no mesmo mandato, anexe em "Estatuto em vigor na época" o PDF do estatuto vigente. Ele aparece como link no mandato em `/historia`;
+   - [ ] o mandato com o maior ano-semestre passa a ser a Mesa da home e o atual na página História (`/historia`). O anterior continua lá como histórico, sem precisar de ajuste. Não edite o mandato antigo para colocar a Mesa nova: isso apaga do histórico quem conduziu a liga naquele semestre;
+   - [ ] desmarque "Conteúdo provisório" de quem já tem dados reais.
+
+   Criar o mandato só muda conteúdo, então vai ao ar sozinho, sem promoção manual ([ADR 0004](adr/0004-deploy-automatico-de-conteudo.md)). Por que funciona assim: [ADR 0005](adr/0005-mandatos-e-historia.md). Para tirar alguém do site depois, o pedido chega pelo formulário de contato, como explica a página `/privacidade`.
 7. Atualizar este arquivo: a tabela de acessos com os novos donos, num commit `docs: atualiza passagem de mandato <ano>`.

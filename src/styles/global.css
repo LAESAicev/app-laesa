@@ -156,7 +156,7 @@ svg { display: block; }
 .navy .link { color: var(--cyan); border-color: rgba(29, 208, 248, 0.35); }
 
 /* ---------- nav ---------- */
-.nav { height: 80px; border-bottom: 1px solid var(--rule); }
+.nav { position: sticky; top: 0; z-index: 30; height: var(--nav-h); background: var(--ground); border-bottom: 1px solid var(--rule); }
 .nav .wrap { height: 100%; align-items: center; }
 .nav .wrap::before { display: none; }
 .nav-in { grid-column: 1 / -1; display: flex; align-items: center; gap: 40px; }
@@ -262,13 +262,16 @@ svg { display: block; }
 /* ---------- team ---------- */
 .team .wrap { padding-block: 112px; }
 .people { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; }
+/* Mesa com 5 membros + orientador(a): 6 numa linha em vez de 5 + 1 card sozinho */
+@media (min-width: 1101px) { .people:has(> :nth-child(6):last-child) { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .person { display: flex; flex-direction: column; gap: 14px; }
 .photo { position: relative; aspect-ratio: 4 / 5; border-radius: 6px; background: var(--navy); overflow: hidden; display: flex; align-items: center; justify-content: center; color: rgba(29, 208, 248, 0.28); }
-.photo .lg-i { width: 46%; }
 .photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 .photo .sample { position: absolute; left: 12px; bottom: 12px; border-color: var(--on-navy-2); color: var(--on-navy-2); background: rgba(2, 43, 69, 0.6); }
 .person.adv .photo { background: var(--paper); border: 1px solid var(--rule-strong); color: rgba(4, 63, 99, 0.16); }
-.person.adv .photo .sample { border-color: var(--ink-3); color: var(--ink-3); background: rgba(255,255,255,.7); }
+.person.adv .photo .sample, .photo.iniciais .sample { border-color: var(--ink-3); color: var(--ink-3); background: rgba(255,255,255,.7); }
+/* Sem foto: iniciais em Bebas, como .membro-foto na /historia */
+.person .photo.iniciais { background: var(--ground); border: 1px solid var(--rule-strong); color: var(--navy); font-family: var(--display); font-size: 96px; line-height: 1; letter-spacing: 0.02em; }
 .person h3 { font-size: 18px; line-height: 1.3; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
 .person .role { font-size: 15px; color: var(--ink-2); margin-top: 2px; }
 
@@ -346,7 +349,6 @@ svg { display: block; }
   .d3 { font-size: 30px; }
   .lead { font-size: 17px; }
 
-  .nav { height: 68px; }
   .nav-links, .nav .tag-open { display: none; }
   .nav-burger { display: flex; }
   .logo { width: 108px; }
@@ -382,6 +384,7 @@ svg { display: block; }
   .people { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; }
   .person h3 { font-size: 16px; }
   .person .role { font-size: 14px; }
+  .person .photo.iniciais { font-size: 64px; }
 
   .join-grid { grid-template-columns: 1fr; gap: 48px; }
   .join-actions { flex-direction: column; align-items: stretch; }
@@ -622,7 +625,6 @@ html { scroll-behavior: smooth; scroll-padding-top: 24px; }
 /* menu mobile */
 .nav-panel { display: none; }
 @media (max-width: 640px) {
-  .nav { position: relative; z-index: 20; }
   .nav-panel { position: absolute; left: 0; right: 0; top: 100%; background: var(--paper); border-bottom: 1px solid var(--rule); box-shadow: 0 24px 40px -24px rgba(4, 63, 99, 0.35); padding: 8px 20px 24px; }
   .nav-panel.is-open { display: block; }
   .nav-panel a { display: block; padding: 14px 0; border-bottom: 1px solid var(--rule); font-size: 17px; font-weight: 500; color: var(--ink); }
@@ -719,6 +721,9 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
   width: 2px;
   background: var(--blue);
   clip-path: inset(0 -6px calc((1 - var(--p, 0)) * 100%) -6px);
+  /* clip-path só esconde a pintura: sem isto, a energia (translateY até 100%) sai do fim da seção, entra no
+     overflow rolável e o fim da página cresce e encolhe a cada volta (a barra de rolagem "pula"). */
+  overflow-y: clip;
   pointer-events: none;
   --energy: var(--cyan);
 }
@@ -784,15 +789,43 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
   to { transform: scale(1.8); opacity: 0; }
 }
 
-/* Branches do hero: desenhadas uma vez na carga */
-.branch-svg path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: branch-draw 600ms cubic-bezier(0.23, 1, 0.32, 1) 150ms forwards; }
-.branch-svg circle { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: branch-node 280ms cubic-bezier(0.23, 1, 0.32, 1) 620ms forwards; }
-.branch + .branch .branch-svg path { animation-delay: 230ms; }
-.branch + .branch .branch-svg circle { animation-delay: 700ms; }
-.branch + .branch + .branch .branch-svg path { animation-delay: 310ms; }
-.branch + .branch + .branch .branch-svg circle { animation-delay: 780ms; }
+/* Branches: o traço e o nó (path/circle sem classe) se desenham uma vez na carga */
+.branch-svg path:not([class]) { stroke-dasharray: 1; stroke-dashoffset: 1; animation: branch-draw 600ms cubic-bezier(0.23, 1, 0.32, 1) 150ms forwards; }
+.branch-svg circle:not([class]) { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: branch-node 280ms cubic-bezier(0.23, 1, 0.32, 1) 620ms forwards; }
+.branch + .branch .branch-svg path:not([class]) { animation-delay: 230ms; }
+.branch + .branch .branch-svg circle:not([class]) { animation-delay: 700ms; }
+.branch + .branch + .branch .branch-svg path:not([class]) { animation-delay: 310ms; }
+.branch + .branch + .branch .branch-svg circle:not([class]) { animation-delay: 780ms; }
 @keyframes branch-draw { to { stroke-dashoffset: 0; } }
 @keyframes branch-node { to { transform: scale(1); } }
+
+/* Ramos do hero: trilho e nó vazado; quando a agulha passa pela saída do ramo (spine.ts, data-state no .branch),
+   o azul se desenha da espinha até o botão, o miolo do nó cresce quando o traço chega e o anel sai só na descida. */
+.branches .branch-svg path:not([class]) { stroke: var(--spine); }
+.branches .branch-svg circle:not([class]) { fill: var(--ground); stroke: var(--blue); stroke-width: 2; }
+.branch-svg .br-fill { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 180ms ease-out; }
+.branch[data-state="committed"] .br-fill { stroke-dashoffset: 0; transition: stroke-dashoffset 600ms cubic-bezier(0.23, 1, 0.32, 1); }
+.branch-svg .br-miolo, .branch-svg .br-anel { transform-box: fill-box; transform-origin: center; }
+.branch-svg .br-miolo { fill: var(--blue); transform: scale(0.4); opacity: 0; transition: transform 180ms ease-out, opacity 180ms ease-out; }
+.branch[data-state="committed"] .br-miolo {
+  transform: scale(1); opacity: 1;
+  transition: transform 280ms cubic-bezier(0.23, 1, 0.32, 1) 300ms, opacity 280ms cubic-bezier(0.23, 1, 0.32, 1) 300ms;
+}
+.branch-svg .br-anel { fill: none; stroke: var(--blue); stroke-width: 2; opacity: 0; }
+.branch.ring .br-anel { animation: node-ring 600ms cubic-bezier(0.23, 1, 0.32, 1) 300ms; }
+/* Energia: um pulso que sai da espinha e corre o ramo na velocidade da linha (~95px a 420px/s, 16% de 1,6s),
+   só com o ramo preenchido e visível (.is-active) */
+.branch-svg .br-energia {
+  stroke: var(--cyan); stroke-linecap: round; stroke-dasharray: 0.2 1.2; stroke-dashoffset: 0.2;
+  opacity: 0; transition: opacity 180ms ease-out;
+  animation: br-energia 1.6s linear infinite paused;
+}
+.branch[data-state="committed"] .br-energia { opacity: 1; transition-delay: 600ms; }
+.branch.is-active .br-energia { animation-play-state: running; }
+@keyframes br-energia {
+  0% { stroke-dashoffset: 0.2; }
+  16%, 100% { stroke-dashoffset: -1; }
+}
 
 @media (max-width: 640px) {
   .spine-energy + .spine-energy { display: none; }
@@ -805,8 +838,11 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
 @media (prefers-reduced-motion: reduce) {
   .spine-energy, .node::after { display: none; }
   .node::before, .node[data-state="committed"]::before { transform: scale(1); transition: opacity 150ms ease; }
-  .branch-svg path { stroke-dashoffset: 0; animation: none; }
-  .branch-svg circle { transform: none; animation: none; }
+  .branch-svg path:not([class]) { stroke-dashoffset: 0; animation: none; }
+  .branch-svg circle:not([class]) { transform: none; animation: none; }
+  .branch-svg .br-fill, .branch[data-state="committed"] .br-fill { transition: none; }
+  .branch-svg .br-miolo, .branch[data-state="committed"] .br-miolo { transform: scale(1); transition: opacity 150ms ease; }
+  .branch-svg .br-energia, .branch-svg .br-anel { display: none; }
 }
 
 /* formulários (Fase 4) */
@@ -923,3 +959,189 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
 .data-nova { text-decoration: none; color: var(--prorrogado); background: var(--prorrogado-bg); border-radius: 3px; padding: 1px 6px; font-weight: 600; }
 .navy .data-original, .ed .data-original { color: var(--on-navy-2); }
 .navy .data-nova, .ed .data-nova { color: var(--prorrogado-navy); background: rgba(255, 201, 101, 0.14); }
+
+/* ---------- LinkedIn opcional (PersonCard da home e /historia) ---------- */
+.in-btn { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--rule-strong); display: flex; align-items: center; justify-content: center; color: var(--navy); transition: background-color 160ms ease, border-color 160ms ease; }
+.in-btn svg { width: 19px; height: 19px; }
+.in-btn:focus-visible { border-radius: 50%; }
+@media (hover: hover) and (pointer: fine) { .in-btn:hover { background: rgba(4, 63, 99, 0.07); border-color: var(--navy); } }
+.person-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+/* ---------- /historia: fundação, mandatos da Mesa e commit raiz ---------- */
+.hist-open .wrap { padding-block: 88px 104px; }
+.hist-open-grid { display: grid; grid-template-columns: 1fr 440px; gap: 72px; align-items: start; }
+.hist-txt { display: flex; flex-direction: column; align-items: flex-start; gap: 20px; }
+.hist-txt .d1 { margin-bottom: 8px; }
+.hist-txt .lead { max-width: 560px; }
+.fundadores { background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 28px 20px; }
+.fundadores-head { display: flex; align-items: center; gap: 10px; padding: 18px 0 14px; border-bottom: 1px solid var(--rule); }
+.fundadores-head h2 { font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--ink); margin-right: auto; }
+.fundadores ul { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
+.fundadores li { position: relative; padding: 10px 0 10px 22px; border-bottom: 1px solid var(--rule); font-size: 15.5px; line-height: 1.35; color: var(--ink); }
+.fundadores li::before { content: ""; position: absolute; left: 0; top: 15px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--blue); box-sizing: border-box; }
+.fundadores li .meta { display: block; margin-top: 2px; }
+/* .sticky-lateral: no desktop, a coluna lateral de uma grade de duas colunas acompanha a leitura e para no fim
+   da grade (o limite do sticky é o pai). O top fica 24px abaixo do header fixo (bloco "header fixo", no fim).
+   Usada em /historia (.fundadores, ~200px) e no formulário de contato (home e /contato, de ~510px a ~941px).
+   O formulário pode ser mais alto que a janela: src/scripts/sticky-lateral.ts troca o top (inline) para ele ficar
+   preso pela base. O .fundadores não carrega o script, então precisa caber na janela.
+   ponytail: o min-height evita sticky em janela baixa. Se a lista de fundadores passar de ~16 nomes
+   (painel > ~500px), subir o min-height ou carregar o script em /historia. */
+@media (min-width: 1101px) and (min-height: 640px) {
+  .sticky-lateral { position: sticky; top: 24px; align-self: start; }
+}
+/* Sem JS (o script não definiu o top), o formulário não cabe abaixo de 1000px de altura: fica sem sticky. */
+@media (max-height: 999px) {
+  .contact-box.sticky-lateral:not([style]) { position: static; }
+}
+
+.hist-mandatos .wrap { padding-top: 112px; }
+.mandatos { list-style: none; border-top: 1px solid var(--rule); }
+.mandato { position: relative; display: grid; grid-template-columns: 260px 1fr; gap: 56px; padding: 44px 0 48px; border-bottom: 1px solid var(--rule); }
+.mandato-node { position: absolute; left: calc(-1 * var(--spine-col) + var(--spine-x) - 7px); top: 54px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--blue); background: var(--paper); }
+.mandato.atual .mandato-node { border-color: #12A58C; background: var(--mint); box-shadow: 0 0 0 5px rgba(92, 234, 210, 0.22); }
+.mandato-head { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.mandato-head .d3 { color: var(--ink-2); }
+.mandato.atual .mandato-head .d3 { color: var(--navy); }
+/* link discreto para o PDF; o ::before leva a área de toque a 44px sem mexer no espaçamento */
+.mandato-estatuto { position: relative; margin-top: 4px; font-size: 14.5px; }
+.mandato-estatuto::before { content: ""; position: absolute; inset: -11px -6px; }
+.membros { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 32px; }
+.orientacao { margin-top: 28px; padding-top: 24px; border-top: 1px dashed var(--rule-strong); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+.membro { display: flex; align-items: center; gap: 16px; min-height: 90px; }
+.membro-foto { flex: none; position: relative; width: 72px; aspect-ratio: 4 / 5; border-radius: 4px; overflow: hidden; background: var(--ground); border: 1px solid var(--rule-strong); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 30px; line-height: 1; letter-spacing: 0.02em; color: var(--navy); }
+.membro-foto:has(img) { border: 0; }
+.membro-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.membro-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.membro-nome { font-size: 16.5px; font-weight: 600; line-height: 1.3; letter-spacing: -0.01em; color: var(--ink); overflow-wrap: anywhere; }
+.membro-cargo { font-size: 14.5px; line-height: 1.35; color: var(--ink-2); }
+.membro-txt .sample { margin-top: 4px; }
+.raiz { position: relative; display: flex; align-items: baseline; gap: 12px; padding-top: 36px; font-size: 16px; line-height: 1.4; color: var(--ink); }
+.raiz b { font-weight: 600; }
+.raiz-node { position: absolute; left: calc(-1 * var(--spine-col) + var(--spine-x) - 7px); top: 39px; width: 16px; height: 16px; border-radius: 50%; background: var(--blue); border: 2px solid var(--blue); }
+/* a espinha termina no commit raiz: a faixa de remoção fica fora dela */
+.hist-remocao .wrap::before, .hist-remocao .spine-fill { display: none; }
+.hist-remocao .wrap { padding-block: 56px 112px; }
+.remocao { background: var(--ground); border-radius: 6px; padding: 24px 28px; font-size: 16px; line-height: 1.6; color: var(--ink-2); }
+.remocao .link-inline { font-weight: 600; }
+
+.diretoria-mais { margin-top: 40px; }
+
+@media (min-width: 641px) and (max-width: 1100px) {
+  .hist-open-grid { grid-template-columns: 1fr; gap: 56px; }
+  .fundadores { max-width: 560px; }
+  .mandato { grid-template-columns: 1fr; gap: 28px; }
+}
+@media (max-width: 640px) {
+  .hist-open .wrap { padding-block: 40px 64px; }
+  .hist-open-grid { grid-template-columns: 1fr; gap: 40px; }
+  .hist-txt { gap: 16px; }
+  .fundadores { padding: 4px 20px 12px; }
+  .fundadores ul { grid-template-columns: 1fr; }
+  .fundadores-head { flex-wrap: wrap; }
+  .fundadores-head h2 { flex-basis: 100%; }
+  .hist-mandatos .wrap { padding-top: 72px; }
+  .mandato { grid-template-columns: 1fr; gap: 24px; padding: 32px 0 36px; }
+  .mandato-node { top: 40px; }
+  .mandato-head { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 12px; }
+  .mandato-head .d3 { flex-basis: 100%; }
+  .mandato-head .mandato-estatuto { margin-top: 6px; }
+  .membros { grid-template-columns: 1fr; gap: 20px; }
+  .orientacao { grid-template-columns: 1fr; margin-top: 24px; padding-top: 20px; }
+  .membro { min-height: 70px; gap: 14px; }
+  .membro-foto { width: 56px; font-size: 24px; }
+  .membro-nome { font-size: 16px; }
+  .membro-cargo { font-size: 14px; }
+  .raiz { padding-top: 28px; }
+  .raiz-node { top: 31px; }
+  .hist-remocao .wrap { padding-block: 40px 72px; }
+  .remocao { padding: 20px; }
+  .diretoria-mais { margin-top: 32px; }
+  /* card estreito (2 colunas): o botão desce para baixo do cargo e o nome usa a largura toda */
+  .person-in { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+/* ================= header fixo ================= */
+/* O .nav é sticky (src/styles/global.css, seção nav). O .page usa overflow-x: clip, que não cria contêiner de
+   rolagem, então o sticky funciona. --nav-h alimenta a altura do header, o scroll-padding das âncoras e o top
+   dos .sticky-lateral, que ficam 24px abaixo do header. */
+:root { --nav-h: 80px; }
+@media (max-width: 640px) { :root { --nav-h: 68px; } }
+html { scroll-padding-top: calc(var(--nav-h) + 24px); }
+@media (min-width: 1101px) and (min-height: 640px) {
+  .sticky-lateral { top: calc(var(--nav-h) + 24px); }
+}
+/* sem JS, o formulário (até ~941px) só cabe abaixo do header numa janela de 1080px ou mais */
+@media (max-height: 1079px) {
+  .contact-box.sticky-lateral:not([style]) { position: static; }
+}
+/* menu mobile em tela baixa (celular deitado): o painel rola sozinho em vez de sair da tela */
+.nav-panel { max-height: calc(100dvh - var(--nav-h)); overflow-y: auto; overscroll-behavior: contain; }
+/* sombra de sobreposição só depois que a página rola; sem suporte a scroll-driven, fica o fio inferior */
+@keyframes nav-rolada { to { box-shadow: 0 12px 24px -20px rgba(4, 63, 99, 0.35); } }
+@supports (animation-timeline: scroll()) {
+  .nav { animation: nav-rolada linear both; }
+  /* seletor separado: no mesmo, o minificador funde num atalho inválido (ver design/MOTION.md) */
+  .page > .nav { animation-timeline: scroll(); animation-range: 0 64px; }
+}
+
+/* ================= voltar ao topo ================= */
+/* Botão flutuante (BaseLayout + src/scripts/topo.ts). Fora do fluxo e invisível até o script marcar
+   data-visivel; visibility tira do Tab e do leitor de tela enquanto escondido. */
+.nav:focus { outline: none; } /* alvo do foco do "Voltar ao topo", não é um controle */
+.topo {
+  position: fixed; z-index: 25;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--paper); color: var(--navy); border: 1.5px solid var(--rule-strong);
+  box-shadow: 0 18px 36px -18px rgba(4, 63, 99, 0.35);
+  opacity: 0; visibility: hidden; transform: translateY(8px);
+  transition: opacity 160ms ease, transform 200ms cubic-bezier(0.23, 1, 0.32, 1), visibility 0s linear 200ms, background-color 160ms ease;
+}
+.topo[data-visivel] { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+.topo svg { width: 22px; height: 22px; }
+.topo:active { transform: translateY(1px); }
+@media (hover: hover) and (pointer: fine) {
+  .topo:hover { background: var(--ground); }
+}
+@media (min-width: 641px) {
+  .topo { right: calc(24px + env(safe-area-inset-right, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .topo, .topo[data-visivel], .topo:active { transform: none; }
+}
+
+/* ================= Museu da LAESA (botão do header) ================= */
+/* /historia com botão próprio: contorno navy de 4px (a família do btn-outline, menor), distinto dos links e
+   sem cor de estado, para não competir com a tag menta do edital. Na página, fica preenchido. */
+.nav-museu {
+  flex: none; display: inline-block; height: 38px; line-height: 35px; padding: 0 14px;
+  border: 1.5px solid var(--navy); border-radius: 4px;
+  font-size: 14.5px; font-weight: 600; color: var(--navy); white-space: nowrap;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.nav-museu[aria-current="page"] { background: var(--navy); color: var(--on-navy); }
+@media (hover: hover) and (pointer: fine) {
+  .nav-museu:not([aria-current]):hover { background: rgba(4, 63, 99, 0.07); }
+}
+.nav-in > .nav-museu { margin-left: -12px; } /* encosta nos links: o gap de 40px do .nav-in separa demais */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .nav-museu { height: 36px; line-height: 33px; padding: 0 12px; font-size: 14px; }
+  .nav-in > .nav-museu { margin-left: 0; }
+}
+/* tablet estreito: só "Museu" na barra (o resto continua no nome acessível) e espaços menores para caber */
+@media (min-width: 641px) and (max-width: 900px) {
+  .nav-in { gap: 16px; }
+  .nav-links { gap: 14px; }
+  .nav-museu { padding: 0 10px; }
+  .nav-museu-de { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+@media (max-width: 640px) {
+  .nav-in > .nav-museu { display: none; }
+  .nav-panel a.nav-museu { display: block; text-align: center; height: 50px; line-height: 46px; margin-top: 18px; padding: 0 16px; border: 2px solid var(--navy); border-bottom: 2px solid var(--navy); font-size: 17px; font-weight: 600; color: var(--navy); }
+  .nav-panel a.nav-museu[aria-current="page"] { color: var(--on-navy); }
+  .nav-panel .nav-museu + .tag-open { margin-top: 16px; }
+}
+

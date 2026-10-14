@@ -1,0 +1,27 @@
+---
+// Pessoa de um mandato na /historia: miniatura 4:5 (ou iniciais), nome, cargo e LinkedIn opcional.
+import LinkedinBtn from './LinkedinBtn.astro';
+import Retrato from './Retrato.astro';
+import Sample from './Sample.astro';
+import type { Pessoa } from '../data/home';
+
+interface Props {
+  pessoa: Pessoa;
+  /** Selo "exemplo" na pessoa: só quando o mandato mistura gente real e de exemplo. */
+  selo?: boolean;
+}
+
+const { pessoa: p, selo = false } = Astro.props;
+---
+<div class="membro">
+  <div class="membro-foto">
+    {/* 72×90 (56×70 no celular) em até 2x */}
+    <Retrato foto={p.foto} nome={p.nome} max={144} menor={72} sizes="(max-width: 640px) 56px, 72px" />
+  </div>
+  <div class="membro-txt">
+    <p class="membro-nome">{p.nome}</p>
+    <p class="membro-cargo">{p.cargo}</p>
+    {selo && <Sample />}
+  </div>
+  {p.linkedin && <LinkedinBtn href={p.linkedin} nome={p.nome} />}
+</div>

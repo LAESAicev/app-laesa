@@ -56,7 +56,9 @@ O menta continua reservado para "aberto/agora": a energia nunca usa menta.
 
 ### 5. Branches do hero (na carga da página)
 - As três branches se desenham uma vez na carga: as duas portas ("Quero entrar", "Tenho um projeto") e o link terciário "Receber as novidades da LAESA". O desenho anima o `stroke-dashoffset` do comprimento até 0, em **600ms** com ease-out forte.
-- Escalonamento de **80ms**: a segunda começa 80ms depois da primeira, e a terceira 80ms depois da segunda. Os nós das pontas se preenchem quando o traço chega.
+- Escalonamento de **80ms**: a segunda começa 80ms depois da primeira, e a terceira 80ms depois da segunda.
+- No hero, o que se desenha na carga é o trilho (cor da espinha) com o nó vazado. Quando a agulha passa pelo ponto de onde o ramo sai da espinha, ele é commitado como um nó: o azul se desenha da espinha até o botão (`stroke-dashoffset`, **600ms** ease-out forte), o miolo do nó cresce quando o traço chega (280ms, 300ms depois) e o anel sai só na descida. Um pulso de energia ciano corre o ramo na velocidade da linha (16% de um ciclo de 1,6s).
+- Subindo, o ramo esvazia do botão de volta para a espinha (180ms). Com movimento reduzido, o traço troca de estado direto e o miolo faz só o fade de 150ms, sem anel nem energia.
 - Em `/novidades`, o formulário também nasce de uma branch (ciano, sobre navy) com o mesmo desenho.
 - A espinha do hero já começa preenchida até o primeiro nó, para a página nunca abrir "vazia".
 
