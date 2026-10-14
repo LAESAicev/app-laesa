@@ -19,7 +19,8 @@ const tag =
       ? { text: `Seleção ${numero} em andamento` }
       : null;
 ---
-<header class="nav">
+<!-- tabindex -1: o "Voltar ao topo" (src/scripts/topo.ts) põe o foco aqui -->
+<header class="nav" tabindex="-1">
   <div class="wrap">
     <div class="nav-in">
       <a class="logo" href="/" aria-label="LAESA, página inicial"><Logo /></a>

@@ -1084,3 +1084,31 @@ html { scroll-padding-top: calc(var(--nav-h) + 24px); }
   /* seletor separado: no mesmo, o minificador funde num atalho inválido (ver design/MOTION.md) */
   .page > .nav { animation-timeline: scroll(); animation-range: 0 64px; }
 }
+
+/* ================= voltar ao topo ================= */
+/* Botão flutuante (BaseLayout + src/scripts/topo.ts). Fora do fluxo e invisível até o script marcar
+   data-visivel; visibility tira do Tab e do leitor de tela enquanto escondido. */
+.nav:focus { outline: none; } /* alvo do foco do "Voltar ao topo", não é um controle */
+.topo {
+  position: fixed; z-index: 25;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--paper); color: var(--navy); border: 1.5px solid var(--rule-strong);
+  box-shadow: 0 18px 36px -18px rgba(4, 63, 99, 0.35);
+  opacity: 0; visibility: hidden; transform: translateY(8px);
+  transition: opacity 160ms ease, transform 200ms cubic-bezier(0.23, 1, 0.32, 1), visibility 0s linear 200ms, background-color 160ms ease;
+}
+.topo[data-visivel] { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+.topo svg { width: 22px; height: 22px; }
+.topo:active { transform: translateY(1px); }
+@media (hover: hover) and (pointer: fine) {
+  .topo:hover { background: var(--ground); }
+}
+@media (min-width: 641px) {
+  .topo { right: calc(24px + env(safe-area-inset-right, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .topo, .topo[data-visivel], .topo:active { transform: none; }
+}
