@@ -723,6 +723,9 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
   width: 2px;
   background: var(--blue);
   clip-path: inset(0 -6px calc((1 - var(--p, 0)) * 100%) -6px);
+  /* clip-path só esconde a pintura: sem isto, a energia (translateY até 100%) sai do fim da seção, entra no
+     overflow rolável e o fim da página cresce e encolhe a cada volta (a barra de rolagem "pula"). */
+  overflow-y: clip;
   pointer-events: none;
   --energy: var(--cyan);
 }
