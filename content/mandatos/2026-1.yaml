@@ -17,6 +17,7 @@ membros:
   - cargo: Diretor(a) de Comunicação
     nome: Guilherme Santos de Melo
     foto: /src/assets/uploads/mandatos/2026-1/membros/3/foto.png
+    linkedin: https://www.linkedin.com/in/guilhermesantosdemelo/
     exemplo: false
   - cargo: Diretor(a) Financeiro(a)
     nome: Samuel Egson Milhomem Rodrigues
