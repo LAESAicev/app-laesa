@@ -26,9 +26,11 @@ A v1.1.0 cria a página `/historia`, com a origem da liga, os fundadores e todas
 
 5. **Foto e LinkedIn são opcionais e dependem de autorização.** Valem para qualquer mandato. Só entra foto ou LinkedIn de quem autorizou, e o registro da autorização fica fora do site (cofre ou Drive da LAESA). Sem foto, o site mostra as iniciais no quadro 4:5. Sem LinkedIn, não mostra nada.
 
-6. **LinkedIn só como perfil, validado no build.** O schema (zod) aceita apenas endereços de perfil, `https://www.linkedin.com/in/<perfil>`. Outro domínio ou esquema derruba o build com uma mensagem de erro clara. O link abre em nova aba com `rel="noopener noreferrer"`.
+6. **LinkedIn só como perfil, validado no build.** O schema (zod) aceita apenas endereços de perfil: `https://linkedin.com/in/<perfil>` ou `https://www.linkedin.com/in/<perfil>`, com ou sem barra no fim. Recusa todo o resto: outro esquema ou domínio (inclusive subdomínios como `br.linkedin.com`), outra página do LinkedIn e qualquer sobra depois do perfil (`?utm_...`, `#...`). O erro derruba o build com uma mensagem clara. O link abre em nova aba com `rel="noopener noreferrer"`.
 
-7. **Singleton `historia`.** Um texto livre, com parágrafos separados por linha em branco, e a lista de fundadores (nome e papel, sem foto). Não modelamos as fases da liga: uma pausa e a retomada cabem no texto.
+7. **Estatuto da época, opcional, por mandato.** Cada mandato pode ter o PDF do estatuto em vigor naquele ano, enviado pelo painel para `public/uploads/mandatos/<ano>/`. Em `/historia`, o mandato com PDF mostra o link "Estatuto em vigor na época"; sem PDF, não mostra nada. O mandato atual não herda o estatuto do site: o link só aparece se o campo estiver preenchido. O build aceita só caminho do próprio site que comece com `/uploads/` e termine em `.pdf`.
+
+8. **Singleton `historia`.** Um texto livre, com parágrafos separados por linha em branco, e a lista de fundadores (nome e papel, sem foto). Não modelamos as fases da liga: uma pausa e a retomada cabem no texto.
 
 ## Alternativas descartadas
 
@@ -39,6 +41,6 @@ A v1.1.0 cria a página `/historia`, com a origem da liga, os fundadores e todas
 ## Consequências
 
 - A troca da Mesa vira um passo da [passagem de mandato](../passagem-de-mandato.md): criar o mandato do ano no painel, sem editar o anterior.
-- Criar um mandato muda só YAML em `content/` e fotos em `src/assets/uploads/`, então continua sendo conteúdo promovido sozinho (ADR 0004). A v1.1.0 em si é código e precisa de promoção manual.
+- Criar um mandato muda só YAML em `content/`, fotos em `src/assets/uploads/` e o PDF do estatuto em `public/uploads/`, então continua sendo conteúdo promovido sozinho (ADR 0004). A v1.1.0 em si é código e precisa de promoção manual.
 - **Limite:** o modelo guarda uma Mesa por ano. Se alguém for substituído no meio do mandato e o item for editado, quem saiu some do histórico. Se isso começar a acontecer, um caminho possível é registrar o período de cada membro (ainda não avaliado).
 - Os mandatos anteriores a 2026 só entram com dados confirmados. Não há Mesa antiga inventada no site.

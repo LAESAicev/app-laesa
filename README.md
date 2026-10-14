@@ -55,7 +55,7 @@ Com `npm run dev` no ar, abra `/keystatic`. O painel grava nos arquivos de `cont
 | --- | --- |
 | Configurações e status da seleção | status do processo seletivo (aberto, em andamento ou finalizado), que muda a tag do menu, a seção "Quer entrar?" da home e a página de processos seletivos; também o edital atual e o link do estatuto |
 | Hero: git log | painel do topo da home (o primeiro commit é o HEAD) |
-| Mandatos | um item por mandato da Mesa Diretora, com o ano como endereço (`2026`). O de maior ano é a Mesa da home; todos aparecem em `/historia`. Cada pessoa tem cargo, nome e, se autorizou, foto (recortada sozinha no quadro 4:5) e LinkedIn. Na troca da Mesa, crie um mandato novo em vez de editar o atual ([passagem de mandato](docs/passagem-de-mandato.md)) |
+| Mandatos | um item por mandato da Mesa Diretora, com o ano como endereço (`2026`). O de maior ano é a Mesa da home; todos aparecem em `/historia`. Cada pessoa tem cargo, nome e, se autorizou, foto (recortada sozinha no quadro 4:5) e LinkedIn. O mandato pode ter também o PDF do estatuto em vigor na época, que vira link em `/historia`. Na troca da Mesa, crie um mandato novo em vez de editar o atual ([passagem de mandato](docs/passagem-de-mandato.md)) |
 | História | texto e fundadores da abertura da página `/historia` |
 | Perguntas frequentes | FAQ da página de processos seletivos |
 | Atividades e projetos | oficinas, cursos, eventos, pesquisas e projetos. A ordem e o status ("em breve", "inscrições abertas", "concluído") saem da data. A home mostra as 5 mais perto de hoje, e `/atividades` mostra todas, com busca e filtro por eixo |
