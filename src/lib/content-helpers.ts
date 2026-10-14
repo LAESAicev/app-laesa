@@ -61,13 +61,21 @@ export function validar<S extends z.ZodType>(schema: S, caminho: string, dados: 
 }
 
 /**
- * LinkedIn de quem foi da Mesa: só perfil pessoal, https://linkedin.com/in/<perfil> (com ou sem www, barra
- * final opcional). Qualquer outro esquema, host, página ou sobra (?utm=..., #...) é recusado: o link vai
- * para um botão do site, então não pode levar a outro lugar.
+ * LinkedIn de quem foi da Mesa: só perfil pessoal. Normaliza o que o app e o navegador costumam copiar
+ * (?utm_..., #..., barra final, sem www, subdomínio de país como br.linkedin.com, "joão" sem codificar) para
+ * https://www.linkedin.com/in/<perfil> e só então valida, estrito: o perfil é [A-Za-z0-9_-] ou percent-encoding
+ * de bytes UTF-8 não ASCII (%80 a %FF), então %2e%2e, %00 e %2f não passam. Outro esquema, host, porta, usuário
+ * ou página do LinkedIn → undefined. O valor devolvido é o que vai para o HTML.
  */
-export function linkedinPerfil(v: string): boolean {
-  return /^https:\/\/(www\.)?linkedin\.com\/in\/([\w-]|%[0-9a-f]{2})+\/?$/i.test(v);
+export function linkedinPerfil(v: string): string | undefined {
+  const m = /^https:\/\/(?:(?:www|[a-z]{2})\.)?linkedin\.com\/in\/([^/?#]+)\/?(?:[?#].*)?$/is.exec(v);
+  if (!m || /\s/.test(v)) return undefined;
+  const perfil = m[1].replace(/[^\x00-\x7f]+/gu, encodeURIComponent);
+  return /^(?:[\w-]|%[89a-f][0-9a-f])+$/i.test(perfil) ? `https://www.linkedin.com/in/${perfil}` : undefined;
 }
+
+/** O mesmo formato, no campo do painel (keystatic.config.ts): vazio ou perfil do LinkedIn em https. */
+export const LINKEDIN_PAINEL = /^(?:https:\/\/(?:(?:www|[a-z]{2})\.)?linkedin\.com\/in\/(?:[\w-]|%[89a-f][0-9a-f]|[^\x00-\x7f])+\/?(?:[?#]\S*)?)?$/i;
 
 /**
  * Estatuto em vigor na época de um mandato: só PDF enviado pelo painel, caminho do próprio site em /uploads/

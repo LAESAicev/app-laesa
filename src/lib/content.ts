@@ -72,10 +72,13 @@ export const heroLog: Commit[] = (heroRaw.commits ?? []).map((c) => ({
 }));
 
 // ---- mandatos da Mesa Diretora (content/mandatos/<ano>.yaml, ADR 0005): mais recente primeiro; o atual é o de maior ano
-const linkedin = texto.refine(
-  (v) => !v || linkedinPerfil(v),
-  'LinkedIn precisa ser um perfil pessoal, https://www.linkedin.com/in/seu-perfil (sem ?... nem outra página no fim)',
-);
+// ?utm_..., #..., br.linkedin.com e afins são limpos (linkedinPerfil); o HTML recebe o endereço normalizado.
+const linkedin = texto
+  .refine(
+    (v) => !v || linkedinPerfil(v),
+    'LinkedIn precisa ser um perfil pessoal em https, como https://www.linkedin.com/in/seu-perfil (outro site ou outra página do LinkedIn não servem)',
+  )
+  .transform((v) => (v ? linkedinPerfil(v) : undefined));
 const pessoa = { nome: texto, foto: texto, linkedin, exemplo };
 const mandato = z.strictObject({
   titulo: z.string(),

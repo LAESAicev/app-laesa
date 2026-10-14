@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'astro/zod';
-import { anoDoMandato, dataIso, estatutoPdf, linkedinPerfil, linkSeguro, mandatosPorAno, paragrafos, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
+import { anoDoMandato, dataIso, estatutoPdf, LINKEDIN_PAINEL, linkedinPerfil, linkSeguro, mandatosPorAno, paragrafos, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
 
 describe('linkSeguro (links vindos do painel)', () => {
   it('recusa javascript: e endereços que o navegador leva para outro domínio', () => {
@@ -56,37 +56,57 @@ describe('prorrogacao', () => {
 });
 
 describe('linkedinPerfil (LinkedIn de quem foi da Mesa)', () => {
-  it('aceita só perfil pessoal em https://(www.)linkedin.com/in/<perfil>', () => {
-    for (const bom of [
-      'https://www.linkedin.com/in/fulana',
-      'https://linkedin.com/in/fulana-silva-123',
-      'https://www.linkedin.com/in/fulana/',
-      'https://www.linkedin.com/in/jo%C3%A3o-silva',
+  it('normaliza para https://www.linkedin.com/in/<perfil>: tira ?query, #fragmento, barra final e subdomínio de país', () => {
+    for (const [entrada, saida] of [
+      ['https://www.linkedin.com/in/fulana', 'https://www.linkedin.com/in/fulana'],
+      ['https://linkedin.com/in/fulana-silva-123', 'https://www.linkedin.com/in/fulana-silva-123'],
+      ['https://www.linkedin.com/in/fulana/', 'https://www.linkedin.com/in/fulana'],
+      ['https://www.linkedin.com/in/jo%C3%A3o-silva', 'https://www.linkedin.com/in/jo%C3%A3o-silva'],
+      ['https://br.linkedin.com/in/fulana', 'https://www.linkedin.com/in/fulana'],
+      ['https://www.linkedin.com/in/fulana?utm_source=share&utm_medium=member_android', 'https://www.linkedin.com/in/fulana'],
+      ['https://www.linkedin.com/in/fulana/?utm_source=share#x', 'https://www.linkedin.com/in/fulana'],
+      ['https://www.linkedin.com/in/fulana#x', 'https://www.linkedin.com/in/fulana'],
+      ['https://www.linkedin.com/in/joão-silva', 'https://www.linkedin.com/in/jo%C3%A3o-silva'],
     ]) {
-      expect(linkedinPerfil(bom), bom).toBe(true);
+      expect(linkedinPerfil(entrada), entrada).toBe(saida);
     }
   });
 
-  it('recusa outro esquema, outro host, outra página do LinkedIn e sobras na URL', () => {
+  it('recusa outro esquema, outro host, outra página do LinkedIn e percent-encoding que não seja de UTF-8', () => {
     for (const ruim of [
       'http://www.linkedin.com/in/fulana', // sem https
       'javascript:alert(1)//linkedin.com/in/x',
+      'data:text/html,https://www.linkedin.com/in/x',
       'https://linkedin.com.evil.com/in/fulana',
       'https://evil.com/linkedin.com/in/fulana',
+      'https://evil.com#https://www.linkedin.com/in/fulana',
       'https://www.linkedin.com.br/in/fulana',
-      'https://br.linkedin.com/in/fulana',
       'https://user@www.linkedin.com/in/fulana',
+      'https://www.linkedin.com:8443/in/fulana',
       'https://www.linkedin.com/company/laesaicev',
       'https://www.linkedin.com/in/',
+      'https://www.linkedin.com/in/?x=1',
       'https://www.linkedin.com/in/fulana/detalhes',
-      'https://www.linkedin.com/in/fulana?utm_source=share',
-      'https://www.linkedin.com/in/fulana#x',
+      'https://www.linkedin.com//in/fulana',
+      'https://www.linkedin.com/in/%2e%2e',
+      'https://www.linkedin.com/in/fulana%00',
+      'https://www.linkedin.com/in/fulana%2fdetalhes',
       'https://www.linkedin.com/in/ful ana',
       ' https://www.linkedin.com/in/fulana',
       'www.linkedin.com/in/fulana',
       '',
     ]) {
-      expect(linkedinPerfil(ruim), ruim).toBe(false);
+      expect(linkedinPerfil(ruim), ruim).toBeUndefined();
+    }
+  });
+
+  it('o painel aceita os mesmos formatos e recusa o que o build recusaria por formato', () => {
+    for (const bom of ['', 'https://br.linkedin.com/in/fulana/?utm_source=share', 'https://linkedin.com/in/joão-silva', 'https://www.linkedin.com/in/jo%C3%A3o#x']) {
+      expect(LINKEDIN_PAINEL.test(bom), bom).toBe(true);
+      if (bom) expect(linkedinPerfil(bom), bom).toBeDefined();
+    }
+    for (const ruim of ['http://www.linkedin.com/in/fulana', 'https://www.linkedin.com/company/laesaicev', 'https://www.linkedin.com/in/%2e%2e', 'https://user@www.linkedin.com/in/x', 'https://www.linkedin.com/in/ful ana', 'https://evil.com/in/x']) {
+      expect(LINKEDIN_PAINEL.test(ruim), ruim).toBe(false);
     }
   });
 });

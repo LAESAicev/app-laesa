@@ -3,6 +3,7 @@
 // Fotos ficam em src/assets/uploads (o build redimensiona e recorta); PDFs em public/uploads.
 import { config, collection, fields, singleton } from '@keystatic/core';
 import { EIXOS } from './src/lib/atividades';
+import { LINKEDIN_PAINEL } from './src/lib/content-helpers';
 
 const exemplo = fields.checkbox({
   label: 'Conteúdo provisório',
@@ -17,9 +18,16 @@ const foto = fields.image({
   directory: 'src/assets/uploads/mandatos',
   publicPath: '/src/assets/uploads/mandatos/',
 });
-const linkedin = fields.url({
+// Texto com padrão (e não fields.url) para o painel recusar o que o build recusaria; o build ainda normaliza.
+const linkedin = fields.text({
   label: 'LinkedIn (opcional)',
-  description: 'Só com autorização da pessoa. Perfil pessoal, sem nada depois do nome: https://www.linkedin.com/in/seu-perfil',
+  description: 'Só com autorização da pessoa. Cole o link do perfil pessoal (https://www.linkedin.com/in/seu-perfil); o site tira sozinho o ?utm_... do fim.',
+  validation: {
+    pattern: {
+      regex: LINKEDIN_PAINEL,
+      message: 'Use o link de um perfil pessoal do LinkedIn, começando com https:// (ex.: https://www.linkedin.com/in/seu-perfil). Página de empresa, outro site ou http sem "s" não servem.',
+    },
+  },
 });
 
 // Modo do painel: local (edita os arquivos da máquina, em `npm run dev`) ou GitHub (edita via commits no
