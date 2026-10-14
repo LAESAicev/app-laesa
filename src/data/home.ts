@@ -56,7 +56,7 @@ export type Atividade = Datas & {
 export type Pessoa = { nome: string; cargo: string; foto?: string; linkedin?: string; orientacao?: boolean; exemplo?: boolean };
 
 /** Mandato da Mesa (content/mandatos/<ano>.yaml). O atual é o de maior ano. */
-export type Mandato = { ano: string; titulo: string; periodo?: string; atual: boolean; exemplo: boolean; membros: Pessoa[]; orientador?: Pessoa };
+export type Mandato = { ano: string; titulo: string; periodo?: string; estatuto?: string; atual: boolean; exemplo: boolean; membros: Pessoa[]; orientador?: Pessoa };
 
 /** Página /historia (content/historia.yaml). */
 export type Historia = { paragrafos: string[]; fundadores: { nome: string; papel?: string }[]; exemplo: boolean };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'astro/zod';
-import { anoDoMandato, dataIso, linkedinPerfil, linkSeguro, mandatosPorAno, paragrafos, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
+import { anoDoMandato, dataIso, estatutoPdf, linkedinPerfil, linkSeguro, mandatosPorAno, paragrafos, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
 
 describe('linkSeguro (links vindos do painel)', () => {
   it('recusa javascript: e endereços que o navegador leva para outro domínio', () => {
@@ -87,6 +87,35 @@ describe('linkedinPerfil (LinkedIn de quem foi da Mesa)', () => {
       '',
     ]) {
       expect(linkedinPerfil(ruim), ruim).toBe(false);
+    }
+  });
+});
+
+describe('estatutoPdf (estatuto em vigor na época do mandato)', () => {
+  it('aceita só PDF enviado pelo painel, em /uploads/', () => {
+    for (const bom of ['/uploads/mandatos/2027/estatuto.pdf', '/uploads/mandatos/2025/estatuto.PDF', '/uploads/estatuto-2019.pdf']) {
+      expect(estatutoPdf(bom), bom).toBe(true);
+    }
+  });
+
+  it('recusa link externo, outra extensão, caminho fora de /uploads/ e ".."', () => {
+    for (const ruim of [
+      'https://exemplo.com/estatuto.pdf',
+      '//exemplo.com/uploads/estatuto.pdf',
+      'javascript:alert(1)//uploads/a.pdf',
+      '/uploads/mandatos/2027/estatuto.docx',
+      '/uploads/mandatos/2027/estatuto.pdf.html',
+      '/uploads/mandatos/2027/estatuto.pdf?x=1',
+      '/estatuto.pdf',
+      '/editais/estatuto.pdf',
+      '/uploads/../keystatic/a.pdf',
+      '/uploads/mandatos/../../a.pdf',
+      '/uploads/.pdf',
+      '/uploads\\mandatos\\a.pdf',
+      ' /uploads/mandatos/2027/estatuto.pdf',
+      '',
+    ]) {
+      expect(estatutoPdf(ruim), ruim).toBe(false);
     }
   });
 });

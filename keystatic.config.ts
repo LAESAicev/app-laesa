@@ -147,6 +147,12 @@ export default config({
           },
         }),
         periodo: fields.text({ label: 'Período (opcional)', description: 'Ex.: 2026.1 a 2026.2' }),
+        estatuto: fields.file({
+          label: 'Estatuto em vigor na época (PDF, opcional)',
+          description: 'Só PDF. Aparece como link no mandato em /historia. Vazio: o mandato aparece sem link.',
+          directory: 'public/uploads/mandatos',
+          publicPath: '/uploads/mandatos/',
+        }),
         // ponytail: uma pessoa por item, sem período próprio. Se alguém for substituído no meio do mandato e o
         // item for editado, quem saiu some do histórico (ADR 0005); se acontecer, dar "desde/até" a cada membro.
         membros: fields.array(

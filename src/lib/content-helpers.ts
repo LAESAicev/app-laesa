@@ -69,6 +69,14 @@ export function linkedinPerfil(v: string): boolean {
   return /^https:\/\/(www\.)?linkedin\.com\/in\/([\w-]|%[0-9a-f]{2})+\/?$/i.test(v);
 }
 
+/**
+ * Estatuto em vigor na época de um mandato: só PDF enviado pelo painel, caminho do próprio site em /uploads/
+ * terminado em .pdf. Link externo, outra extensão ou ".." no caminho são recusados.
+ */
+export function estatutoPdf(v: string): boolean {
+  return linkSeguro(v) === v && /^\/uploads\/(?:[\w-][\w.-]*\/)*[\w-][\w.-]*\.pdf$/i.test(v);
+}
+
 /** content/mandatos/<ano>.yaml: o nome do arquivo (endereço no painel) é o ano do mandato. */
 export function anoDoMandato(slug: string): string {
   if (!/^\d{4}$/.test(slug)) throw new Error(`content/mandatos/${slug}.yaml: o nome do arquivo precisa ser o ano do mandato (ex.: 2027.yaml). Corrija o campo "Ano" no painel (/keystatic).`);

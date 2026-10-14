@@ -953,6 +953,9 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
 .mandato-head { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .mandato-head .d3 { color: var(--ink-2); }
 .mandato.atual .mandato-head .d3 { color: var(--navy); }
+/* link discreto para o PDF; o ::before leva a área de toque a 44px sem mexer no espaçamento */
+.mandato-estatuto { position: relative; margin-top: 4px; font-size: 14.5px; }
+.mandato-estatuto::before { content: ""; position: absolute; inset: -11px -6px; }
 .membros { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 32px; }
 .orientacao { margin-top: 28px; padding-top: 24px; border-top: 1px dashed var(--rule-strong); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
 .membro { display: flex; align-items: center; gap: 16px; min-height: 90px; }
@@ -992,6 +995,7 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
   .mandato-node { top: 40px; }
   .mandato-head { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 12px; }
   .mandato-head .d3 { flex-basis: 100%; }
+  .mandato-head .mandato-estatuto { margin-top: 6px; }
   .membros { grid-template-columns: 1fr; gap: 20px; }
   .orientacao { grid-template-columns: 1fr; margin-top: 24px; padding-top: 20px; }
   .membro { min-height: 70px; gap: 14px; }

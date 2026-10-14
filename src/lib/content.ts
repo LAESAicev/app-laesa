@@ -6,7 +6,7 @@ import { PUBLIC_CONTACT_EMAIL, PUBLIC_LINKEDIN_URL, PUBLIC_GITHUB_URL, PUBLIC_IN
 import type { Canal, StatusSelecao } from '../data/site';
 import type { Atividade, Commit, Historia, Mandato, Pessoa } from '../data/home';
 import { EIXOS, candidatasHome, comparar, hojeEm } from './atividades';
-import { anoDoMandato, dataCurta, dataIso, linkedinPerfil, linkSeguro, mandatosPorAno, paragrafos, periodo, prorrogacao, validar } from './content-helpers';
+import { anoDoMandato, dataCurta, dataIso, estatutoPdf, linkedinPerfil, linkSeguro, mandatosPorAno, paragrafos, periodo, prorrogacao, validar } from './content-helpers';
 import type { Edital } from '../data/editais';
 
 // O conteúdo (content/*.yaml, escrito pelo painel) entra NO BUILD via import.meta.glob: o servidor de
@@ -80,6 +80,7 @@ const pessoa = { nome: texto, foto: texto, linkedin, exemplo };
 const mandato = z.strictObject({
   titulo: z.string(),
   periodo: texto,
+  estatuto: texto.refine((v) => !v || estatutoPdf(v), 'o estatuto da época precisa ser um PDF enviado pelo painel, não um link (ex.: /uploads/mandatos/2027/estatuto.pdf)'),
   membros: z.array(z.strictObject({ cargo: z.string(), ...pessoa })).nullish(),
   orientador: z.strictObject(pessoa).nullish(),
 });
@@ -102,6 +103,7 @@ export const mandatos: Mandato[] = mandatosPorAno(
       ano: anoDoMandato(slug),
       titulo: entry.titulo,
       periodo: entry.periodo || undefined,
+      estatuto: entry.estatuto || undefined,
       // selo no cabeçalho do mandato quando todo mundo é provisório; misturado, o selo vai por pessoa
       exemplo: pessoas.length > 0 && pessoas.every((p) => p.exemplo),
       membros,
