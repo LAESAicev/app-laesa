@@ -113,8 +113,9 @@ export default config({
           fields.object({
             nome: fields.text({ label: 'Nome', validation: { length: { min: 2 } } }),
             papel: fields.text({ label: 'Papel (opcional)', description: 'Ex.: primeira presidente' }),
+            linkedin,
           }),
-          { label: 'Fundadores', description: 'Sem foto. Arraste para reordenar.', itemLabel: (p) => p.fields.nome.value || 'Fundador(a)' },
+          { label: 'Fundadores', description: 'Sem foto. Aparecem numa linha no fim do texto; com LinkedIn, o nome vira link. Arraste para reordenar.', itemLabel: (p) => p.fields.nome.value || 'Fundador(a)' },
         ),
         exemplo,
       },
@@ -154,7 +155,7 @@ export default config({
             validation: { pattern: { regex: /^\d{4}-[12]$/, message: 'Use ano-semestre de início, com semestre 1 ou 2. Ex.: 2027-1' } },
           },
         }),
-        periodo: fields.text({ label: 'Período (opcional)', description: 'Ex.: 2026.1 a 2026.2' }),
+        periodo: fields.text({ label: 'Período (opcional)', description: 'Como aparece no site. Ex.: 2026.2, ou 2023 para um mandato do ano inteiro' }),
         estatuto: fields.file({
           label: 'Estatuto em vigor na época (PDF, opcional)',
           description: 'Só PDF: outro tipo de arquivo impede a publicação do site. Aparece como link no mandato em /historia. Vazio: o mandato aparece sem link.',

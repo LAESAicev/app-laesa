@@ -1,5 +1,5 @@
 texto: |-
-  A LAESA foi fundada em 2023 por Sarah Ocy, Luís Eduardo Alencar e Gabriel Coelho. Os três cursavam Engenharia Elétrica na UFPI, onde participavam de projetos de extensão e de iniciação científica, e decidiram juntos mudar para Engenharia de Software no iCEV. O curso ainda estava começando, e eles quiseram trazer para cá a cultura de pesquisa que tinham vivido na outra faculdade. Assim nasceu a primeira liga acadêmica do curso de Engenharia de Software.
+  A LAESA foi fundada em 2023 por Sarah Ocy, Luis Eduardo Alencar e Gabriel Coelho. Os três cursavam Engenharia Elétrica na UFPI, onde participavam de projetos de extensão e de iniciação científica, e decidiram juntos mudar para Engenharia de Software no iCEV. O curso ainda estava começando, e eles quiseram trazer para cá a cultura de pesquisa que tinham vivido na outra faculdade. Assim nasceu a primeira liga acadêmica do curso de Engenharia de Software.
 
   O objetivo era incentivar a pesquisa e a produção científica dentro do curso, com artigos, atividades de ensino e ações para a comunidade. A liga dividiu a Engenharia de Software em grandes áreas e organizou os membros em times pequenos, cada um pesquisando uma delas. A criação foi rápida: o coordenador do curso, Dimmy Magalhães, apoiou a ideia desde o primeiro contato.
 
@@ -8,6 +8,9 @@ texto: |-
   As atividades voltaram no segundo semestre de 2024, com o professor Carlos Futino como orientador. A primeira atividade depois da retomada foi a palestra "Automatização de pipelines de dados com Docker e Apache Airflow".
 fundadores:
   - nome: Sarah Ocy Sousa Medeiros
+    linkedin: https://www.linkedin.com/in/sarah-medeiros-9b74ba1b3/
   - nome: Luis Eduardo Alencar Melo
+    linkedin: https://www.linkedin.com/in/luiseduardoalencarmelo/
   - nome: Gabriel Feitosa Melo Coelho
+    linkedin: https://www.linkedin.com/in/gabriel--coelho/
 exemplo: false

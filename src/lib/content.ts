@@ -116,12 +116,12 @@ export const mesa: Pessoa[] = mandatos[0].pessoas;
 // ---- história da liga (página /historia)
 const historiaRaw = ler(
   '/content/historia.yaml',
-  z.strictObject({ texto, fundadores: z.array(z.strictObject({ nome: z.string(), papel: texto })).nullish(), exemplo }),
+  z.strictObject({ texto, fundadores: z.array(z.strictObject({ nome: z.string(), papel: texto, linkedin })).nullish(), exemplo }),
   'História da liga',
 );
 export const historia: Historia = {
   paragrafos: paragrafos(historiaRaw.texto),
-  fundadores: (historiaRaw.fundadores ?? []).map((f) => ({ nome: f.nome, papel: f.papel || undefined })),
+  fundadores: (historiaRaw.fundadores ?? []).map((f) => ({ nome: f.nome, papel: f.papel || undefined, linkedin: f.linkedin })),
   exemplo: Boolean(historiaRaw.exemplo),
 };
 

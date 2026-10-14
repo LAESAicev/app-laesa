@@ -59,5 +59,5 @@ export type Pessoa = { nome: string; cargo: string; foto?: string; linkedin?: st
 export type Mandato = { semestre: string; titulo: string; periodo?: string; estatuto?: string; atual: boolean; exemplo: boolean; membros: Pessoa[]; orientador?: Pessoa; /** membros e, no fim, o(a) orientador(a) */ pessoas: Pessoa[] };
 
 /** Página /historia (content/historia.yaml). */
-export type Historia = { paragrafos: string[]; fundadores: { nome: string; papel?: string }[]; exemplo: boolean };
+export type Historia = { paragrafos: string[]; fundadores: { nome: string; papel?: string; linkedin?: string }[]; exemplo: boolean };
 
