@@ -1003,5 +1003,6 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
   .hist-remocao .wrap { padding-block: 40px 72px; }
   .remocao { padding: 20px; }
   .diretoria-mais { margin-top: 32px; }
-  .person-in { gap: 8px; }
+  /* card estreito (2 colunas): o botão desce para baixo do cargo e o nome usa a largura toda */
+  .person-in { flex-direction: column; align-items: flex-start; gap: 10px; }
 }

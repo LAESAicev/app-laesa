@@ -43,13 +43,13 @@ const larguras = [...new Set([Math.min(400, largura), largura])];
     )}
   </div>
   {p.linkedin ? (
-    // Com LinkedIn: botão redondo à direita do nome. Sem ele, o card fica como sempre foi.
+    // Com LinkedIn: botão redondo à direita do nome (no celular, abaixo do cargo). Sem ele, o card fica como sempre foi.
     <div class="person-in">
       <div>
         <h3>{p.nome}</h3>
         <p class="role">{p.cargo}</p>
       </div>
-      <a class="in-btn" href={p.linkedin} target="_blank" rel="noopener noreferrer" aria-label={`LinkedIn de ${p.nome}`}>
+      <a class="in-btn" href={p.linkedin} target="_blank" rel="noopener noreferrer" aria-label={`LinkedIn de ${p.nome} (abre em nova aba)`}>
         <Icon name="linkedin" />
       </a>
     </div>
