@@ -4,10 +4,12 @@ membros:
   - cargo: Presidente
     nome: Felipe Duan da Silva Sousa
     foto: /src/assets/uploads/mandatos/2026-2/membros/0/foto.png
+    linkedin: https://www.linkedin.com/in/felipe-duan/
     exemplo: false
   - cargo: Vice-Presidente
     nome: Beatriz Barreto Marreiros Barbosa
     foto: /src/assets/uploads/mandatos/2026-2/membros/1/foto.png
+    linkedin: https://www.linkedin.com/in/beatriz-barreto-8b0076261/
     exemplo: false
   - cargo: Diretor(a) de Projetos
     nome: Guilherme Santos de Melo
@@ -15,10 +17,12 @@ membros:
     exemplo: false
   - cargo: Diretor(a) de Projetos
     nome: Aurelius Navi Albuquerque Oliveira Brito
+    linkedin: https://www.linkedin.com/in/aureliusnavi/
     exemplo: false
   - cargo: Diretor(a) de Marketing
     nome: Samuel Egson Milhomem Rodrigues
     foto: /src/assets/uploads/mandatos/2026-2/membros/4/foto.png
+    linkedin: https://www.linkedin.com/in/samuelemrodrigues/
     exemplo: false
 orientador:
   nome: Carlos Futino Barreto
