@@ -156,7 +156,7 @@ svg { display: block; }
 .navy .link { color: var(--cyan); border-color: rgba(29, 208, 248, 0.35); }
 
 /* ---------- nav ---------- */
-.nav { height: 80px; border-bottom: 1px solid var(--rule); }
+.nav { position: sticky; top: 0; z-index: 30; height: var(--nav-h); background: var(--ground); border-bottom: 1px solid var(--rule); }
 .nav .wrap { height: 100%; align-items: center; }
 .nav .wrap::before { display: none; }
 .nav-in { grid-column: 1 / -1; display: flex; align-items: center; gap: 40px; }
@@ -349,7 +349,6 @@ svg { display: block; }
   .d3 { font-size: 30px; }
   .lead { font-size: 17px; }
 
-  .nav { height: 68px; }
   .nav-links, .nav .tag-open { display: none; }
   .nav-burger { display: flex; }
   .logo { width: 108px; }
@@ -626,7 +625,6 @@ html { scroll-behavior: smooth; scroll-padding-top: 24px; }
 /* menu mobile */
 .nav-panel { display: none; }
 @media (max-width: 640px) {
-  .nav { position: relative; z-index: 20; }
   .nav-panel { position: absolute; left: 0; right: 0; top: 100%; background: var(--paper); border-bottom: 1px solid var(--rule); box-shadow: 0 24px 40px -24px rgba(4, 63, 99, 0.35); padding: 8px 20px 24px; }
   .nav-panel.is-open { display: block; }
   .nav-panel a { display: block; padding: 14px 0; border-bottom: 1px solid var(--rule); font-size: 17px; font-weight: 500; color: var(--ink); }
@@ -983,7 +981,7 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
 .fundadores li::before { content: ""; position: absolute; left: 0; top: 15px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--blue); box-sizing: border-box; }
 .fundadores li .meta { display: block; margin-top: 2px; }
 /* .sticky-lateral: no desktop, a coluna lateral de uma grade de duas colunas acompanha a leitura e para no fim
-   da grade (o limite do sticky é o pai). O header não é fixo, então o respiro é o mesmo do scroll-padding-top (24px).
+   da grade (o limite do sticky é o pai). O top fica 24px abaixo do header fixo (bloco "header fixo", no fim).
    Usada em /historia (.fundadores, ~200px) e no formulário de contato (home e /contato, de ~510px a ~941px).
    O formulário pode ser mais alto que a janela: src/scripts/sticky-lateral.ts troca o top (inline) para ele ficar
    preso pela base. O .fundadores não carrega o script, então precisa caber na janela.
@@ -1061,4 +1059,28 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
   .diretoria-mais { margin-top: 32px; }
   /* card estreito (2 colunas): o botão desce para baixo do cargo e o nome usa a largura toda */
   .person-in { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+/* ================= header fixo ================= */
+/* O .nav é sticky (src/styles/global.css, seção nav). O .page usa overflow-x: clip, que não cria contêiner de
+   rolagem, então o sticky funciona. --nav-h alimenta a altura do header, o scroll-padding das âncoras e o top
+   dos .sticky-lateral, que ficam 24px abaixo do header. */
+:root { --nav-h: 80px; }
+@media (max-width: 640px) { :root { --nav-h: 68px; } }
+html { scroll-padding-top: calc(var(--nav-h) + 24px); }
+@media (min-width: 1101px) and (min-height: 640px) {
+  .sticky-lateral { top: calc(var(--nav-h) + 24px); }
+}
+/* sem JS, o formulário (até ~941px) só cabe abaixo do header numa janela de 1080px ou mais */
+@media (max-height: 1079px) {
+  .contact-box.sticky-lateral:not([style]) { position: static; }
+}
+/* menu mobile em tela baixa (celular deitado): o painel rola sozinho em vez de sair da tela */
+.nav-panel { max-height: calc(100dvh - var(--nav-h)); overflow-y: auto; overscroll-behavior: contain; }
+/* sombra de sobreposição só depois que a página rola; sem suporte a scroll-driven, fica o fio inferior */
+@keyframes nav-rolada { to { box-shadow: 0 12px 24px -20px rgba(4, 63, 99, 0.35); } }
+@supports (animation-timeline: scroll()) {
+  .nav { animation: nav-rolada linear both; }
+  /* seletor separado: no mesmo, o minificador funde num atalho inválido (ver design/MOTION.md) */
+  .page > .nav { animation-timeline: scroll(); animation-range: 0 64px; }
 }
