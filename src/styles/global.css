@@ -791,15 +791,43 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
   to { transform: scale(1.8); opacity: 0; }
 }
 
-/* Branches do hero: desenhadas uma vez na carga */
-.branch-svg path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: branch-draw 600ms cubic-bezier(0.23, 1, 0.32, 1) 150ms forwards; }
-.branch-svg circle { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: branch-node 280ms cubic-bezier(0.23, 1, 0.32, 1) 620ms forwards; }
-.branch + .branch .branch-svg path { animation-delay: 230ms; }
-.branch + .branch .branch-svg circle { animation-delay: 700ms; }
-.branch + .branch + .branch .branch-svg path { animation-delay: 310ms; }
-.branch + .branch + .branch .branch-svg circle { animation-delay: 780ms; }
+/* Branches: o traço e o nó (path/circle sem classe) se desenham uma vez na carga */
+.branch-svg path:not([class]) { stroke-dasharray: 1; stroke-dashoffset: 1; animation: branch-draw 600ms cubic-bezier(0.23, 1, 0.32, 1) 150ms forwards; }
+.branch-svg circle:not([class]) { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: branch-node 280ms cubic-bezier(0.23, 1, 0.32, 1) 620ms forwards; }
+.branch + .branch .branch-svg path:not([class]) { animation-delay: 230ms; }
+.branch + .branch .branch-svg circle:not([class]) { animation-delay: 700ms; }
+.branch + .branch + .branch .branch-svg path:not([class]) { animation-delay: 310ms; }
+.branch + .branch + .branch .branch-svg circle:not([class]) { animation-delay: 780ms; }
 @keyframes branch-draw { to { stroke-dashoffset: 0; } }
 @keyframes branch-node { to { transform: scale(1); } }
+
+/* Ramos do hero: trilho e nó vazado; quando a agulha passa pela saída do ramo (spine.ts, data-state no .branch),
+   o azul se desenha da espinha até o botão, o miolo do nó cresce quando o traço chega e o anel sai só na descida. */
+.branches .branch-svg path:not([class]) { stroke: var(--spine); }
+.branches .branch-svg circle:not([class]) { fill: var(--ground); stroke: var(--blue); stroke-width: 2; }
+.branch-svg .br-fill { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 180ms ease-out; }
+.branch[data-state="committed"] .br-fill { stroke-dashoffset: 0; transition: stroke-dashoffset 600ms cubic-bezier(0.23, 1, 0.32, 1); }
+.branch-svg .br-miolo, .branch-svg .br-anel { transform-box: fill-box; transform-origin: center; }
+.branch-svg .br-miolo { fill: var(--blue); transform: scale(0.4); opacity: 0; transition: transform 180ms ease-out, opacity 180ms ease-out; }
+.branch[data-state="committed"] .br-miolo {
+  transform: scale(1); opacity: 1;
+  transition: transform 280ms cubic-bezier(0.23, 1, 0.32, 1) 300ms, opacity 280ms cubic-bezier(0.23, 1, 0.32, 1) 300ms;
+}
+.branch-svg .br-anel { fill: none; stroke: var(--blue); stroke-width: 2; opacity: 0; }
+.branch.ring .br-anel { animation: node-ring 600ms cubic-bezier(0.23, 1, 0.32, 1) 300ms; }
+/* Energia: um pulso que sai da espinha e corre o ramo na velocidade da linha (~95px a 420px/s, 16% de 1,6s),
+   só com o ramo preenchido e visível (.is-active) */
+.branch-svg .br-energia {
+  stroke: var(--cyan); stroke-linecap: round; stroke-dasharray: 0.2 1.2; stroke-dashoffset: 0.2;
+  opacity: 0; transition: opacity 180ms ease-out;
+  animation: br-energia 1.6s linear infinite paused;
+}
+.branch[data-state="committed"] .br-energia { opacity: 1; transition-delay: 600ms; }
+.branch.is-active .br-energia { animation-play-state: running; }
+@keyframes br-energia {
+  0% { stroke-dashoffset: 0.2; }
+  16%, 100% { stroke-dashoffset: -1; }
+}
 
 @media (max-width: 640px) {
   .spine-energy + .spine-energy { display: none; }
@@ -812,8 +840,11 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
 @media (prefers-reduced-motion: reduce) {
   .spine-energy, .node::after { display: none; }
   .node::before, .node[data-state="committed"]::before { transform: scale(1); transition: opacity 150ms ease; }
-  .branch-svg path { stroke-dashoffset: 0; animation: none; }
-  .branch-svg circle { transform: none; animation: none; }
+  .branch-svg path:not([class]) { stroke-dashoffset: 0; animation: none; }
+  .branch-svg circle:not([class]) { transform: none; animation: none; }
+  .branch-svg .br-fill, .branch[data-state="committed"] .br-fill { transition: none; }
+  .branch-svg .br-miolo, .branch[data-state="committed"] .br-miolo { transform: scale(1); transition: opacity 150ms ease; }
+  .branch-svg .br-energia, .branch-svg .br-anel { display: none; }
 }
 
 /* formulários (Fase 4) */
