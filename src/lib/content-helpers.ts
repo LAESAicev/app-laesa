@@ -86,9 +86,9 @@ export function estatutoPdf(v: string): boolean {
   return linkSeguro(v) === v && /^\/uploads\/(?:[\w-][\w.-]*\/)*[\w-][\w.-]*\.pdf$/i.test(v);
 }
 
-/** content/mandatos/<ano>.yaml: o nome do arquivo (endereço no painel) é o ano do mandato. */
-export function anoDoMandato(slug: string): string {
-  if (!/^\d{4}$/.test(slug)) throw new Error(`content/mandatos/${slug}.yaml: o nome do arquivo precisa ser o ano do mandato (ex.: 2027.yaml). Corrija o campo "Ano" no painel (/keystatic).`);
+/** content/mandatos/<ano>-<semestre>.yaml: o nome do arquivo (endereço no painel) é o ano e o semestre (1 ou 2) em que a Mesa começou. */
+export function semestreDoMandato(slug: string): string {
+  if (!/^\d{4}-[12]$/.test(slug)) throw new Error(`content/mandatos/${slug}.yaml: o nome do arquivo precisa ser ano-semestre de início do mandato, com semestre 1 ou 2 (ex.: 2027-1.yaml). Corrija o campo "Ano-semestre" no painel (/keystatic).`);
   return slug;
 }
 
@@ -111,10 +111,10 @@ export function orientadorDoMandato(o: PessoaDoPainel | null | undefined): Pesso
   return o && (o.nome || o.foto || o.linkedin || o.exemplo) ? pessoaDoPainel(o, 'Professor(a) Orientador(a)', true) : undefined;
 }
 
-/** Mais recente primeiro. O atual é o de maior ano: trocar a Mesa é criar o mandato novo na posse. */
-export function mandatosPorAno<T extends { ano: string }>(lista: T[]): (T & { atual: boolean })[] {
+/** Mais recente primeiro. O atual é o de maior ano-semestre: trocar a Mesa é criar o mandato novo na posse. */
+export function mandatosPorSemestre<T extends { semestre: string }>(lista: T[]): (T & { atual: boolean })[] {
   if (!lista.length) throw new Error('Nenhum mandato em content/mandatos. Abra o painel (/keystatic) e crie o mandato atual.');
-  return [...lista].sort((a, b) => b.ano.localeCompare(a.ano)).map((m, i) => ({ ...m, atual: i === 0 }));
+  return [...lista].sort((a, b) => b.semestre.localeCompare(a.semestre)).map((m, i) => ({ ...m, atual: i === 0 }));
 }
 
 /** Texto longo do painel → parágrafos (separados por linha em branco). */

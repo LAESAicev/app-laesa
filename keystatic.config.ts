@@ -146,12 +146,12 @@ export default config({
       columns: ['titulo', 'periodo'],
       schema: {
         titulo: fields.slug({
-          name: { label: 'Título', description: 'Ex.: Mandato 2027' },
+          name: { label: 'Título', description: 'Ex.: Mandato 2027.1' },
           slug: {
-            label: 'Ano',
-            description: 'Só o ano, com 4 dígitos (ex.: 2027). O mandato de maior ano é o atual: é a Mesa que aparece na home. Crie o mandato novo na posse, sem editar o anterior.',
-            generate: (titulo) => titulo.match(/\d{4}/)?.[0] ?? '',
-            validation: { pattern: { regex: /^\d{4}$/, message: 'Use só o ano, com 4 dígitos. Ex.: 2027' } },
+            label: 'Ano-semestre',
+            description: 'Ano-semestre de início, ex.: 2027-1 (semestre 1 ou 2). A Mesa pode mudar a cada semestre. O mandato de maior ano-semestre é o atual: é a Mesa que aparece na home. Crie o mandato novo na posse, sem editar o anterior.',
+            generate: (titulo) => titulo.match(/\d{4}[.-][12]/)?.[0].replace('.', '-') ?? '',
+            validation: { pattern: { regex: /^\d{4}-[12]$/, message: 'Use ano-semestre de início, com semestre 1 ou 2. Ex.: 2027-1' } },
           },
         }),
         periodo: fields.text({ label: 'Período (opcional)', description: 'Ex.: 2026.1 a 2026.2' }),

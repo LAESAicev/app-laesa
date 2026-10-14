@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'astro/zod';
-import { anoDoMandato, dataIso, estatutoPdf, LINKEDIN_PAINEL, linkedinPerfil, linkSeguro, mandatosPorAno, orientadorDoMandato, paragrafos, pessoaDoPainel, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
+import { dataIso, estatutoPdf, LINKEDIN_PAINEL, linkedinPerfil, linkSeguro, mandatosPorSemestre, orientadorDoMandato, paragrafos, pessoaDoPainel, periodo, prorrogacao, semestreDoMandato, validar } from '../src/lib/content-helpers';
 
 describe('linkSeguro (links vindos do painel)', () => {
   it('recusa javascript: e endereços que o navegador leva para outro domínio', () => {
@@ -160,25 +160,27 @@ describe('mandatos da Mesa', () => {
     expect(pessoaDoPainel({ nome: null }, 'Presidente', false).nome).toBe('Nome a confirmar');
   });
 
-  it('o nome do arquivo é o ano do mandato', () => {
-    expect(anoDoMandato('2026')).toBe('2026');
-    for (const ruim of ['mandato-2026', '26', '2026-1', '20266']) {
-      expect(() => anoDoMandato(ruim), ruim).toThrow(/content\/mandatos\/.*\.yaml.*ano/);
+  it('o nome do arquivo é o ano e o semestre de início do mandato', () => {
+    expect(semestreDoMandato('2026-2')).toBe('2026-2');
+    expect(semestreDoMandato('2023-1')).toBe('2023-1');
+    for (const ruim of ['2026', '2026-3', '2026-0', '2026.2', '2026-12', 'mandato-2026-1', '26-1', '']) {
+      expect(() => semestreDoMandato(ruim), ruim).toThrow(/content\/mandatos\/.*\.yaml.*ano-semestre.*2027-1\.yaml/);
     }
   });
 
-  it('mais recente primeiro; o atual é o de maior ano', () => {
-    const r = mandatosPorAno([{ ano: '2024' }, { ano: '2026' }, { ano: '2025' }]);
+  it('mais recente primeiro; o atual é o de maior ano e semestre', () => {
+    const r = mandatosPorSemestre([{ semestre: '2025-2' }, { semestre: '2026-1' }, { semestre: '2023-1' }, { semestre: '2026-2' }]);
     expect(r).toEqual([
-      { ano: '2026', atual: true },
-      { ano: '2025', atual: false },
-      { ano: '2024', atual: false },
+      { semestre: '2026-2', atual: true },
+      { semestre: '2026-1', atual: false },
+      { semestre: '2025-2', atual: false },
+      { semestre: '2023-1', atual: false },
     ]);
   });
 
   it('um mandato só é o atual; nenhum mandato é erro', () => {
-    expect(mandatosPorAno([{ ano: '2026' }])).toEqual([{ ano: '2026', atual: true }]);
-    expect(() => mandatosPorAno([])).toThrow(/content\/mandatos/);
+    expect(mandatosPorSemestre([{ semestre: '2026-2' }])).toEqual([{ semestre: '2026-2', atual: true }]);
+    expect(() => mandatosPorSemestre([])).toThrow(/content\/mandatos/);
   });
 });
 

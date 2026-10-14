@@ -16,9 +16,9 @@ A v1.1.0 cria a página `/historia`, com a origem da liga, os fundadores e todas
 
 ## Decisões
 
-1. **Coleção `mandatos`, um arquivo por ano.** Cada mandato fica em `content/mandatos/<ano>.yaml`. O endereço (slug) é o ano com quatro dígitos, e o build recusa qualquer outro formato. A Mesa de `content/mesa.yaml` virou `content/mandatos/2026.yaml`.
+1. **Coleção `mandatos`, um arquivo por ano-semestre.** Cada mandato fica em `content/mandatos/<ano>-<semestre>.yaml`. O endereço (slug) é o ano com quatro dígitos e o semestre em que a Mesa começou (1 ou 2), como `2027-1`, e o build recusa qualquer outro formato com uma mensagem que cita o arquivo. O estatuto prevê mandatos de dois semestres, mas na prática a Mesa já mudou de um semestre para o outro (2024.2, 2025.1, 2025.2...), então o semestre faz parte do endereço. A Mesa de `content/mesa.yaml` virou `content/mandatos/2026-2.yaml`. Um mandato que durou o ano inteiro usa o semestre de início (`2023-1`) e o campo Período diz "2023".
 
-2. **O mandato atual é o de maior ano.** Não há ponteiro "mandato atual" nem comparação com a data de hoje. Trocar a Mesa é criar o mandato do ano novo na posse (última reunião interna do ano, Art. 35 do estatuto). A home mostra esse mandato, e `/historia` lista todos, do mais recente para o mais antigo.
+2. **O mandato atual é o de maior ano-semestre.** `2026-2` vem antes de `2026-1`, que vem antes de `2025-2`. Não há ponteiro "mandato atual" nem comparação com a data de hoje. Trocar a Mesa é criar o mandato novo na posse (última reunião interna do ano, Art. 35 do estatuto). A home mostra esse mandato, e `/historia` lista todos, do mais recente para o mais antigo.
 
 3. **Membros numa lista ordenada, com cargo livre.** Cada membro tem cargo, nome, foto, LinkedIn e o selo de conteúdo provisório. O cargo é texto livre porque os estatutos antigos tinham outros cargos; a descrição do campo no painel lista os cargos do estatuto atual. A ordem da lista é a ordem no site.
 
@@ -28,7 +28,7 @@ A v1.1.0 cria a página `/historia`, com a origem da liga, os fundadores e todas
 
 6. **LinkedIn só como perfil, em duas camadas.** O painel guarda o campo como texto com padrão: aceita vazio ou um perfil do LinkedIn em `https` (com ou sem `www`, com subdomínio de país como `br.linkedin.com`, com ou sem `?utm_...`/`#...` no fim) e mostra o erro no próprio campo. O build normaliza antes de validar: tira `?...`, `#...` e a barra final, troca o subdomínio de país (ou a falta de `www`) por `www.linkedin.com` e codifica letras acentuadas do perfil (`joão` vira `jo%C3%A3o`). Depois valida estrito, `https://www.linkedin.com/in/<perfil>`, com o perfil feito só de letras, números, `_`, `-` ou percent-encoding de caracteres não ASCII (`%2e%2e`, `%00`, `%2f` são recusados). Recusa outro esquema, outro domínio, usuário ou porta na URL e outras páginas do LinkedIn; o erro derruba o build com uma mensagem clara. O endereço normalizado é o que vai para o HTML, e o link abre em nova aba com `rel="noopener noreferrer"`. O painel aceitava qualquer URL e o build recusava os formatos que o app do LinkedIn copia, o que travava o deploy de conteúdo; por isso a limpeza fica no build e a recusa aparece no painel.
 
-7. **Estatuto da época, opcional, por mandato.** Cada mandato pode ter o PDF do estatuto em vigor naquele ano, enviado pelo painel para `public/uploads/mandatos/<ano>/`. Em `/historia`, o mandato com PDF mostra o link "Estatuto em vigor na época"; sem PDF, não mostra nada. O mandato atual não herda o estatuto do site: o link só aparece se o campo estiver preenchido. O build aceita só caminho do próprio site que comece com `/uploads/` e termine em `.pdf`.
+7. **Estatuto da época, opcional, por mandato.** Cada mandato pode ter o PDF do estatuto em vigor naquele ano, enviado pelo painel para `public/uploads/mandatos/<ano>-<semestre>/`. Em `/historia`, o mandato com PDF mostra o link "Estatuto em vigor na época"; sem PDF, não mostra nada. O mandato atual não herda o estatuto do site: o link só aparece se o campo estiver preenchido. O build aceita só caminho do próprio site que comece com `/uploads/` e termine em `.pdf`.
 
 8. **Singleton `historia`.** Um texto livre, com parágrafos separados por linha em branco, e a lista de fundadores (nome e papel, sem foto). Não modelamos as fases da liga: uma pausa e a retomada cabem no texto.
 
@@ -36,11 +36,11 @@ A v1.1.0 cria a página `/historia`, com a origem da liga, os fundadores e todas
 
 - **Manter o singleton e copiar a Mesa antiga para um histórico à mão:** depende de alguém lembrar de copiar antes de sobrescrever, e um esquecimento perde a Mesa anterior.
 - **Mandato vigente pela data (início e fim):** o site é gerado no build, então trocaria de Mesa na data do último build, e não na da posse. Também obrigaria a preencher datas que o estatuto não fixa com precisão.
-- **Ponteiro `mandatoAtual` nas configurações:** é um campo a mais para esquecer na troca, e ele pode apontar para um mandato que não existe. **Reconsiderar** se a Mesa precisar cadastrar o mandato novo antes da posse sem que ele apareça na home. Hoje, quem cria o mandato do ano seguinte antes da hora coloca essa Mesa no site.
+- **Ponteiro `mandatoAtual` nas configurações:** é um campo a mais para esquecer na troca, e ele pode apontar para um mandato que não existe. **Reconsiderar** se a Mesa precisar cadastrar o mandato novo antes da posse sem que ele apareça na home. Hoje, quem cria o mandato do semestre seguinte antes da hora coloca essa Mesa no site.
 
 ## Consequências
 
-- A troca da Mesa vira um passo da [passagem de mandato](../passagem-de-mandato.md): criar o mandato do ano no painel, sem editar o anterior.
+- A troca da Mesa vira um passo da [passagem de mandato](../passagem-de-mandato.md): criar o mandato do ano-semestre no painel, sem editar o anterior.
 - Criar um mandato muda só YAML em `content/`, fotos em `src/assets/uploads/` e o PDF do estatuto em `public/uploads/`, então continua sendo conteúdo promovido sozinho (ADR 0004). A v1.1.0 em si é código e precisa de promoção manual.
-- **Limite:** o modelo guarda uma Mesa por ano. Se alguém for substituído no meio do mandato e o item for editado, quem saiu some do histórico. Se isso começar a acontecer, um caminho possível é registrar o período de cada membro (ainda não avaliado).
+- **Limite:** o modelo guarda uma Mesa por semestre. Se alguém for substituído no meio do mandato e o item for editado, quem saiu some do histórico. Se isso começar a acontecer, um caminho possível é registrar o período de cada membro (ainda não avaliado).
 - Os mandatos anteriores a 2026 só entram com dados confirmados. Não há Mesa antiga inventada no site.

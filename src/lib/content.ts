@@ -6,7 +6,7 @@ import { PUBLIC_CONTACT_EMAIL, PUBLIC_LINKEDIN_URL, PUBLIC_GITHUB_URL, PUBLIC_IN
 import type { Canal, StatusSelecao } from '../data/site';
 import type { Atividade, Commit, Historia, Mandato, Pessoa } from '../data/home';
 import { EIXOS, candidatasHome, comparar, hojeEm } from './atividades';
-import { anoDoMandato, dataCurta, dataIso, estatutoPdf, linkedinPerfil, linkSeguro, mandatosPorAno, orientadorDoMandato, paragrafos, pessoaDoPainel, periodo, prorrogacao, validar } from './content-helpers';
+import { dataCurta, dataIso, estatutoPdf, linkedinPerfil, linkSeguro, mandatosPorSemestre, orientadorDoMandato, paragrafos, pessoaDoPainel, periodo, prorrogacao, semestreDoMandato, validar } from './content-helpers';
 import type { Edital } from '../data/editais';
 
 // O conteúdo (content/*.yaml, escrito pelo painel) entra NO BUILD via import.meta.glob: o servidor de
@@ -71,7 +71,7 @@ export const heroLog: Commit[] = (heroRaw.commits ?? []).map((c) => ({
   meta: c.meta || undefined,
 }));
 
-// ---- mandatos da Mesa Diretora (content/mandatos/<ano>.yaml, ADR 0005): mais recente primeiro; o atual é o de maior ano
+// ---- mandatos da Mesa Diretora (content/mandatos/<ano>-<semestre>.yaml, ADR 0005): mais recente primeiro; o atual é o de maior ano-semestre
 // ?utm_..., #..., br.linkedin.com e afins são limpos (linkedinPerfil); o HTML recebe o endereço normalizado.
 const linkedin = texto
   .refine(
@@ -91,13 +91,13 @@ const mandato = z.strictObject({
   orientador: z.strictObject(pessoa).nullish(),
 });
 
-export const mandatos: Mandato[] = mandatosPorAno(
+export const mandatos: Mandato[] = mandatosPorSemestre(
   colecao('mandatos', mandato).map(({ slug, entry }) => {
     const membros = (entry.membros ?? []).map((p) => pessoaDoPainel(p, p.cargo, false));
     const orientador = orientadorDoMandato(entry.orientador);
     const pessoas = orientador ? [...membros, orientador] : membros;
     return {
-      ano: anoDoMandato(slug),
+      semestre: semestreDoMandato(slug),
       titulo: entry.titulo,
       periodo: entry.periodo || undefined,
       estatuto: entry.estatuto || undefined,
