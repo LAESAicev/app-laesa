@@ -13,6 +13,7 @@ membros:
     exemplo: false
   - cargo: Diretor(a) de Ensino
     nome: Aurelius Navi Albuquerque Oliveira Brito
+    foto: /src/assets/uploads/mandatos/2026-1/membros/2/foto.jpeg
     linkedin: https://www.linkedin.com/in/aureliusnavi/
     exemplo: false
   - cargo: Diretor(a) de Comunicação
