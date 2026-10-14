@@ -7,13 +7,15 @@ interface Props {
   id?: string;
   /** Nível do título de sucesso: 2 quando o formulário fica logo abaixo do h1 (/contato), 3 dentro de uma seção. */
   nivel?: 2 | 3;
+  /** Classe extra na caixa do formulário (ex.: sticky-lateral em /contato). */
+  class?: string;
 }
 
-const { id = 'contato-form', nivel = 3 } = Astro.props;
+const { id = 'contato-form', nivel = 3, class: className } = Astro.props;
 const Titulo = `h${nivel}` as const;
 const f = (name: string) => `${id}-${name}`;
 ---
-<div class="contact-box" data-contact-box>
+<div class:list={['contact-box', className]} data-contact-box>
 <form class="form contact-form" id={id} action="/api/contato" method="post" novalidate data-contact-form>
   <div class="err-banner" role="alert" tabindex="-1" data-banner hidden><Icon name="alert" /><span data-banner-text></span></div>
   <div class="hp" aria-hidden="true" inert>

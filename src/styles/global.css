@@ -948,12 +948,20 @@ details.qa[open] .qi { background: var(--navy); border-color: var(--navy); color
 .fundadores li { position: relative; padding: 10px 0 10px 22px; border-bottom: 1px solid var(--rule); font-size: 15.5px; line-height: 1.35; color: var(--ink); }
 .fundadores li::before { content: ""; position: absolute; left: 0; top: 15px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--blue); box-sizing: border-box; }
 .fundadores li .meta { display: block; margin-top: 2px; }
-/* Desktop: o painel acompanha a leitura e para no fim do texto (o limite do sticky é a grade da abertura).
-   O header não é fixo, então o respiro é o mesmo do scroll-padding-top (24px).
-   ponytail: o painel com os 3 fundadores tem ~200px; o min-height evita sticky em janela baixa. Se a lista
-   passar de ~16 nomes (painel > ~500px), subir o min-height ou tirar o sticky, para o fim do painel não ficar inalcançável. */
+/* .sticky-lateral: no desktop, a coluna lateral de uma grade de duas colunas acompanha a leitura e para no fim
+   da grade (o limite do sticky é o pai). O header não é fixo, então o respiro é o mesmo do scroll-padding-top (24px).
+   Só use em elemento que caiba na janela: se ele for mais alto que a viewport, o fim dele fica inalcançável
+   até a grade acabar. Usada em /historia (.fundadores, ~200px) e /contato (formulário, ver abaixo).
+   ponytail: o min-height evita sticky em janela baixa. Se a lista de fundadores passar de ~16 nomes
+   (painel > ~500px), subir o min-height ou tirar a classe. */
 @media (min-width: 1101px) and (min-height: 640px) {
-  .fundadores { position: sticky; top: 24px; align-self: start; }
+  .sticky-lateral { position: sticky; top: 24px; align-self: start; }
+}
+/* /contato: o formulário vai de ~510px a ~941px (propor projeto com erros nos campos e banner, medido em 1440px).
+   Abaixo de 1000px de altura ele não caberia e o botão Enviar ficaria fora da tela, então ali fica sem sticky.
+   ponytail: se o formulário ganhar campos, medir de novo e subir esse limite. */
+@media (max-height: 999px) {
+  .contact-box.sticky-lateral { position: static; }
 }
 
 .hist-mandatos .wrap { padding-top: 112px; }
