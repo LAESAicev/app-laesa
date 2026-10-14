@@ -1,7 +1,13 @@
 texto: |-
-  A Liga Acadêmica de Engenharia de Software Aplicada (LAESA), criada em 2023, em Teresina, Piauí, é uma associação acadêmica sem fins lucrativos e sem influência político-partidária, fundada por alunos da graduação em Engenharia de Software do iCEV Instituto de Ensino Superior.
+  A LAESA foi fundada em 2023 por Sarah Ocy, Luís Eduardo Alencar e Gabriel Coelho. Os três cursavam Engenharia Elétrica na UFPI, onde participavam de projetos de extensão e de iniciação científica, e decidiram juntos mudar para Engenharia de Software no iCEV. O curso ainda estava começando, e eles quiseram trazer para cá a cultura de pesquisa que tinham vivido na outra faculdade. Assim nasceu a primeira liga acadêmica do curso de Engenharia de Software.
 
-  [Como a liga começou... texto a confirmar com a Mesa.]
+  O objetivo era incentivar a pesquisa e a produção científica dentro do curso, com artigos, atividades de ensino e ações para a comunidade. A liga dividiu a Engenharia de Software em grandes áreas e organizou os membros em times pequenos, cada um pesquisando uma delas. A criação foi rápida: o coordenador do curso, Dimmy, apoiou a ideia desde o primeiro contato.
+
+  Com a formatura de parte da primeira Mesa Diretora, a liga ficou parada. Em 2024, um grupo de alunas do curso, que já se reunia para se conhecer e ganhar espaço num curso com maioria masculina, decidiu trazê-la de volta. Com a orientação da coordenação e o contato com o antigo presidente, elas retomaram o estatuto e parte do logo, o cérebro que segue na marca até hoje. A organização foi montada do zero: reuniões, redes sociais e um processo seletivo para novos membros.
+
+  As atividades voltaram no segundo semestre de 2024, com o professor Carlos Futino como orientador. A primeira atividade depois da retomada foi a palestra "Automatização de pipelines de dados com Docker e Apache Airflow".
 fundadores:
-  - nome: '[Nome do fundador]'
-exemplo: true
+  - nome: Sarah Ocy
+  - nome: Luís Eduardo Alencar
+  - nome: Gabriel Coelho
+exemplo: false
