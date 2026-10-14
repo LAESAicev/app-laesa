@@ -83,7 +83,10 @@ const pessoa = { nome: texto, foto: texto, linkedin, exemplo };
 const mandato = z.strictObject({
   titulo: z.string(),
   periodo: texto,
-  estatuto: texto.refine((v) => !v || estatutoPdf(v), 'o estatuto da época precisa ser um PDF enviado pelo painel, não um link (ex.: /uploads/mandatos/2027/estatuto.pdf)'),
+  // o painel (fields.file) não restringe a extensão: o erro diz qual arquivo veio e o que fazer
+  estatuto: texto.refine((v) => !v || estatutoPdf(v), {
+    error: (i) => `"${String(i.input)}" não é um PDF enviado pelo painel. No mandato, remova esse arquivo do campo "Estatuto em vigor na época" e envie o estatuto em PDF (ou deixe o campo vazio).`,
+  }),
   membros: z.array(z.strictObject({ cargo: z.string(), ...pessoa })).nullish(),
   orientador: z.strictObject(pessoa).nullish(),
 });

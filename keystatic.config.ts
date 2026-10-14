@@ -157,7 +157,7 @@ export default config({
         periodo: fields.text({ label: 'Período (opcional)', description: 'Ex.: 2026.1 a 2026.2' }),
         estatuto: fields.file({
           label: 'Estatuto em vigor na época (PDF, opcional)',
-          description: 'Só PDF. Aparece como link no mandato em /historia. Vazio: o mandato aparece sem link.',
+          description: 'Só PDF: outro tipo de arquivo impede a publicação do site. Aparece como link no mandato em /historia. Vazio: o mandato aparece sem link.',
           directory: 'public/uploads/mandatos',
           publicPath: '/uploads/mandatos/',
         }),
