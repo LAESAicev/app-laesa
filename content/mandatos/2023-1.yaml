@@ -1,0 +1,27 @@
+titulo: Mandato 2023
+periodo: '2023'
+membros:
+  - cargo: Cargo a confirmar
+    nome: Anderson Felipe Oliveira de Sousa
+    exemplo: false
+  - cargo: Cargo a confirmar
+    nome: Maria Eduarda de Araujo Cabral
+    exemplo: false
+  - cargo: Cargo a confirmar
+    nome: Gabriel Feitosa Melo Coelho
+    exemplo: false
+  - cargo: Cargo a confirmar
+    nome: Lígia Karolinne Araújo Sousa
+    exemplo: false
+  - cargo: Cargo a confirmar
+    nome: Regla Bel Cruz Lula
+    exemplo: false
+  - cargo: Cargo a confirmar
+    nome: Sarah Ocy Sousa Medeiros
+    exemplo: false
+  - cargo: Cargo a confirmar
+    nome: Luis Eduardo Alencar Melo
+    foto: /src/assets/uploads/mandatos/2023-1/membros/6/foto.jpeg
+    exemplo: false
+orientador:
+  exemplo: false

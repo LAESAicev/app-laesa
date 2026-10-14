@@ -1,0 +1,25 @@
+titulo: Mandato 2025.2
+periodo: '2025.2'
+membros:
+  - cargo: Presidente
+    nome: Kévilla
+    foto: /src/assets/uploads/mandatos/2025-2/membros/0/foto.jpeg
+    exemplo: false
+  - cargo: Vice-Presidente
+    nome: Felipe Duan da Silva Sousa
+    foto: /src/assets/uploads/mandatos/2025-2/membros/1/foto.png
+    exemplo: false
+  - cargo: Diretor(a) de Ensino
+    nome: Ingrid
+    exemplo: false
+  - cargo: Diretor(a) Financeiro(a)
+    nome: Beatriz Barreto Marreiros Barbosa
+    foto: /src/assets/uploads/mandatos/2025-2/membros/3/foto.png
+    exemplo: false
+  - cargo: Diretor(a) de Pesquisa
+    nome: Cassy
+    exemplo: false
+orientador:
+  nome: Carlos Futino Barreto
+  foto: /src/assets/uploads/mandatos/2025-2/orientador/foto.jpeg
+  exemplo: false

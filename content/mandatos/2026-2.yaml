@@ -1,4 +1,5 @@
-titulo: Mandato 2026
+titulo: Mandato 2026.2
+periodo: '2026.2'
 membros:
   - cargo: Presidente
     nome: Felipe Duan da Silva Sousa
@@ -12,9 +13,12 @@ membros:
     nome: Guilherme Santos de Melo
     foto: /src/assets/uploads/mandatos/2026-2/membros/2/foto.png
     exemplo: false
+  - cargo: Diretor(a) de Projetos
+    nome: Aurelius
+    exemplo: false
   - cargo: Diretor(a) de Marketing
     nome: Samuel Egson Milhomem Rodrigues
-    foto: /src/assets/uploads/mandatos/2026-2/membros/3/foto.png
+    foto: /src/assets/uploads/mandatos/2026-2/membros/4/foto.png
     exemplo: false
 orientador:
   nome: Carlos Futino Barreto
