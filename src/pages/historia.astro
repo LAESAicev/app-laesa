@@ -4,6 +4,7 @@ import Section from '../components/Section.astro';
 import Sample from '../components/Sample.astro';
 import MembroMandato from '../components/MembroMandato.astro';
 import Icon from '../components/Icon.astro';
+import FaixaAvisos from '../components/FaixaAvisos.astro';
 import { historia, mandatos } from '../lib/content';
 
 export const prerender = true;
@@ -79,4 +80,13 @@ export const prerender = true;
   <Section class="paper hist-remocao" node={false}>
     <p class="remocao">Seu nome ou sua foto aparece aqui e você quer tirar? <a class="link-inline" href="/contato?assunto=duvida">Peça pelo formulário de contato</a>.</p>
   </Section>
+
+  <FaixaAvisos
+    avisosTitulo="Quer fazer parte dessa história?"
+    avisosTexto="Deixe seu e-mail e saiba quando abrir o próximo edital da LAESA."
+    colaborarTitulo="Fez parte da LAESA e não está aqui?"
+    colaborarTexto="Se você esteve na Mesa Diretora ou ajudou a fundar a liga, fale com a gente para completarmos o registro."
+    colaborarLink="Completar o registro"
+    colaborarHref="/contato?assunto=duvida"
+  />
 </BaseLayout>

@@ -1,0 +1,30 @@
+---
+// Faixa navy do fim da página: inscrição nas novidades (#avisos) + chamada para colaborar.
+// Usada em EditalPage, /atividades e /historia; só os textos mudam. Estilo em global.css (.ps-band, .band-item).
+import Section from './Section.astro';
+import Icon from './Icon.astro';
+import SubscribeForm from './SubscribeForm.astro';
+
+interface Props {
+  avisosTitulo: string;
+  avisosTexto: string;
+  colaborarTitulo: string;
+  colaborarTexto: string;
+  colaborarLink: string;
+  colaborarHref: string;
+}
+
+const { avisosTitulo, avisosTexto, colaborarTitulo, colaborarTexto, colaborarLink, colaborarHref } = Astro.props;
+---
+<Section class="navy deep ps-band" node={96} colClass="ps-band-grid" label="Avisos e colaboração">
+  <div class="band-item" id="avisos">
+    <h2 class="d3">{avisosTitulo}</h2>
+    <p class="body">{avisosTexto}</p>
+    <SubscribeForm />
+  </div>
+  <div class="band-item">
+    <h2 class="d3">{colaborarTitulo}</h2>
+    <p class="body">{colaborarTexto}</p>
+    <a class="link" href={colaborarHref}>{colaborarLink} <Icon name="arrow" /></a>
+  </div>
+</Section>

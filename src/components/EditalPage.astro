@@ -7,7 +7,7 @@ import Icon from './Icon.astro';
 import Sample from './Sample.astro';
 import StatusTag from './StatusTag.astro';
 import RulesList from './RulesList.astro';
-import SubscribeForm from './SubscribeForm.astro';
+import FaixaAvisos from './FaixaAvisos.astro';
 import { faq, editais, editalAtual } from '../lib/content';
 import { statusDo, etapasDo, etapaAtual, rotuloStatus, numeroDo, type Edital } from '../data/editais';
 
@@ -212,15 +212,11 @@ const regrasDepois = [
 </Section>
 
 <!-- AVISO + COLABORADORES -->
-<Section class="navy deep ps-band" node={96} colClass="ps-band-grid" label="Avisos e colaboração">
-  <div class="band-item" id="avisos">
-    <h2 class="d3">{status === 'aberto' ? 'Quer saber dos próximos editais?' : 'Chegou fora do período de inscrição?'}</h2>
-    <p class="body">Deixe seu e-mail e receba as novidades da LAESA, inclusive quando o próximo edital abrir.</p>
-    <SubscribeForm />
-  </div>
-  <div class="band-item">
-    <h2 class="d3">Não é estudante, mas quer contribuir?</h2>
-    <p class="body">A Diretoria de Projetos abre chamadas para colaboradores, mentores, palestrantes e voluntários, com certificado conforme a atividade.</p>
-    <a class="link" href="/contato?assunto=colaborar">Falar sobre colaboração <Icon name="arrow" /></a>
-  </div>
-</Section>
+<FaixaAvisos
+  avisosTitulo={status === 'aberto' ? 'Quer saber dos próximos editais?' : 'Chegou fora do período de inscrição?'}
+  avisosTexto="Deixe seu e-mail e receba as novidades da LAESA, inclusive quando o próximo edital abrir."
+  colaborarTitulo="Não é estudante, mas quer contribuir?"
+  colaborarTexto="A Diretoria de Projetos abre chamadas para colaboradores, mentores, palestrantes e voluntários, com certificado conforme a atividade."
+  colaborarLink="Falar sobre colaboração"
+  colaborarHref="/contato?assunto=colaborar"
+/>
