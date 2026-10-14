@@ -2,9 +2,23 @@ titulo: Mandato 2023
 periodo: '2023'
 estatuto: /uploads/mandatos/2023-1/estatuto.pdf
 membros:
-  - cargo: Cargo a confirmar
+  - cargo: Presidente
+    nome: Luis Eduardo Alencar Melo
+    foto: /src/assets/uploads/mandatos/2023-1/membros/0/foto.jpeg
+    linkedin: https://www.linkedin.com/in/luiseduardoalencarmelo/
+    exemplo: false
+  - cargo: Diretor(a) Financeiro(a)
     nome: Anderson Felipe Oliveira de Sousa
     linkedin: https://www.linkedin.com/in/andersonoli/?locale=pt
+    exemplo: false
+  - cargo: Diretor(a) de Ensino
+    nome: Regla Bel Cruz Lula
+    linkedin: https://www.linkedin.com/in/reglabel/
+    exemplo: false
+  - cargo: Diretor(a) de Metodologias Ágeis
+    nome: Sarah Ocy Sousa Medeiros
+    foto: /src/assets/uploads/mandatos/2023-1/membros/3/foto.jpeg
+    linkedin: https://www.linkedin.com/in/sarah-medeiros-9b74ba1b3/
     exemplo: false
   - cargo: Cargo a confirmar
     nome: Maria Eduarda de Araujo Cabral
@@ -15,20 +29,6 @@ membros:
     exemplo: false
   - cargo: Cargo a confirmar
     nome: Lígia Karolinne Araújo Sousa
-    exemplo: false
-  - cargo: Cargo a confirmar
-    nome: Regla Bel Cruz Lula
-    linkedin: https://www.linkedin.com/in/reglabel/
-    exemplo: false
-  - cargo: Diretor(a) de Metodologias Ágeis
-    nome: Sarah Ocy Sousa Medeiros
-    foto: /src/assets/uploads/mandatos/2023-1/membros/5/foto.jpeg
-    linkedin: https://www.linkedin.com/in/sarah-medeiros-9b74ba1b3/
-    exemplo: false
-  - cargo: Cargo a confirmar
-    nome: Luis Eduardo Alencar Melo
-    foto: /src/assets/uploads/mandatos/2023-1/membros/6/foto.jpeg
-    linkedin: https://www.linkedin.com/in/luiseduardoalencarmelo/
     exemplo: false
 orientador:
   nome: Irvayne Matheus de Sousa Ibiapina
