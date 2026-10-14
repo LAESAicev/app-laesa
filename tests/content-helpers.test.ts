@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'astro/zod';
-import { anoDoMandato, dataIso, estatutoPdf, LINKEDIN_PAINEL, linkedinPerfil, linkSeguro, mandatosPorAno, paragrafos, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
+import { anoDoMandato, dataIso, estatutoPdf, LINKEDIN_PAINEL, linkedinPerfil, linkSeguro, mandatosPorAno, orientadorDoMandato, paragrafos, pessoaDoPainel, periodo, prorrogacao, validar } from '../src/lib/content-helpers';
 
 describe('linkSeguro (links vindos do painel)', () => {
   it('recusa javascript: e endereços que o navegador leva para outro domínio', () => {
@@ -141,6 +141,25 @@ describe('estatutoPdf (estatuto em vigor na época do mandato)', () => {
 });
 
 describe('mandatos da Mesa', () => {
+  it('orientador(a) existe se qualquer campo estiver preenchido; sem nome vira "Nome a confirmar"', () => {
+    expect(orientadorDoMandato(null)).toBeUndefined();
+    expect(orientadorDoMandato({ nome: '', foto: null, linkedin: undefined, exemplo: false })).toBeUndefined();
+    expect(orientadorDoMandato({ nome: '', foto: '/src/assets/uploads/mandatos/2027/orientador/foto.jpg', exemplo: false })).toMatchObject({
+      nome: 'Nome a confirmar',
+      cargo: 'Professor(a) Orientador(a)',
+      foto: '/src/assets/uploads/mandatos/2027/orientador/foto.jpg',
+      orientacao: true,
+    });
+    expect(orientadorDoMandato({ linkedin: 'https://www.linkedin.com/in/prof' })?.linkedin).toBe('https://www.linkedin.com/in/prof');
+    expect(orientadorDoMandato({ exemplo: true })).toMatchObject({ nome: 'Nome a confirmar', exemplo: true });
+    expect(orientadorDoMandato({ nome: 'Carla' })).toMatchObject({ nome: 'Carla', foto: undefined, linkedin: undefined, exemplo: false });
+  });
+
+  it('membro sem nome vira "Nome a confirmar"', () => {
+    expect(pessoaDoPainel({ nome: '' }, 'Presidente', false)).toMatchObject({ nome: 'Nome a confirmar', cargo: 'Presidente', orientacao: false });
+    expect(pessoaDoPainel({ nome: null }, 'Presidente', false).nome).toBe('Nome a confirmar');
+  });
+
   it('o nome do arquivo é o ano do mandato', () => {
     expect(anoDoMandato('2026')).toBe('2026');
     for (const ruim of ['mandato-2026', '26', '2026-1', '20266']) {

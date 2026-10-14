@@ -183,7 +183,7 @@ export default config({
         ),
         orientador: fields.object(
           {
-            nome: fields.text({ label: 'Nome', description: 'Vazio se não souber: o mandato aparece sem orientador(a).' }),
+            nome: fields.text({ label: 'Nome', description: 'Com tudo vazio, o mandato aparece sem orientador(a). Com foto ou LinkedIn e sem nome, aparece como "Nome a confirmar".' }),
             foto,
             linkedin,
             exemplo,

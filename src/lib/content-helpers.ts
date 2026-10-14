@@ -1,5 +1,6 @@
 // Funções puras usadas por src/lib/content.ts para tratar o que vem do painel (testes em tests/content-helpers.test.ts).
 import type { z } from 'astro/zod';
+import type { Pessoa } from '../data/home';
 
 /**
  * Links vindos do painel: só http(s), mailto e caminhos do próprio site (nada de javascript:).
@@ -89,6 +90,25 @@ export function estatutoPdf(v: string): boolean {
 export function anoDoMandato(slug: string): string {
   if (!/^\d{4}$/.test(slug)) throw new Error(`content/mandatos/${slug}.yaml: o nome do arquivo precisa ser o ano do mandato (ex.: 2027.yaml). Corrija o campo "Ano" no painel (/keystatic).`);
   return slug;
+}
+
+type PessoaDoPainel = { nome?: string | null; foto?: string | null; linkedin?: string | null; exemplo?: boolean | null };
+
+/** Pessoa de um mandato como o painel grava (vazio = null ou '') → Pessoa das páginas. */
+export function pessoaDoPainel(p: PessoaDoPainel, cargo: string, orientacao: boolean): Pessoa {
+  return {
+    nome: p.nome || 'Nome a confirmar',
+    cargo,
+    foto: p.foto || undefined,
+    linkedin: p.linkedin || undefined,
+    orientacao,
+    exemplo: Boolean(p.exemplo),
+  };
+}
+
+/** O(a) orientador(a) existe se qualquer campo estiver preenchido (só foto ou LinkedIn também conta). */
+export function orientadorDoMandato(o: PessoaDoPainel | null | undefined): Pessoa | undefined {
+  return o && (o.nome || o.foto || o.linkedin || o.exemplo) ? pessoaDoPainel(o, 'Professor(a) Orientador(a)', true) : undefined;
 }
 
 /** Mais recente primeiro. O atual é o de maior ano: trocar a Mesa é criar o mandato novo na posse. */
