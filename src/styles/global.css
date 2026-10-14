@@ -1112,3 +1112,36 @@ html { scroll-padding-top: calc(var(--nav-h) + 24px); }
 @media (prefers-reduced-motion: reduce) {
   .topo, .topo[data-visivel], .topo:active { transform: none; }
 }
+
+/* ================= Museu da LAESA (botão do header) ================= */
+/* /historia com botão próprio: contorno navy de 4px (a família do btn-outline, menor), distinto dos links e
+   sem cor de estado, para não competir com a tag menta do edital. Na página, fica preenchido. */
+.nav-museu {
+  flex: none; display: inline-block; height: 38px; line-height: 35px; padding: 0 14px;
+  border: 1.5px solid var(--navy); border-radius: 4px;
+  font-size: 14.5px; font-weight: 600; color: var(--navy); white-space: nowrap;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.nav-museu[aria-current="page"] { background: var(--navy); color: var(--on-navy); }
+@media (hover: hover) and (pointer: fine) {
+  .nav-museu:not([aria-current]):hover { background: rgba(4, 63, 99, 0.07); }
+}
+.nav-in > .nav-museu { margin-left: -12px; } /* encosta nos links: o gap de 40px do .nav-in separa demais */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .nav-museu { height: 36px; line-height: 33px; padding: 0 12px; font-size: 14px; }
+  .nav-in > .nav-museu { margin-left: 0; }
+}
+/* tablet estreito: só "Museu" na barra (o resto continua no nome acessível) e espaços menores para caber */
+@media (min-width: 641px) and (max-width: 900px) {
+  .nav-in { gap: 16px; }
+  .nav-links { gap: 14px; }
+  .nav-museu { padding: 0 10px; }
+  .nav-museu-de { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+@media (max-width: 640px) {
+  .nav-in > .nav-museu { display: none; }
+  .nav-panel a.nav-museu { display: block; text-align: center; height: 50px; line-height: 46px; margin-top: 18px; padding: 0 16px; border: 2px solid var(--navy); border-bottom: 2px solid var(--navy); font-size: 17px; font-weight: 600; color: var(--navy); }
+  .nav-panel a.nav-museu[aria-current="page"] { color: var(--on-navy); }
+  .nav-panel .nav-museu + .tag-open { margin-top: 16px; }
+}
+
