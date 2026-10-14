@@ -25,10 +25,12 @@ membros:
     exemplo: false
   - cargo: Diretor(a) Financeiro(a)
     nome: Ana Vitória Amorim Mendes Melo
+    foto: /src/assets/uploads/mandatos/2024-2/membros/5/foto.jpg
     linkedin: https://www.linkedin.com/in/anavi-melo/
     exemplo: false
   - cargo: Diretor(a) de Pesquisa
     nome: Rafaela (Cassy) Sousa Costa
+    foto: /src/assets/uploads/mandatos/2024-2/membros/6/foto.jpeg
     linkedin: https://www.linkedin.com/in/rafaela-sousa-costa-3920572bb/
     exemplo: false
 orientador:
